@@ -1,0 +1,34 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://github.com/jeffmhopkins/PoliticalResearch/templates/identity.schema.yaml"
+title: Candidate identity anchor
+type: object
+required: [item_id, full_legal_name, ballot_name, office, photo_included]
+additionalProperties: false
+properties:
+  item_id:
+    type: string
+  full_legal_name:
+    type: string
+  ballot_name:
+    type: string
+  office:
+    type: string
+  district:
+    type: string
+  city:
+    type: string
+  county:
+    type: string
+  state:
+    type: string
+  filing_ids:
+    type: array
+    items:
+      type: string
+  campaign_site:
+    type: string
+  description:
+    type: string
+  photo_included:
+    type: boolean
+    const: false

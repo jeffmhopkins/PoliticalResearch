@@ -1,0 +1,111 @@
+:root {
+  --text: #1a1a1a;
+  --bg: #ffffff;
+  --muted: #333333;
+  --link: #0b3d91;
+  --banner-bg: #1b1b1b;
+  --banner-fg: #ffffff;
+  --disputed-bg: #fff6d8;
+  --disputed-border: #6b5300;
+  --line: #4a4a4a;
+  --focus: #0b3d91;
+}
+
+* { box-sizing: border-box; }
+
+html { font-size: 100%; }
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--bg);
+  font-family: "DejaVu Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+  line-height: 1.55;
+}
+
+.skip {
+  position: absolute;
+  left: 0.5rem;
+  top: 0.5rem;
+  background: #ffffff;
+  color: #000000;
+  padding: 0.4rem 0.6rem;
+  z-index: 2;
+  transform: translateY(-150%);
+}
+
+.skip:focus {
+  transform: none;
+  outline: 3px solid var(--focus);
+}
+
+.banner {
+  background: var(--banner-bg);
+  color: var(--banner-fg);
+  padding: 0.8rem 1rem;
+}
+
+.banner p { margin: 0; }
+
+main {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 3rem;
+}
+
+h1, h2, h3 { line-height: 1.25; }
+
+a { color: var(--link); }
+
+a:focus, button:focus, summary:focus {
+  outline: 3px solid var(--focus);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+th, td {
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+th { background: #f2f2f2; }
+
+blockquote {
+  margin: 1rem 0;
+  padding: 0.2rem 0 0.2rem 1rem;
+  border-left: 4px solid var(--line);
+}
+
+.disputed, blockquote.disputed {
+  background: var(--disputed-bg);
+  border: 2px solid var(--disputed-border);
+  padding: 0.6rem 0.8rem;
+}
+
+footer {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+code { font-size: 0.95em; }
+
+@media screen and (max-width: 40rem) {
+  main, footer { padding-left: 0.8rem; padding-right: 0.8rem; }
+  body { font-size: 1.05rem; }
+}
+
+@media print {
+  .skip { display: none; }
+  .banner { background: #ffffff; color: #000000; border: 2px solid #000000; }
+  a { color: #000000; text-decoration: underline; }
+  table { display: table; }
+}

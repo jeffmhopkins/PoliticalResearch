@@ -1,0 +1,20 @@
+- id: F-0002
+  round: 1
+  reviewer: neutrality
+  claim_id: cand-okonkwo.funding.002
+  type: neutrality
+  severity: major
+  issue: The mailer's donor characterization was written as if it were a finding. The itemized filing
+    does not show a developer majority.
+  evidence:
+  - https://fictional.example/westland-finance/okonkwo-2026-q3-items
+  - Largest receipt is Friends of the River Path, 2500 dollars.
+  status: disputed
+  coordinator_note: Unresolved major at MAX_ROUNDS. The mailer stays attributed and disputed. It does
+    not drive the summary.
+  response:
+    action: dispute
+    rationale: The mailer sentence is kept only as the mailer's words, next to the filing line. It is
+      not a fact about the donor list.
+    evidence:
+    - https://fictional.example/quinn-mailer/2026-10

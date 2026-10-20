@@ -1,0 +1,53 @@
+{
+  "item_id": "cand-okonkwo",
+  "searches": 12,
+  "fetches": 9,
+  "minutes": 42,
+  "sections": {
+    "identity": {
+      "searches": 2,
+      "fetches": 1
+    },
+    "prior offices and public service": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "occupational history": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "education": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "campaign funding": {
+      "searches": 2,
+      "fetches": 1
+    },
+    "record vs rhetoric": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "positions in own words": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "debates and forums": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "endorsements": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "legal issues": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "strongest case": {
+      "searches": 0,
+      "fetches": 0
+    }
+  },
+  "explanation": ""
+}

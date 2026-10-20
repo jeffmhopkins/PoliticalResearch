@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jeffmhopkins/PoliticalResearch/templates/effort.schema.json",
+  "title": "Research effort log",
+  "type": "object",
+  "required": ["item_id", "searches", "fetches", "minutes"],
+  "additionalProperties": false,
+  "properties": {
+    "item_id": {"type": "string"},
+    "searches": {"type": "integer", "minimum": 0},
+    "fetches": {"type": "integer", "minimum": 0},
+    "minutes": {"type": "integer", "minimum": 0},
+    "sections": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["searches", "fetches"],
+        "additionalProperties": false,
+        "properties": {
+          "searches": {"type": "integer", "minimum": 0},
+          "fetches": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "explanation": {"type": "string"}
+  }
+}

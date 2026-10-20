@@ -1,0 +1,116 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://github.com/jeffmhopkins/PoliticalResearch/templates/ballot.schema.yaml"
+title: Confirmed or draft ballot
+type: object
+required: [election_id, fiction, confirmed_by_requester, confirmed_at, report_version, contests]
+additionalProperties: false
+properties:
+  election_id:
+    type: string
+    pattern: "^[a-z0-9][a-z0-9-]*$"
+  fiction:
+    type: boolean
+  confirmed_by_requester:
+    type: boolean
+  confirmed_at:
+    type: [string, "null"]
+  report_version:
+    type: string
+  lookup_status:
+    type: string
+  lookup_source:
+    type: [string, "null"]
+  lookup_error:
+    type: [string, "null"]
+  election:
+    type: object
+    additionalProperties: false
+    required: [name, date, type, jurisdiction]
+    properties:
+      name:
+        type: string
+      date:
+        type: string
+      type:
+        type: string
+      jurisdiction:
+        type: object
+        additionalProperties: false
+        properties:
+          state:
+            type: string
+          county:
+            type: string
+          city:
+            type: string
+  logistics:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [label, url]
+      properties:
+        label:
+          type: string
+        url:
+          type: string
+        marker:
+          type: integer
+  contests:
+    type: array
+    items:
+      $ref: "#/$defs/contest"
+  conflicts:
+    type: array
+    items:
+      type: string
+  notes:
+    type: array
+    items:
+      type: string
+$defs:
+  candidate:
+    type: object
+    required: [id, name]
+    additionalProperties: false
+    properties:
+      id:
+        type: string
+      item_id:
+        type: string
+      name:
+        type: string
+      party:
+        type: string
+      incumbent:
+        type: boolean
+      withdrawn:
+        type: boolean
+      withdrawn_on:
+        type: [string, "null"]
+      write_in:
+        type: boolean
+      limited_public_record:
+        type: boolean
+  contest:
+    type: object
+    required: [id, type, title, official_source_url]
+    additionalProperties: false
+    properties:
+      id:
+        type: string
+      item_id:
+        type: string
+      type:
+        type: string
+        enum: [race, measure, legislation, judicial-retention, primary, local-office]
+      title:
+        type: string
+      official_source_url:
+        type: [string, "null"]
+      district:
+        type: string
+      candidates:
+        type: array
+        items:
+          $ref: "#/$defs/candidate"

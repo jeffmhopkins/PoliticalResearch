@@ -1,0 +1,17 @@
+# Defaults for open questions in the implementation plan. See the README.
+max_rounds: 3
+max_rounds_refresh: 1
+staleness_days: 7
+effort_parity_ratio: 0.8
+summary_grade_level_max: 9
+timezone: America/New_York
+pdf_engine_preference:
+  - weasyprint
+  - wkhtmltopdf
+legislation_included_by_default: false
+languages_v1:
+  - en
+human_signoff_required_before: sharing
+strongest_case_for_candidates: true
+interest_group_ratings: paired_or_omit
+values_matching: false

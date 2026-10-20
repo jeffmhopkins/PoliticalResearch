@@ -1,0 +1,54 @@
+election_id: fictional-cedar-hollow-2026
+fiction: true
+confirmed_by_requester: true
+confirmed_at: 2026-10-20 10:00 ET
+report_version: v1.0
+lookup_status: manual_official_ballot
+lookup_source: null
+lookup_error: null
+election:
+  name: Cedar Hollow general election
+  date: '2026-11-03'
+  type: general
+  jurisdiction:
+    state: Westland
+    county: Oak County
+    city: Cedar Hollow
+logistics:
+- label: Oak County elections office (fictional)
+  url: https://fictional.example/oak-county/elections
+  marker: 40
+contests:
+- id: race-mayor
+  item_id: race-mayor
+  type: race
+  title: Mayor of Cedar Hollow
+  official_source_url: https://fictional.example/oak-county/2026/sample-ballot
+  district: Cedar Hollow
+  candidates:
+  - id: cand-quinn
+    item_id: cand-quinn
+    name: Avery Quinn
+    party: nonpartisan
+    incumbent: true
+    withdrawn: false
+    write_in: false
+    limited_public_record: false
+  - id: cand-okonkwo
+    item_id: cand-okonkwo
+    name: Blake Okonkwo
+    party: nonpartisan
+    incumbent: false
+    withdrawn: false
+    write_in: false
+    limited_public_record: false
+- id: measure-h
+  item_id: measure-h
+  type: measure
+  title: Measure H, Cedar Hollow parks levy
+  official_source_url: https://fictional.example/oak-county/2026/measure-h
+  district: Cedar Hollow
+  candidates: []
+conflicts: []
+notes:
+- Fictional fixture. Contests were written from invented official documents, not a live API.

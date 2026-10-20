@@ -1,0 +1,28 @@
+# Generated guides and requester data. Never commit these.
+output/
+private/
+**/private/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Local build products of the worked example
+examples/sample-election/final/guide.html
+examples/sample-election/final/guide.css
+examples/sample-election/final/guide.pdf
+examples/sample-election/final/guide-with-sources.zip
+examples/sample-election/versions/
+examples/sample-election/archive/
+
+# Tool caches
+.cache/
+*.log

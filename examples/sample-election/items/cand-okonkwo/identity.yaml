@@ -1,0 +1,13 @@
+item_id: cand-okonkwo
+full_legal_name: Blake Amari Okonkwo
+ballot_name: Blake Okonkwo
+office: Mayor of Cedar Hollow
+district: Cedar Hollow
+city: Cedar Hollow
+county: Oak County
+state: Westland
+filing_ids:
+- WL-FICTION-1002
+campaign_site: https://okonkwo-for-cedar.example/
+description: Adult candidate listed on the fictional Cedar Hollow mayoral ballot as the challenger.
+photo_included: false

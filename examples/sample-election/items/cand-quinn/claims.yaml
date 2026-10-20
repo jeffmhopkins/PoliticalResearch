@@ -1,0 +1,238 @@
+item_id: cand-quinn
+item_type: candidate
+claims:
+- id: cand-quinn.identity.001
+  section: identity
+  text: Avery Quinn is on the Cedar Hollow mayoral ballot as the nonpartisan incumbent.
+  marker: 1
+  sources:
+  - marker: 1
+    url: https://fictional.example/oak-county/2026/sample-ballot
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Oak County Elections (fictional)
+    title: Sample ballot, Cedar Hollow, November 3, 2026
+    doc_type: Official sample ballot
+    published: '2026-09-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Mayor contest, first name
+    quote: Avery Quinn, Mayor, Nonpartisan, Incumbent.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.prior-offices.001
+  section: prior-offices
+  text: Avery Quinn was elected to the Cedar Hollow council for a term that began in 2018.
+  marker: 2
+  sources:
+  - marker: 2
+    url: https://fictional.example/cedar-hollow/certificates/2018-council
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow Clerk (fictional)
+    title: City council election certificate, 2018
+    doc_type: Election certificate
+    published: '2018-11-20'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Certificate body
+    quote: Avery Quinn was elected to a four-year council term.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - city
+- id: cand-quinn.occupation.001
+  section: occupation
+  text: Avery Quinn worked as a classroom teacher from 2004 through 2018.
+  marker: 3
+  sources:
+  - marker: 3
+    url: https://fictional.example/westland-schools/staff-2018
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland Schools (fictional)
+    title: Staff directory extract, 2018
+    doc_type: Employer directory
+    published: '2018-06-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Teacher table
+    quote: Avery Quinn, classroom teacher, 2004 through 2018.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - occupation
+- id: cand-quinn.education.001
+  section: education
+  text: Avery Quinn received a bachelor of arts degree from the State University of Westland in 2004.
+  marker: 4
+  sources:
+  - marker: 4
+    url: https://fictional.example/suw/registrar/quinn-2004
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: State University of Westland (fictional)
+    title: Registrar confirmation letter
+    doc_type: Education record
+    published: '2004-05-20'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Degree line
+    quote: Avery Quinn received a bachelor of arts degree in 2004.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.funding.001
+  section: funding
+  text: The Quinn committee reported 48200 dollars in receipts and 17200 dollars in cash on hand for the
+    quarter that ended September 30, 2026.
+  marker: 5
+  sources:
+  - marker: 5
+    url: https://fictional.example/westland-finance/quinn-2026-q3
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland campaign finance office (fictional)
+    title: Quinn for Cedar committee, quarter ending September 30, 2026
+    doc_type: Campaign filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Summary page, lines 1 through 4
+    quote: Receipts 48200, disbursements 31000, cash on hand 17200, debt 0.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+  as_of: '2026-09-30'
+  filing_period: 2026-07-01 through 2026-09-30
+- id: cand-quinn.record.001
+  section: record
+  text: Mayor Quinn voted yes on the city parks budget on June 4, 2024.
+  marker: 6
+  sources:
+  - marker: 6
+    url: https://fictional.example/cedar-hollow/minutes/2024-06-04
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow Clerk (fictional)
+    title: Council minutes, June 4, 2024
+    doc_type: Meeting minutes
+    published: '2024-06-04'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Vote table, parks budget
+    quote: Mayor Quinn voted yes on the parks budget.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.positions.001
+  section: positions
+  text: Quinn wrote that the levy should stay at the amount printed on the ballot.
+  marker: 7
+  sources:
+  - marker: 7
+    url: https://fictional.example/ch-league/questionnaire-2026
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow League of Voters (fictional)
+    title: Mayoral questionnaire 2026
+    doc_type: Questionnaire
+    published: '2026-09-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Quinn answer, parks question
+    quote: I will ask the council to keep the levy at the amount printed on the ballot.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.debates.001
+  section: debates
+  text: At a September 20, 2026 forum, Quinn pointed to the 2024 parks vote.
+  marker: 8
+  sources:
+  - marker: 8
+    url: https://fictional.example/library/forum-2026-09-20
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow Library (fictional)
+    title: Mayor forum recording, September 20, 2026
+    doc_type: Forum recording
+    published: '2026-09-20'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Timestamp 00:14:10
+    quote: The parks budget I voted for is the one in the 2024 minutes.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.endorsements.001
+  section: endorsements
+  text: The Cedar Hollow Firefighters Association says it endorses Avery Quinn.
+  marker: 9
+  sources:
+  - marker: 9
+    url: https://fictional.example/ch-firefighters/endorsement-2026
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow Firefighters Association (fictional)
+    title: Endorsement notice
+    doc_type: Organization statement
+    published: '2026-09-02'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T4
+    locator: Opening sentence
+    quote: The association endorses Avery Quinn for mayor.
+    confidence: single-source
+  confidence: single-source
+  drives_summary: false
+  polarity: neutral
+  about_person: true
+  attribution_only: true
+  identity_attributes:
+  - ballot_name
+  - office

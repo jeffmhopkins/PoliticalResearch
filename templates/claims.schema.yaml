@@ -1,0 +1,123 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://github.com/jeffmhopkins/PoliticalResearch/templates/claims.schema.yaml"
+title: Claims file
+type: object
+required: [item_id, item_type, claims]
+additionalProperties: false
+properties:
+  item_id:
+    type: string
+    pattern: "^[a-z0-9][a-z0-9-]*$"
+  item_type:
+    type: string
+    enum: [candidate, race, measure, legislation, judicial-retention, primary, local-office]
+  claims:
+    type: array
+    items:
+      $ref: "#/$defs/claim"
+$defs:
+  source:
+    type: object
+    required: [url, publisher, title, doc_type, published, retrieved, tier, locator, quote, confidence]
+    additionalProperties: false
+    properties:
+      url:
+        type: string
+        minLength: 8
+      archive_url:
+        type: [string, "null"]
+      archive_failed:
+        type: boolean
+      archive_failed_reason:
+        type: [string, "null"]
+      publisher:
+        type: string
+        minLength: 1
+      title:
+        type: string
+        minLength: 1
+      doc_type:
+        type: string
+        minLength: 1
+      published:
+        type: string
+        pattern: "^([0-9]{4}-[0-9]{2}-[0-9]{2}|undated)$"
+      retrieved:
+        type: string
+        pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET$"
+      tier:
+        type: string
+        enum: [T1, T2, T3, T4]
+      locator:
+        type: string
+        minLength: 1
+      quote:
+        type: string
+        minLength: 1
+        maxLength: 600
+      confidence:
+        type: string
+        enum: [verified, single-source, unconfirmed]
+      local_copy:
+        type: string
+      marker:
+        type: integer
+        minimum: 1
+  claim:
+    type: object
+    required: [id, section, text, sources, confidence]
+    additionalProperties: false
+    properties:
+      id:
+        type: string
+        pattern: "^[a-z0-9][a-z0-9-]*(?:\\.[a-z0-9][a-z0-9-]*)+\\.[0-9]{3}$"
+      section:
+        type: string
+        minLength: 1
+      text:
+        type: string
+        minLength: 1
+      marker:
+        type: integer
+        minimum: 1
+      sources:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/$defs/source"
+      confidence:
+        type: string
+        enum: [verified, single-source, unconfirmed, disputed, identity-unconfirmed]
+      drives_summary:
+        type: boolean
+      polarity:
+        type: string
+        enum: [neutral, negative, positive]
+      about_person:
+        type: boolean
+      identity_attributes:
+        type: array
+        items:
+          type: string
+      attribution_only:
+        type: boolean
+      as_of:
+        type: string
+      filing_period:
+        type: string
+      inputs:
+        type: array
+        items:
+          type: string
+      suspected_injection:
+        type: boolean
+      notes:
+        type: string
+      removed:
+        type: boolean
+      removal_reason:
+        type: string
+      corrected:
+        type: boolean
+      correction_note:
+        type: string
