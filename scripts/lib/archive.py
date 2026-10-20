@@ -20,7 +20,7 @@ import zipfile
 from pathlib import Path
 
 from lib.quality import iter_claim_sources, source_marker, wayback_api_url
-from lib.util import dump_yaml, load_yaml, now_et, resolve_bin, slugify
+from lib.util import dump_yaml, load_yaml, now_et, resolve_bin, slugify, unsafe_fetch_target
 
 MANIFEST_FIELDS = [
     "n",
@@ -155,6 +155,9 @@ def find_browser() -> str | None:
 
 
 def live_monolith(url: str) -> bytes | None:
+    reason = unsafe_fetch_target(url)
+    if reason:
+        raise RuntimeError(f"Refusing fetch: {reason}")
     binary = resolve_bin("monolith")
     if not binary:
         return None
@@ -180,6 +183,9 @@ def live_monolith(url: str) -> bytes | None:
 
 
 def live_screenshot(url: str) -> bytes | None:
+    reason = unsafe_fetch_target(url)
+    if reason:
+        raise RuntimeError(f"Refusing fetch: {reason}")
     browser = find_browser()
     if not browser:
         return None
@@ -369,5 +375,11 @@ def _write_zip(workspace: Path, zip_path: Path) -> None:
 def http_fetch(url: str):
     import requests
 
+    reason = unsafe_fetch_target(url)
+    if reason:
+        raise RuntimeError(f"Refusing fetch: {reason}")
     response = requests.get(url, timeout=30, headers={"User-Agent": "PoliticalResearch-archive/0.1"})
+    redirected = unsafe_fetch_target(response.url)
+    if redirected:
+        raise RuntimeError(f"Refusing redirect: {redirected}")
     return response.status_code, response.url, response.content, response.headers.get("Content-Type", "")

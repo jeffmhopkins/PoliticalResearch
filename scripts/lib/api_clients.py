@@ -9,11 +9,32 @@ class ApiError(RuntimeError):
     pass
 
 
+_CIVIC_DROP = {
+    "normalizedinput",
+    "mailonly",
+    "pollinglocations",
+    "earlyvotesites",
+    "dropofflocations",
+    "precinctid",
+    "address",
+}
+
+
 def scrub_civic_payload(payload: dict) -> dict:
-    cleaned = dict(payload)
-    cleaned.pop("normalizedInput", None)
-    cleaned.pop("mailOnly", None)
-    return cleaned
+    def walk(value):
+        if isinstance(value, dict):
+            cleaned = {}
+            for key, item in value.items():
+                if str(key).lower() in _CIVIC_DROP:
+                    continue
+                cleaned[key] = walk(item)
+            return cleaned
+        if isinstance(value, list):
+            return [walk(item) for item in value]
+        return value
+
+    walked = walk(payload)
+    return walked if isinstance(walked, dict) else {}
 
 
 def _http_url(value: str | None) -> str | None:
@@ -64,22 +85,29 @@ def contests_from_civic(payload: dict) -> tuple[list[dict], list[str]]:
             if not isinstance(candidate, dict) or not candidate.get("name"):
                 continue
             slug = f"cand-{index}-{cand_index}"
-            candidates.append(
-                {
-                    "id": slug,
-                    "item_id": slug,
-                    "name": candidate.get("name"),
-                    "party": candidate.get("party") or "nonpartisan",
-                    "incumbent": False,
-                    "withdrawn": False,
-                    "write_in": False,
-                    "limited_public_record": False,
-                }
-            )
-        url = fallback
+            row = {
+                "id": slug,
+                "item_id": slug,
+                "name": candidate.get("name"),
+                "withdrawn": False,
+                "write_in": False,
+                "limited_public_record": False,
+            }
+            if candidate.get("party"):
+                row["party"] = candidate.get("party")
+            if candidate.get("incumbent") is True:
+                row["incumbent"] = True
+            candidates.append(row)
+        url = None
         for candidate in contest.get("candidates") or []:
-            if isinstance(candidate, dict) and _http_url(candidate.get("candidateUrl")) and url is None:
-                url = None
+            if not isinstance(candidate, dict):
+                continue
+            found = _http_url(candidate.get("candidateUrl"))
+            if found:
+                url = found
+                break
+        if url is None:
+            url = fallback
         contests.append(
             {
                 "id": f"race-{index}",
@@ -117,10 +145,18 @@ def fec_stub(candidate_id: str, cycle: str, payload: dict) -> dict:
 def get_json(url: str, *, headers: dict | None = None, params: dict | None = None, secrets: list[str] | None = None, timeout: int = 30) -> dict:
     import requests
 
+    from lib.util import unsafe_fetch_target
+
+    reason = unsafe_fetch_target(url)
+    if reason:
+        raise ApiError(f"Refusing fetch: {reason}")
     try:
         response = requests.get(url, headers=headers or {}, params=params or {}, timeout=timeout)
     except requests.RequestException as exc:
         raise ApiError(redact(str(exc), secrets or [])) from exc
+    redirected = unsafe_fetch_target(response.url)
+    if redirected:
+        raise ApiError(f"Refusing redirect: {redirected}")
     if response.status_code >= 400:
         raise ApiError(redact(f"HTTP {response.status_code} from {url}", secrets or []))
     try:

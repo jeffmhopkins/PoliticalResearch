@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import re
 import shutil
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 import yaml
@@ -29,9 +31,18 @@ KEY_NAMES = (
     "LEGISCAN_API_KEY",
 )
 
+_STREET_SUFFIX = (
+    r"(?:st|street|ave|avenue|rd|road|blvd|boulevard|dr|drive|ln|lane|way|ct|court|pl|place|pkwy|parkway)"
+)
+_SPELLED_NUMBER = r"(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
 STREET_RE = re.compile(
-    r"\b\d{1,6}\s+[A-Za-z0-9.'-]+(?:\s+[A-Za-z0-9.'-]+){0,4}\s+"
-    r"(?:st|street|ave|avenue|rd|road|blvd|boulevard|dr|drive|ln|lane|way|ct|court)\b",
+    rf"(?:"
+    rf"\b\d{{1,6}}\s+[A-Za-z0-9.'-]+(?:\s+[A-Za-z0-9.'-]+){{0,4}}\s+{_STREET_SUFFIX}\b"
+    rf"|"
+    rf"\b{_SPELLED_NUMBER}\s+[A-Za-z0-9.'-]+(?:\s+[A-Za-z0-9.'-]+){{0,4}}\s+{_STREET_SUFFIX}\b"
+    rf"|"
+    rf"\b(?:P\.?\s*O\.?\s*Box|Post\s+Office\s+Box)\s+\d+\b"
+    rf")",
     re.IGNORECASE,
 )
 
@@ -143,6 +154,32 @@ def iter_items(workspace: Path) -> list[Path]:
 
 def looks_like_street_address(value: str) -> bool:
     return bool(STREET_RE.search(value or ""))
+
+
+def unsafe_fetch_target(url: str) -> str | None:
+    """Return a reason when a URL must not be fetched. None means the target is allowed."""
+    parsed = urlparse(url or "")
+    if parsed.scheme not in {"http", "https"}:
+        return f"scheme {parsed.scheme or 'missing'} is not http(s)"
+    host = (parsed.hostname or "").lower().rstrip(".")
+    if not host:
+        return "missing host"
+    if host in {"localhost", "metadata.google.internal"} or host.endswith((".local", ".internal")):
+        return f"host {host} is not allowed"
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        address = None
+    if address is not None and (
+        address.is_private
+        or address.is_loopback
+        or address.is_link_local
+        or address.is_reserved
+        or address.is_multicast
+        or address.is_unspecified
+    ):
+        return f"address {host} is not allowed"
+    return None
 
 
 def resolve_bin(name: str, root: Path | None = None) -> str | None:

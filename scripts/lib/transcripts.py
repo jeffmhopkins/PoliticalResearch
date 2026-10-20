@@ -16,7 +16,7 @@ import tempfile
 from pathlib import Path
 
 from lib.quality import SENTENCE_SPLIT_RE
-from lib.util import dump_yaml, load_config, repo_root, resolve_bin, slugify
+from lib.util import dump_yaml, load_config, repo_root, resolve_bin, slugify, unsafe_fetch_target
 
 SKIP_MESSAGE = (
     "Whisper transcription is not available. It is opt-in: set whisper_transcription: true "
@@ -182,7 +182,8 @@ def transcribe_item(
             "status": "unreviewed_import",
             "note": (
                 "Machine transcript. Not a finished claim. Check the quote against the recording "
-                "before copying suggested_source into claims.yaml. Confirm the tier: a campaign "
+                "before copying suggested_source into claims.yaml. Replace marker 9001 with a number "
+                "that is unique in this election. Confirm the tier: a campaign "
                 "video is not T1 by default."
             ),
             "url": url,
@@ -203,6 +204,9 @@ def transcribe_item(
                 "locator": locator,
                 "quote": quote,
                 "confidence": "unconfirmed",
+                "archive_failed": True,
+                "archive_failed_reason": "Transcript import is unreviewed. Archive the recording before publication.",
+                "marker": 9001,
             },
         },
     )
@@ -215,6 +219,9 @@ def transcribe_item(
 
 
 def live_download(url: str, media_dir: Path) -> Path | None:
+    reason = unsafe_fetch_target(url)
+    if reason:
+        raise RuntimeError(f"Refusing fetch: {reason}")
     binary = resolve_bin("yt-dlp")
     if not binary or resolve_bin("ffmpeg") is None:
         return None

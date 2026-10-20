@@ -27,6 +27,8 @@ properties:
       type: string
   campaign_site:
     type: string
+  occupation:
+    type: string
   description:
     type: string
   photo_included:

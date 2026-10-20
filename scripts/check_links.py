@@ -8,7 +8,13 @@ import sys
 import _boot  # noqa: F401
 from lib.cli import base_parser, workspace_from
 from lib.quality import classify_link, iter_claim_sources, source_marker, wayback_api_url
-from lib.util import iter_items, load_yaml
+from lib.util import dump_json, iter_items, load_yaml, unsafe_fetch_target
+
+
+def _has_archive(source: dict) -> bool:
+    if source.get("archive_url"):
+        return True
+    return source.get("archive_failed") is True and bool(str(source.get("archive_failed_reason") or "").strip())
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -18,6 +24,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     workspace = workspace_from(args)
     failures = []
+    checked = 0
     for item in iter_items(workspace):
         doc = load_yaml(item / "claims.yaml") or {}
         if not isinstance(doc, dict):
@@ -25,27 +32,48 @@ def main(argv: list[str] | None = None) -> int:
         for claim, source in iter_claim_sources(doc):
             if claim.get("removed"):
                 continue
-            url = source.get("url")
-            has_archive = bool(source.get("archive_url")) or source.get("archive_failed") is True
+            url = str(source.get("url") or "")
+            has_archive = _has_archive(source)
+            marker = source_marker(claim, source)
+            checked += 1
+            blocked = unsafe_fetch_target(url) if url else "empty URL"
+            if blocked:
+                print(f"blocked\t{marker}\t{url}\t{blocked}")
+                failures.append(url or claim.get("id"))
+                continue
             status = None
             if not args.offline and url:
                 try:
                     import requests
 
                     response = requests.head(url, timeout=15, allow_redirects=True)
+                    redirected = unsafe_fetch_target(response.url)
+                    if redirected:
+                        print(f"blocked-redirect\t{marker}\t{response.url}\t{redirected}")
+                        failures.append(url)
+                        continue
                     status = response.status_code
                     if status in {403, 405}:
-                        status = requests.get(url, timeout=20, allow_redirects=True).status_code
+                        follow = requests.get(url, timeout=20, allow_redirects=True)
+                        redirected = unsafe_fetch_target(follow.url)
+                        if redirected:
+                            print(f"blocked-redirect\t{marker}\t{follow.url}\t{redirected}")
+                            failures.append(url)
+                            continue
+                        status = follow.status_code
                 except Exception as exc:  # noqa: BLE001
                     print(f"UNCHECKED {url} ({exc})")
                     status = None
             kind = classify_link(status, has_archive)
-            marker = source_marker(claim, source)
             print(f"{kind}\t{marker}\t{url}\twayback={wayback_api_url(url or '')}")
             if kind == "dead":
                 failures.append(url)
-    if failures and args.strict:
-        print(f"{len(failures)} dead link(s) without an archive fallback.", file=sys.stderr)
+    dump_json(
+        workspace / "link-check.json",
+        {"mode": "offline" if args.offline else "live", "checked": checked, "errors": len(failures)},
+    )
+    if failures and (args.strict or args.offline):
+        print(f"{len(failures)} link(s) failed the check.", file=sys.stderr)
         return 1
     return 0
 

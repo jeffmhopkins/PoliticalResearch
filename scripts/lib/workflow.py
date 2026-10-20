@@ -3,9 +3,19 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 from pathlib import Path
 
-from lib.quality import claim_index, source_marker
+from lib.quality import (
+    assembled_guide_errors,
+    claim_index,
+    content_gate_errors,
+    environment_rating_sentence,
+    identities_for_item,
+    iter_claim_sources,
+    semantic_claim_errors,
+    source_marker,
+)
 from lib.schema import instance_errors, load_schema
 from lib.util import (
     CLAIM_ID_RE,
@@ -178,25 +188,26 @@ def confirm_ballot(workspace: Path, clock: str) -> list[str]:
     ballot["confirmed_by_requester"] = True
     ballot["confirmed_at"] = clock
     dump_yaml(ballot_path, ballot)
-    _delete_ballot_images(workspace)
+    cleared = _delete_ballot_images(workspace)
     intake_path = workspace / "intake.yaml"
     intake = load_yaml(intake_path) or {}
-    if isinstance(intake, dict):
+    if isinstance(intake, dict) and cleared:
         intake["ballot_photo_deleted"] = True
         dump_yaml(intake_path, intake)
     return []
 
 
-def _delete_ballot_images(workspace: Path) -> None:
+def _delete_ballot_images(workspace: Path) -> bool:
+    """Delete image and PDF files in private/. Leave address.txt. True when none remain."""
     private = workspace / "private"
+    suffixes = {".jpg", ".jpeg", ".png", ".heic", ".pdf", ".webp", ".gif", ".tif", ".tiff"}
     if not private.is_dir():
-        return
-    for path in private.iterdir():
-        if not path.is_file():
-            continue
-        name = path.name.lower()
-        if name.startswith("ballot") and path.suffix.lower() in {".jpg", ".jpeg", ".png", ".heic", ".pdf", ".webp"}:
+        return True
+    for path in list(private.iterdir()):
+        if path.is_file() and path.suffix.lower() in suffixes:
             path.unlink()
+    remaining = [path for path in private.iterdir() if path.is_file() and path.suffix.lower() in suffixes]
+    return not remaining
 
 
 def approve_sharing(workspace: Path, clock: str) -> list[str]:
@@ -535,11 +546,16 @@ def scaffold_item(
     claims_path = item / "claims.yaml"
     if claims_path.exists() and not force:
         return []
-    template = (repo_root() / "templates" / TEMPLATE_BY_TYPE[item_type]).read_text(encoding="utf-8")
+    templates = repo_root() / "templates"
+    if item_type == "primary":
+        template = (templates / "candidate.md").read_text(encoding="utf-8") + "\n" + (templates / "primary.md").read_text(encoding="utf-8")
+    elif item_type == "local-office":
+        template = (templates / "candidate.md").read_text(encoding="utf-8") + "\n" + (templates / "local-office.md").read_text(encoding="utf-8")
+    else:
+        template = (templates / TEMPLATE_BY_TYPE[item_type]).read_text(encoding="utf-8")
     draft = f"# {title}\n\n" + template
     (item / "draft.md").write_text(draft, encoding="utf-8")
-    claim_type = item_type if item_type not in {"primary", "local-office"} else "race"
-    dump_yaml(claims_path, {"item_id": item_id, "item_type": claim_type, "claims": []})
+    dump_yaml(claims_path, {"item_id": item_id, "item_type": item_type, "claims": []})
     save_findings(item, [])
     dump_json(item / "loop-state.json", fresh_loop_state(item_id, clock))
     dump_json(
@@ -553,7 +569,7 @@ def scaffold_item(
             "Format: `CL-id | round | finding id | claim id | before -> after | reason | timestamp ET`\n",
             encoding="utf-8",
         )
-    if item_type == "candidate":
+    if item_type in {"candidate", "primary", "local-office"}:
         dump_yaml(
             item / "identity.yaml",
             {
@@ -637,8 +653,24 @@ def _finding_counts(workspace: Path) -> dict[str, int]:
     return counts
 
 
+def snapshot_guide(versions: Path, previous: str, today: str) -> Path:
+    """Copy a previous guide using the version inside that file. Never overwrite a same-day snapshot."""
+    match = re.search(r"^version:\s*(\S+)", previous, re.M)
+    old = match.group(1) if match else "v0"
+    dest = versions / f"guide-{old}-{today}.md"
+    suffix = 2
+    while dest.exists():
+        dest = versions / f"guide-{old}-{today}-{suffix}.md"
+        suffix += 1
+    versions.mkdir(parents=True, exist_ok=True)
+    dest.write_text(previous, encoding="utf-8")
+    return dest
+
+
 def assemble_guide(workspace: Path, today: str) -> list[str]:
     blocked = gate_errors(workspace)
+    blocked.extend(structural_workspace_errors(workspace))
+    blocked.extend(content_gate_errors(workspace, date.fromisoformat(today), include_guide=False))
     if blocked:
         return blocked
     ballot = load_yaml(workspace / "ballot.yaml") or {}
@@ -705,11 +737,15 @@ def assemble_guide(workspace: Path, today: str) -> list[str]:
             parts.append(draft.read_text(encoding="utf-8").strip())
             parts.append("")
     counts = _finding_counts(workspace)
-    env_path = workspace / "env.md"
-    if env_path.exists():
-        env_line = "Environment notes are in env.md for this workspace."
-    else:
-        env_line = "No environment rating file was found in this workspace."
+    env_line = environment_rating_sentence(workspace)
+    flagged_sources = 0
+    for item in iter_items(workspace):
+        doc = load_yaml(item / "claims.yaml") or {}
+        if not isinstance(doc, dict):
+            continue
+        for _claim, source in iter_claim_sources(doc):
+            if source.get("suspected_injection") is True:
+                flagged_sources += 1
     subagents = "not recorded"
     if isinstance(intake, dict):
         subagents = "available" if intake.get("parallel_subagents") else "not used; roles run one at a time in fresh contexts"
@@ -725,6 +761,7 @@ def assemble_guide(workspace: Path, today: str) -> list[str]:
             "# Methodology",
             "",
             f"Version {ballot.get('report_version') or 'v1.0'} assembled on {today}. {env_line}",
+            f"Sources flagged suspected_injection: {flagged_sources}.",
             f"Parallel subagents: {subagents}.",
             f"Findings recorded: {counts['total']}. Accepted: {counts['accepted']}. Disputed: {counts['disputed']}.",
             "Disputed and unconfirmed claims are not used in summaries. Blockers are removed rather than left disputed.",
@@ -826,16 +863,18 @@ def assemble_guide(workspace: Path, today: str) -> list[str]:
         parts.append(footnote_line(marker, source))
         parts.append("")
     text = "\n".join(parts).rstrip() + "\n"
+    index = claim_index(workspace)
+    guide_problems = assembled_guide_errors(text, index)
+    if guide_problems:
+        return guide_problems
     final = workspace / "final"
     final.mkdir(parents=True, exist_ok=True)
     versions = workspace / "versions"
     guide = final / "guide.md"
     if guide.exists():
-        versions.mkdir(parents=True, exist_ok=True)
         previous = guide.read_text(encoding="utf-8")
         if previous != text:
-            version = ballot.get("report_version") or "v1.0"
-            (versions / f"guide-{version}-{today}.md").write_text(previous, encoding="utf-8")
+            snapshot_guide(versions, previous, today)
     guide.write_text(text, encoding="utf-8")
     return []
 
@@ -865,9 +904,13 @@ def structural_workspace_errors(workspace: Path) -> list[str]:
                 for message in instance_errors(doc, load_schema("claims.schema.yaml", str(root)))
             )
             if isinstance(doc, dict):
-                from lib.quality import semantic_claim_errors
-
-                errors.extend(semantic_claim_errors(doc, f"{item.name}/claims.yaml"))
+                errors.extend(
+                    semantic_claim_errors(
+                        doc,
+                        f"{item.name}/claims.yaml",
+                        identities_for_item(workspace, item, doc),
+                    )
+                )
                 if doc.get("item_type") == "candidate":
                     identity_path = item / "identity.yaml"
                     if not identity_path.exists():

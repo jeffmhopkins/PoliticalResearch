@@ -564,11 +564,11 @@ def measure_claims():
     claims = [
         claim("measure-h.title.001", "title", "The official label is Measure H, Parks levy.", [title]),
         claim("measure-h.qualification.001", "qualification", "The city council referred Measure H to the ballot.", [qualify]),
-        claim("measure-h.law.001", "law", "The current parks levy expires after the 2026 tax year.", [law]),
+        claim("measure-h.law.001", "law", "The current parks levy, adopted in 2020, expires after the 2026 tax year.", [law]),
         claim("measure-h.yes.001", "yes", "A yes vote replaces the expiring levy at the same rate.", [yes]),
         claim("measure-h.no.001", "no", "A no vote lets the current levy expire.", [no]),
         claim("measure-h.fiscal.001", "fiscal", "The official note estimates 1.2 million dollars a year for parks if the levy passes.", [fiscal], as_of="2026-08-01"),
-        claim("measure-h.threshold.001", "threshold", "The measure needs more than half the votes cast on it.", [threshold]),
+        claim("measure-h.threshold.001", "threshold", "Under the 2019 levy rule, the measure needs more than half the votes cast on it.", [threshold]),
         claim("measure-h.funding.001", "funding", "Yes on H reported 20000 dollars in receipts for the quarter ending September 30, 2026.", [support_money], as_of="2026-09-30", filing_period="2026-07-01 through 2026-09-30"),
         claim("measure-h.funding.002", "funding", "No on H reported 18000 dollars in receipts for the quarter ending September 30, 2026.", [oppose_money], as_of="2026-09-30", filing_period="2026-07-01 through 2026-09-30"),
         claim("measure-h.supporters.001", "supporters", "The parks board and the library board signed the argument for Measure H.", [support_names]),
@@ -787,7 +787,7 @@ The measure would replace a parks levy that is set to end[^22]. It does not add 
 
 ## Current law and proposed change
 
-The city code says the current parks levy expires after the 2026 tax year[^22]. A yes vote replaces it at the same rate[^23]. A no vote lets it expire[^24].
+The city code says the current parks levy, adopted in 2020, expires after the 2026 tax year[^22]. A yes vote replaces it at the same rate[^23]. A no vote lets it expire[^24].
 
 ## What a yes vote does
 
@@ -805,7 +805,7 @@ Not found (searched: fictional university budget notes and fictional news budget
 
 ## Vote threshold
 
-Westland's levy rule says the measure passes with more than half the votes cast on it[^26].
+Westland's 2019 levy rule says the measure passes with more than half the votes cast on it[^26].
 
 ## Funding by side
 
@@ -1017,6 +1017,7 @@ Ownership and funding of these fictional publishers: not found (searched: the in
             "county": "Oak County",
             "state": "Westland",
             "filing_ids": ["WL-FICTION-1001"],
+            "occupation": "classroom teacher",
             "campaign_site": "https://quinn-for-cedar.example/",
             "description": "Adult candidate listed on the fictional Cedar Hollow mayoral ballot as the incumbent.",
             "photo_included": False,
@@ -1062,6 +1063,7 @@ Ownership and funding of these fictional publishers: not found (searched: the in
             "county": "Oak County",
             "state": "Westland",
             "filing_ids": ["WL-FICTION-1002"],
+            "occupation": "parks planner",
             "campaign_site": "https://okonkwo-for-cedar.example/",
             "description": "Adult candidate listed on the fictional Cedar Hollow mayoral ballot as the challenger.",
             "photo_included": False,

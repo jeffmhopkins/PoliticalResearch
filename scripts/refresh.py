@@ -9,7 +9,7 @@ import _boot  # noqa: F401
 from lib.cli import base_parser, clock_from, today_of, workspace_from
 from lib.quality import staleness_findings
 from lib.util import dump_json, dump_yaml, load_config, load_json, load_yaml
-from lib.workflow import bump_version, fresh_loop_state
+from lib.workflow import bump_version, empty_signoffs, fresh_loop_state
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -40,6 +40,8 @@ def main(argv: list[str] | None = None) -> int:
     lines.append("")
     plan.write_text("\n".join(lines), encoding="utf-8")
     print(f"Wrote {plan}")
+    note = args.note or "Refresh pass opened."
+    corrected_ids = _mark_corrected(workspace, note) if args.open_round or args.bump else []
     if args.bump:
         ballot_path = workspace / "ballot.yaml"
         ballot = load_yaml(ballot_path) or {}
@@ -55,15 +57,16 @@ def main(argv: list[str] | None = None) -> int:
         corrections = load_yaml(corrections_path) or []
         if not isinstance(corrections, list):
             corrections = []
-        corrections.append(
-            {
-                "version": ballot["report_version"],
-                "date": today.isoformat(),
-                "claim_id": "refresh",
-                "change": args.note or "Refresh pass opened.",
-                "reason": "Post-share correction or scheduled refresh.",
-            }
-        )
+        for claim_id in corrected_ids or ["refresh"]:
+            corrections.append(
+                {
+                    "version": ballot["report_version"],
+                    "date": today.isoformat(),
+                    "claim_id": claim_id,
+                    "change": note,
+                    "reason": "Post-share correction or scheduled refresh.",
+                }
+            )
         dump_yaml(corrections_path, corrections)
         print(f"Version {previous} -> {ballot['report_version']}")
     if args.open_round:
@@ -76,10 +79,33 @@ def main(argv: list[str] | None = None) -> int:
             state["max_rounds"] = cap
             state["round"] = 0
             state["status"] = "researching"
+            state["signoffs"] = empty_signoffs()
             state["updated_at"] = clock
             dump_json(item / "loop-state.json", state)
             print(f"{name}: refresh round opened with max_rounds={cap}")
     return 0
+
+
+def _mark_corrected(workspace, note: str) -> list[str]:
+    claim_ids: list[str] = []
+    for item in workspace.joinpath("items").iterdir() if workspace.joinpath("items").is_dir() else []:
+        if not item.is_dir():
+            continue
+        path = item / "claims.yaml"
+        doc = load_yaml(path)
+        if not isinstance(doc, dict):
+            continue
+        changed = False
+        for claim in doc.get("claims") or []:
+            if not isinstance(claim, dict) or claim.get("removed"):
+                continue
+            claim["corrected"] = True
+            claim["correction_note"] = note
+            claim_ids.append(str(claim.get("id")))
+            changed = True
+        if changed:
+            dump_yaml(path, doc)
+    return claim_ids
 
 
 if __name__ == "__main__":

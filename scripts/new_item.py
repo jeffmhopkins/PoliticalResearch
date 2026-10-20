@@ -26,7 +26,7 @@ def main(argv: list[str] | None = None) -> int:
         args.title,
         clock_from(args),
         force=args.force,
-        allow_unconfirmed=args.allow_unconfirmed or args.force,
+        allow_unconfirmed=args.allow_unconfirmed,
     )
     if errors:
         print("\n".join(errors), file=sys.stderr)

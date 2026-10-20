@@ -14,8 +14,8 @@ Usage: ./bootstrap.sh [--check | --install] [--minimal] [--with-transcription]
 
   --check               Report the environment and exit 2 unless the rating is Full.
   --install             Install tools, create .venv, and report. This is the default.
-  --minimal             Skip the heavy defaults: yt-dlp, monolith, headless
-                        Chromium, and pa11y. Core build tools still install.
+  --minimal             Skip the heavy defaults: ffmpeg, yt-dlp, monolith,
+                        headless Chromium, and pa11y. Core build tools still install.
   --with-transcription  Also install faster-whisper and download the Whisper
                         model named by whisper_model in config.yaml (default base).
                         Off unless you pass this flag or set whisper_transcription: true.
@@ -190,7 +190,7 @@ if [[ "$MODE" == "install" ]]; then
     install_browser
     install_a11y
   else
-    echo "Minimal install: skipping yt-dlp, monolith, Chromium, and pa11y."
+    echo "Minimal install: skipping ffmpeg, yt-dlp, monolith, Chromium, and pa11y."
   fi
   if [[ "$WITH_TRANSCRIPTION" -eq 1 ]] || config_wants_transcription; then
     install_whisper

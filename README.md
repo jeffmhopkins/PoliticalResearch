@@ -54,11 +54,11 @@ Instructions, policies, templates, schemas, and small scripts. The agent does th
 ```bash
 ./bootstrap.sh                      # core tools plus yt-dlp, monolith, Chromium, and pa11y
 ./bootstrap.sh --with-transcription # also faster-whisper and the Whisper model
-./bootstrap.sh --minimal            # core tools only; skip the heavy defaults
+./bootstrap.sh --minimal            # core tools only; skip ffmpeg, yt-dlp, monolith, Chromium, and pa11y
 ./bootstrap.sh --check              # report only; exit 2 unless the rating is Full
 ```
 
-`--check` never installs. Whisper stays off unless you pass `--with-transcription` or set `whisper_transcription: true` in `config.yaml`. `whisper_model` (default `base`) is what that opt-in downloads. `--minimal` skips yt-dlp, monolith, Chromium, and pa11y, and does not cancel `--with-transcription`. A heavy install that fails is reported and bootstrap continues. The tooling rating can stay **Full** while a sandbox capability is **reduced**. `scripts/transcribe.py` tells you how to turn Whisper on when it is not installed.
+`--check` never installs. Whisper stays off unless you pass `--with-transcription` or set `whisper_transcription: true` in `config.yaml`. `whisper_model` (default `base`) is what that opt-in downloads. `--minimal` skips ffmpeg, yt-dlp, monolith, Chromium, and pa11y, and does not cancel `--with-transcription`. A heavy install that fails is reported and bootstrap continues. The tooling rating can stay **Full** while a sandbox capability is **reduced**. `scripts/transcribe.py` tells you how to turn Whisper on when it is not installed.
 
 Ratings:
 

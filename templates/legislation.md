@@ -45,6 +45,18 @@ Not found (searched: not started).
 
 Not found (searched: not started).
 
+## Arguments for
+
+<!-- Official or pamphlet arguments for the bill. Keep this section close in length to Arguments against. -->
+
+Not found (searched: not started).
+
+## Arguments against
+
+<!-- Official or pamphlet arguments against the bill. Keep this section close in length to Arguments for. -->
+
+Not found (searched: not started).
+
 <!-- Optional: hearings, amendments, supporters and opponents with disclosures, companion bills, effective date, legal challenges.
 Contact links: official lookup pages only. Do not invent phone numbers.
 -->

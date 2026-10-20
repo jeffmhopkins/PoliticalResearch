@@ -54,8 +54,8 @@ def main(argv: list[str] | None = None) -> int:
         if democracy_key and not democracy_url:
             print("DEMOCRACY_WORKS_API_KEY is set but DEMOCRACY_WORKS_API_URL is empty. Set the URL from your partner docs. No call was made.")
         return 0
-    imports = workspace / "imports"
-    imports.mkdir(parents=True, exist_ok=True)
+    private = workspace / "private"
+    private.mkdir(parents=True, exist_ok=True)
     if civic:
         try:
             payload = get_json(
@@ -71,12 +71,12 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Google Civic lookup failed ({ballot['lookup_error']}). Existing contests were left unchanged.")
             return 0
         payload = scrub_civic_payload(payload)
-        dump_json(imports / "google-civic.json", payload)
+        dump_json(private / "google-civic.json", payload)
         if ballot.get("contests"):
             ballot["lookup_status"] = "fetched_not_applied"
             ballot["lookup_source"] = "google_civic"
             ballot["notes"] = list(ballot.get("notes") or []) + [
-                "Civic response saved to imports/google-civic.json. Contests already present were not overwritten."
+                "Civic response saved to private/google-civic.json. Contests already present were not overwritten."
             ]
             dump_yaml(ballot_path, ballot)
             print("Saved Civic response. Did not overwrite existing contests.")
@@ -98,7 +98,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Drafted {len(contests)} contests from Google Civic with officialOnly=true. Not confirmed.")
         return 0
     try:
-        payload = get_json(democracy_url, headers={"Authorization": f"Bearer {democracy_key}"}, secrets=[democracy_key, address])
+        payload = get_json(
+            democracy_url,
+            headers={"Authorization": f"Bearer {democracy_key}"},
+            params={"address": address},
+            secrets=[democracy_key, address],
+        )
     except ApiError as exc:
         ballot["lookup_status"] = "error"
         ballot["lookup_source"] = "democracy_works"
@@ -106,11 +111,12 @@ def main(argv: list[str] | None = None) -> int:
         dump_yaml(ballot_path, ballot)
         print(f"Democracy Works lookup failed ({ballot['lookup_error']}). No contests were invented.")
         return 0
-    dump_json(imports / "democracy-works.json", payload)
+    payload = scrub_civic_payload(payload)
+    dump_json(private / "democracy-works.json", payload)
     ballot["lookup_status"] = "fetched_unparsed"
     ballot["lookup_source"] = "democracy_works"
     dump_yaml(ballot_path, ballot)
-    print("Saved Democracy Works JSON to imports/democracy-works.json. Map contests by hand into ballot.yaml and confirm with the requester.")
+    print("Saved Democracy Works JSON to private/democracy-works.json. Map contests by hand into ballot.yaml and confirm with the requester.")
     return 0
 
 

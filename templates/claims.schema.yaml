@@ -63,6 +63,8 @@ $defs:
       marker:
         type: integer
         minimum: 1
+      suspected_injection:
+        type: boolean
   claim:
     type: object
     required: [id, section, text, sources, confidence]

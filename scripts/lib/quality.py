@@ -6,7 +6,7 @@ import re
 from datetime import date
 from urllib.parse import quote
 
-from lib.util import RETRIEVED_RE, iter_items, load_config, load_yaml, norm_heading
+from lib.util import RETRIEVED_RE, dump_json, iter_items, load_config, load_yaml, norm_heading, repo_root, unsafe_fetch_target
 
 MARKER_RE = re.compile(r"\[\^(\d+)\]")
 WORK_RE = re.compile(r"^\[(\d+)\] ", re.MULTILINE)
@@ -33,7 +33,6 @@ GAP_PREFIXES = (
     "omitted because",
     "omitted.",
     "none.",
-    "none",
 )
 EXEMPT_HEADINGS = {
     "how to use this guide",
@@ -83,7 +82,49 @@ LEGISLATION_CORE = [
     "current law and proposed change",
     "fiscal note",
     "roll-call votes",
+    "arguments for",
+    "arguments against",
 ]
+PRIMARY_ADDON = [
+    "primary type",
+    "intra-party comparison",
+    "differences from the party platform",
+    "party and official endorsements",
+    "runoff or ranked-choice rules",
+]
+LOCAL_ADDON = [
+    "what the office controls",
+    "nonpartisan flag",
+    "local data sources",
+    "limited information",
+]
+RACE_OVERVIEW = [
+    "contest",
+    "comparison",
+    "competitiveness",
+    "candidate profiles",
+    "write-in candidates",
+    "withdrawn candidates",
+    "uncontested",
+]
+PERSON_ITEM_TYPES = {"candidate", "primary", "local-office", "judicial-retention"}
+PERSON_EXEMPT_SECTIONS = {"campaign funding", "funding", "finance", "logistics"}
+ANCHOR_FIELDS = {
+    "full_legal_name",
+    "ballot_name",
+    "name",
+    "filing_ids",
+    "filing_id",
+    "city",
+    "county",
+    "office",
+    "occupation",
+    "district",
+    "state",
+    "campaign_site",
+}
+EXEMPT_QUOTE_BITS = ("not an official ballot", "fictional example", "not voting instructions")
+WITHDRAWN_RE = re.compile(r"^Withdrawn on \d{4}-\d{2}-\d{2}\b")
 JUDICIAL_CORE = [
     "retention question",
     "court and term",
@@ -126,7 +167,43 @@ def iter_claim_sources(doc: dict):
                 yield claim, source
 
 
-def semantic_claim_errors(doc: dict, label: str) -> list[str]:
+def identity_anchor_matches(record: dict, attr: str) -> bool:
+    key = str(attr or "").strip()
+    if key == "name":
+        return bool(str(record.get("ballot_name") or "").strip() or str(record.get("full_legal_name") or "").strip())
+    if key in {"filing_id", "filing_ids"}:
+        ids = record.get("filing_ids")
+        if ids is None:
+            ids = record.get("filing_id")
+        if isinstance(ids, str):
+            return bool(ids.strip())
+        return isinstance(ids, list) and any(str(item).strip() for item in ids)
+    if key not in ANCHOR_FIELDS:
+        return False
+    return bool(str(record.get(key) or "").strip())
+
+
+def anchors_match_one_record(attrs: list, records: list) -> bool:
+    for record in records:
+        if isinstance(record, dict) and all(identity_anchor_matches(record, attr) for attr in attrs):
+            return True
+    return False
+
+
+def identities_for_item(workspace, item, doc: dict) -> list[dict]:
+    own = load_yaml(item / "identity.yaml")
+    own_records = [own] if isinstance(own, dict) else []
+    if doc.get("item_type") in PERSON_ITEM_TYPES:
+        return own_records
+    records = []
+    for candidate in iter_items(workspace):
+        identity = load_yaml(candidate / "identity.yaml")
+        if isinstance(identity, dict):
+            records.append(identity)
+    return records
+
+
+def semantic_claim_errors(doc: dict, label: str, identities: list | None = None) -> list[str]:
     errors: list[str] = []
     seen_markers: dict[int, str] = {}
     for claim in doc.get("claims") or []:
@@ -145,10 +222,21 @@ def semantic_claim_errors(doc: dict, label: str) -> list[str]:
             errors.append(f"{label}: {cid} is removed and cannot drive a summary")
         if claim.get("removed") and not str(claim.get("removal_reason") or "").strip():
             errors.append(f"{label}: {cid} is removed without removal_reason")
+        section = norm_heading(str(claim.get("section") or ""))
+        if doc.get("item_type") in PERSON_ITEM_TYPES and section not in PERSON_EXEMPT_SECTIONS:
+            if not claim.get("about_person"):
+                errors.append(
+                    f"{label}: {cid} is a person-claim and must set about_person so it is checked against identity.yaml"
+                )
         if claim.get("about_person"):
             attrs = claim.get("identity_attributes") or []
             if not isinstance(attrs, list) or len(attrs) < 2:
                 errors.append(f"{label}: {cid} is about a person but identity_attributes has fewer than 2 anchors")
+            records = list(identities or [])
+            if not records:
+                errors.append(f"{label}: {cid} is about a person but no identity.yaml record was available to match")
+            elif isinstance(attrs, list) and len(attrs) >= 2 and not anchors_match_one_record(attrs, records):
+                errors.append(f"{label}: {cid} identity_attributes do not match one identity.yaml record")
         tiers = []
         publishers = []
         markers = []
@@ -164,7 +252,7 @@ def semantic_claim_errors(doc: dict, label: str) -> list[str]:
             else:
                 markers.append(marker)
                 previous = seen_markers.get(marker)
-                if previous and previous != cid:
+                if previous:
                     errors.append(f"{label}: marker {marker} is used by {previous} and {cid}")
                 seen_markers[marker] = cid
             archive_url = source.get("archive_url")
@@ -183,6 +271,14 @@ def semantic_claim_errors(doc: dict, label: str) -> list[str]:
             host = host_of(url)
             if host in DISALLOWED_HOSTS or "chatgpt.com" in host:
                 errors.append(f"{label}: {cid} uses disallowed host {host}")
+        flagged = [source for source in sources if isinstance(source, dict) and source.get("suspected_injection") is True]
+        dict_sources = [source for source in sources if isinstance(source, dict)]
+        if dict_sources and len(flagged) == len(dict_sources):
+            errors.append(f"{label}: {cid} suspected_injection source cannot be the only support")
+            if conf == "verified":
+                errors.append(f"{label}: {cid} cannot be verified when every source is suspected_injection")
+            if drives:
+                errors.append(f"{label}: {cid} is supported only by suspected_injection sources and cannot drive a summary")
         if sources and all(tier == "T4" for tier in tiers):
             if not claim.get("attribution_only"):
                 errors.append(f"{label}: {cid} is supported only by T4 sources and is not marked attribution_only")
@@ -272,10 +368,15 @@ def _is_gap_text(text: str) -> bool:
     return all(part.lower().startswith(GAP_PREFIXES) for part in sentences)
 
 
+def _exempt_quote(block: str) -> bool:
+    lowered = block.lower()
+    return any(bit in lowered for bit in EXEMPT_QUOTE_BITS)
+
+
 def prose_marker_errors(text: str, label: str) -> list[str]:
     errors: list[str] = []
     for block in factual_blocks(text):
-        if block.startswith(">"):
+        if block.lstrip().startswith(">") and _exempt_quote(block):
             continue
         if block.startswith("|"):
             rows = [line for line in block.splitlines() if line.strip().startswith("|")]
@@ -340,10 +441,50 @@ def claim_index(workspace) -> dict[int, tuple[str, dict, dict]]:
             continue
         for claim, source in iter_claim_sources(doc):
             marker = source_marker(claim, source)
-            if marker is None:
+            if marker is None or marker in index:
                 continue
             index[marker] = (item.name, claim, source)
     return index
+
+
+def marker_collision_errors(workspace) -> list[str]:
+    owners: dict[int, list[str]] = {}
+    for item in iter_items(workspace):
+        doc = load_yaml(item / "claims.yaml") or {}
+        if not isinstance(doc, dict):
+            continue
+        for claim, source in iter_claim_sources(doc):
+            marker = source_marker(claim, source)
+            if marker is None:
+                continue
+            ident = source.get("url") or source.get("title") or claim.get("id")
+            owners.setdefault(marker, []).append(f"{item.name}/{claim.get('id')} ({ident})")
+    errors = []
+    for marker, rows in sorted(owners.items()):
+        if len(rows) > 1:
+            errors.append(f"marker {marker} is reused across sources: {'; '.join(rows)}")
+    return errors
+
+
+def assembled_guide_errors(text: str, index: dict[int, tuple[str, dict, dict]]) -> list[str]:
+    errors = prose_marker_errors(text, "final/guide.md")
+    errors.extend(summary_errors(text, "final/guide.md", index))
+    cited = works_cited_numbers(text)
+    for number in sorted(marker_numbers(text)):
+        if number not in index:
+            errors.append(f"final/guide.md: marker {number} does not resolve to a claim source")
+        else:
+            _item_name, claim, _source = index[number]
+            if claim.get("removed"):
+                errors.append(f"final/guide.md: marker {number} points at removed claim {claim.get('id')}")
+            if claim.get("confidence") == "identity-unconfirmed":
+                errors.append(f"final/guide.md: marker {number} is identity-unconfirmed and must not be published")
+        if number not in cited:
+            errors.append(f"final/guide.md: marker {number} has no works-cited entry")
+    for number in sorted(cited):
+        if number not in index:
+            errors.append(f"final/guide.md: works-cited [{number}] has no claim source")
+    return errors
 
 
 def summary_errors(text: str, label: str, index: dict[int, tuple[str, dict, dict]]) -> list[str]:
@@ -383,6 +524,7 @@ def summary_errors(text: str, label: str, index: dict[int, tuple[str, dict, dict
 
 def citation_errors(workspace, guide: bool = False) -> list[str]:
     errors: list[str] = []
+    errors.extend(marker_collision_errors(workspace))
     index = claim_index(workspace)
     for item in iter_items(workspace):
         draft_path = item / "draft.md"
@@ -405,23 +547,14 @@ def citation_errors(workspace, guide: bool = False) -> list[str]:
                 _item_name, claim, _source = index[number]
                 if claim.get("removed"):
                     errors.append(f"{label}: marker {number} points at removed claim {claim.get('id')}")
+                if claim.get("confidence") == "identity-unconfirmed":
+                    errors.append(f"{label}: marker {number} is identity-unconfirmed and must not be published")
     guide_path = workspace / "final" / "guide.md"
-    if guide or guide_path.exists():
+    if guide:
         if not guide_path.exists():
             errors.append("final/guide.md is missing")
         else:
-            text = guide_path.read_text(encoding="utf-8")
-            errors.extend(prose_marker_errors(text, "final/guide.md"))
-            errors.extend(summary_errors(text, "final/guide.md", index))
-            cited = works_cited_numbers(text)
-            for number in sorted(marker_numbers(text)):
-                if number not in index:
-                    errors.append(f"final/guide.md: marker {number} does not resolve to a claim source")
-                if number not in cited:
-                    errors.append(f"final/guide.md: marker {number} has no works-cited entry")
-            for number in sorted(cited):
-                if number not in index:
-                    errors.append(f"final/guide.md: works-cited [{number}] has no claim source")
+            errors.extend(assembled_guide_errors(guide_path.read_text(encoding="utf-8"), index))
     return errors
 
 
@@ -485,7 +618,12 @@ def symmetry_errors(workspace) -> list[str]:
                 errors.append(f"{item_id}: missing draft.md")
                 continue
             sections = section_map(draft_path.read_text(encoding="utf-8"))
-            for name in CANDIDATE_CORE:
+            required = list(CANDIDATE_CORE)
+            if contest.get("type") == "primary":
+                required.extend(PRIMARY_ADDON)
+            elif contest.get("type") == "local-office":
+                required.extend(LOCAL_ADDON)
+            for name in required:
                 if name not in sections:
                     errors.append(f"{item_id}: missing section '{name}'")
             bodies.append((item_id, sections))
@@ -516,30 +654,71 @@ def symmetry_errors(workspace) -> list[str]:
                             f"and {right_id} ({right_words}) is below half the longer one"
                         )
         scores = []
+        section_rows: dict[str, list[tuple[str, int]]] = {}
         for item_id, effort in efforts:
-            scores.append((item_id, int(effort.get("searches") or 0) + int(effort.get("fetches") or 0), effort))
-        peak = max((score for _item, score, _effort in scores), default=0)
+            scores.append((item_id, int(effort.get("searches") or 0) + int(effort.get("fetches") or 0)))
+            for name, counts in (effort.get("sections") or {}).items():
+                if not isinstance(counts, dict):
+                    continue
+                total = int(counts.get("searches") or 0) + int(counts.get("fetches") or 0)
+                section_rows.setdefault(norm_heading(str(name)), []).append((item_id, total))
+        peak = max((score for _item, score in scores), default=0)
         if peak > 0:
-            for item_id, score, effort in scores:
-                if score < ratio * peak and not str(effort.get("explanation") or "").strip():
+            for item_id, score in scores:
+                if score < ratio * peak:
+                    errors.append(f"{item_id}: effort {score} is below {ratio:.0%} of the race max {peak}.")
+        known_ids = {item_id for item_id, _score in scores}
+        for name, rows in section_rows.items():
+            present = {item_id for item_id, _score in rows}
+            for item_id in known_ids - present:
+                rows.append((item_id, 0))
+            section_peak = max((score for _item, score in rows), default=0)
+            if section_peak <= 0:
+                continue
+            for item_id, score in rows:
+                if score < ratio * section_peak:
                     errors.append(
-                        f"{item_id}: effort {score} is below {ratio:.0%} of the race max {peak}. "
-                        "Close the gap or record explanation in effort.json."
+                        f"{item_id}: section '{name}' effort {score} is below {ratio:.0%} of {section_peak}."
                     )
-        if contest.get("type") == "race":
-            race_draft = workspace / "items" / str(contest.get("item_id") or contest.get("id")) / "draft.md"
+        if contest.get("type") in {"race", "primary", "local-office"}:
+            race_id = str(contest.get("item_id") or contest.get("id"))
+            race_draft = workspace / "items" / race_id / "draft.md"
             if race_draft.exists():
                 sections = section_map(race_draft.read_text(encoding="utf-8"))
-                if "write-in candidates" not in sections:
-                    errors.append(f"{contest.get('id')}: race draft is missing 'Write-in candidates'")
+                overview = list(RACE_OVERVIEW)
+                if contest.get("type") == "primary":
+                    overview.extend(PRIMARY_ADDON)
+                elif contest.get("type") == "local-office":
+                    overview.extend(LOCAL_ADDON)
+                for name in overview:
+                    if name not in sections:
+                        errors.append(f"{contest.get('id')}: race draft is missing '{name}'")
+    errors.extend(argument_length_errors(workspace))
+    return errors
+
+
+def argument_length_errors(workspace) -> list[str]:
+    errors: list[str] = []
+    ballot = load_yaml(workspace / "ballot.yaml") or {}
+    seen: set[str] = set()
+    targets: list[str] = []
     for contest in ballot.get("contests") or []:
-        if not isinstance(contest, dict) or contest.get("type") != "measure":
+        if isinstance(contest, dict) and contest.get("type") in {"measure", "legislation"}:
+            targets.append(str(contest.get("item_id") or contest.get("id")))
+    for item in iter_items(workspace):
+        doc = load_yaml(item / "claims.yaml") or {}
+        if isinstance(doc, dict) and doc.get("item_type") in {"measure", "legislation"}:
+            targets.append(item.name)
+    for item_id in targets:
+        if not item_id or item_id in seen:
             continue
-        item_id = str(contest.get("item_id") or contest.get("id"))
+        seen.add(item_id)
         draft = workspace / "items" / item_id / "draft.md"
         if not draft.exists():
             continue
         sections = section_map(draft.read_text(encoding="utf-8"))
+        if "arguments for" not in sections and "arguments against" not in sections:
+            continue
         for_words = word_count(sections.get("arguments for", ""))
         against_words = word_count(sections.get("arguments against", ""))
         peak = max(for_words, against_words)
@@ -548,6 +727,36 @@ def symmetry_errors(workspace) -> list[str]:
                 f"{item_id}: arguments for ({for_words} words) and against ({against_words} words) differ by more than 20%"
             )
     return errors
+
+
+def _preamble(text: str) -> str:
+    lines = []
+    for line in strip_front_matter(text).splitlines():
+        if line.startswith("## "):
+            break
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def _first_content_line(text: str) -> str:
+    for line in _preamble(text).splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith(("#", ">", "<!--")):
+            continue
+        return stripped
+    return ""
+
+
+def _states_uncontested(body: str) -> bool:
+    sentences = _sentences(body) or ([body] if body.strip() else [])
+    for sentence in sentences:
+        lowered = sentence.lower()
+        if "uncontested" not in lowered:
+            continue
+        if re.search(r"\b(?:not|no|never|isn't|aren't|wasn't|weren't)\b", lowered):
+            continue
+        return True
+    return False
 
 
 def edge_errors(workspace) -> list[str]:
@@ -561,23 +770,23 @@ def edge_errors(workspace) -> list[str]:
         race_id = str(contest.get("item_id") or contest.get("id"))
         race_draft_path = workspace / "items" / race_id / "draft.md"
         race_text = race_draft_path.read_text(encoding="utf-8") if race_draft_path.exists() else ""
+        sections = section_map(race_text) if race_text else {}
         if contest.get("type") in {"race", "primary", "local-office"} and len(active) == 1:
-            if "uncontested" not in race_text.lower():
-                errors.append(f"{race_id}: uncontested race must say so in the draft")
+            if not _states_uncontested(sections.get("uncontested", "")):
+                errors.append(f"{race_id}: uncontested race must say so in the Uncontested section")
         write_ins = [c for c in candidates if c.get("write_in")]
-        if write_ins:
-            if "write-in" not in race_text.lower():
-                errors.append(f"{race_id}: write-in candidates need a Write-in section")
+        if write_ins and "write-in candidates" not in sections:
+            errors.append(f"{race_id}: write-in candidates need a Write-in candidates section")
         for candidate in candidates:
             item_id = str(candidate.get("item_id") or candidate.get("id"))
             draft_path = workspace / "items" / item_id / "draft.md"
             if not draft_path.exists():
                 continue
-            text = draft_path.read_text(encoding="utf-8").lower()
-            if candidate.get("withdrawn") and "withdrawn on" not in text:
+            text = draft_path.read_text(encoding="utf-8")
+            if candidate.get("withdrawn") and not WITHDRAWN_RE.match(_first_content_line(text)):
                 errors.append(f"{item_id}: withdrawn candidate needs a 'withdrawn on DATE' banner")
-            if candidate.get("limited_public_record") and "limited public record" not in text:
-                errors.append(f"{item_id}: thin-record candidate needs a limited public record notice")
+            if candidate.get("limited_public_record") and "limited public record" not in _preamble(text).lower():
+                errors.append(f"{item_id}: thin-record candidate needs a limited public record notice before the first section")
     return errors
 
 
@@ -620,6 +829,88 @@ def staleness_findings(workspace, today: date, max_days: int | None = None) -> l
 
 def stale_errors(workspace, today: date, max_days: int | None = None) -> list[str]:
     return [line for line in staleness_findings(workspace, today, max_days) if not line.startswith("NOTE ")]
+
+
+def year_label_errors(workspace) -> list[str]:
+    errors = []
+    ballot = load_yaml(workspace / "ballot.yaml") or {}
+    election = ballot.get("election") if isinstance(ballot, dict) else None
+    election_date = election.get("date") if isinstance(election, dict) else None
+    if not isinstance(election_date, str) or len(election_date) < 4:
+        return errors
+    election_year = int(election_date[:4])
+    for item in iter_items(workspace):
+        doc = load_yaml(item / "claims.yaml") or {}
+        if not isinstance(doc, dict):
+            continue
+        draft_path = item / "draft.md"
+        draft = draft_path.read_text(encoding="utf-8") if draft_path.exists() else ""
+        for claim, source in iter_claim_sources(doc):
+            if claim.get("removed"):
+                continue
+            published = str(source.get("published") or "")
+            if not re.match(r"^\d{4}-\d{2}-\d{2}$", published):
+                continue
+            year = int(published[:4])
+            if year >= election_year:
+                continue
+            label = str(year)
+            if label in str(claim.get("text") or "") or label in draft:
+                continue
+            errors.append(
+                f"{claim.get('id')}: published {published} is before election year {election_year}; label the year in the claim or draft"
+            )
+    return errors
+
+
+def _archive_fallback(source: dict) -> bool:
+    if source.get("archive_url"):
+        return True
+    return source.get("archive_failed") is True and bool(str(source.get("archive_failed_reason") or "").strip())
+
+
+def offline_link_errors(workspace) -> list[str]:
+    errors = []
+    checked = 0
+    for item in iter_items(workspace):
+        doc = load_yaml(item / "claims.yaml") or {}
+        if not isinstance(doc, dict):
+            continue
+        for claim, source in iter_claim_sources(doc):
+            if claim.get("removed"):
+                continue
+            checked += 1
+            url = str(source.get("url") or "")
+            reason = unsafe_fetch_target(url)
+            if reason:
+                errors.append(f"{claim.get('id')}: URL is not allowed ({reason})")
+            if not _archive_fallback(source):
+                errors.append(f"{claim.get('id')}: needs archive_url or archive_failed plus a reason")
+    dump_json(workspace / "link-check.json", {"mode": "offline", "checked": checked, "errors": len(errors)})
+    return errors
+
+
+def environment_rating_sentence(workspace) -> str:
+    for path in (workspace / "env.md", repo_root() / "output" / "env.md"):
+        if not path.exists():
+            continue
+        match = re.search(r"Rating:\s*\**\s*(Full|Reduced|Minimal)\b", path.read_text(encoding="utf-8"))
+        if match:
+            return f"Environment rating: {match.group(1)}."
+        return "Environment rating is not recorded in env.md."
+    return "No environment rating file was found."
+
+
+def content_gate_errors(workspace, today: date, *, include_guide: bool = True) -> list[str]:
+    errors: list[str] = []
+    errors.extend(citation_errors(workspace, guide=include_guide))
+    errors.extend(symmetry_errors(workspace))
+    errors.extend(edge_errors(workspace))
+    errors.extend(readability_errors(workspace))
+    errors.extend(stale_errors(workspace, today))
+    errors.extend(year_label_errors(workspace))
+    errors.extend(offline_link_errors(workspace))
+    return errors
 
 
 def wayback_api_url(url: str) -> str:
@@ -688,7 +979,11 @@ def readability_errors(workspace) -> list[str]:
             continue
         grade = flesch_kincaid_grade(summary_text(text))
         if grade is not None and grade > limit:
-            errors.append(f"{path.name}: summary grade {grade:.1f} is above {limit:.0f}")
+            try:
+                label = path.relative_to(workspace).as_posix()
+            except ValueError:
+                label = path.name
+            errors.append(f"{label}: summary grade {grade:.1f} is above {limit:.0f}")
     return errors
 
 

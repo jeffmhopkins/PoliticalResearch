@@ -98,11 +98,6 @@ footer {
 
 code { font-size: 0.95em; }
 
-@media screen and (max-width: 40rem) {
-  main, footer { padding-left: 0.8rem; padding-right: 0.8rem; }
-  body { font-size: 1.05rem; }
-}
-
 @media print {
   .skip { display: none; }
   .banner { background: #ffffff; color: #000000; border: 2px solid #000000; }

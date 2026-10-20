@@ -27,6 +27,12 @@ if [[ -z "$WORKSPACE" ]]; then
   WORKSPACE="$ROOT/output/$ELECTION"
 fi
 
+if [[ ! -d "$WORKSPACE" ]]; then
+  echo "Workspace not found: $WORKSPACE" >&2
+  exit 1
+fi
+WORKSPACE="$(cd "$WORKSPACE" && pwd)"
+
 GUIDE="$WORKSPACE/final/guide.md"
 if [[ ! -f "$GUIDE" ]]; then
   echo "Missing $GUIDE. Assemble the guide first." >&2
@@ -41,6 +47,19 @@ match = re.search(r"^version:\s*(\S+)", text, re.M)
 print(match.group(1) if match else "v0")
 PY
 )"
+
+PY="$ROOT/.venv/bin/python"
+if [[ ! -x "$PY" ]]; then
+  PY="python3"
+fi
+if ! "$PY" "$ROOT/scripts/validate.py" --workspace "$WORKSPACE" --gate; then
+  echo "Assembly gate failed." >&2
+  exit 1
+fi
+if ! "$PY" "$ROOT/scripts/check_citations.py" --workspace "$WORKSPACE"; then
+  echo "Citation check failed." >&2
+  exit 1
+fi
 
 cp "$ROOT/assets/guide.css" "$WORKSPACE/final/guide.css"
 HTML="$WORKSPACE/final/guide.html"
@@ -59,10 +78,6 @@ HTML="$WORKSPACE/final/guide.html"
     -o guide.html
 )
 
-PY="$ROOT/.venv/bin/python"
-if [[ ! -x "$PY" ]]; then
-  PY="python3"
-fi
 "$PY" "$ROOT/scripts/a11y_check.py" "$HTML"
 
 PDF="$WORKSPACE/final/guide.pdf"

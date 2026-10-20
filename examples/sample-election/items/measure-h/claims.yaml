@@ -49,7 +49,7 @@ claims:
   about_person: false
 - id: measure-h.law.001
   section: law
-  text: The current parks levy expires after the 2026 tax year.
+  text: The current parks levy, adopted in 2020, expires after the 2026 tax year.
   marker: 22
   sources:
   - marker: 22
@@ -142,7 +142,7 @@ claims:
   as_of: '2026-08-01'
 - id: measure-h.threshold.001
   section: threshold
-  text: The measure needs more than half the votes cast on it.
+  text: Under the 2019 levy rule, the measure needs more than half the votes cast on it.
   marker: 26
   sources:
   - marker: 26

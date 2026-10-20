@@ -7,7 +7,7 @@ import sys
 
 import _boot  # noqa: F401
 from lib.cli import base_parser, clock_from, today_of, workspace_from
-from lib.quality import citation_errors, edge_errors, readability_errors, stale_errors, symmetry_errors
+from lib.quality import content_gate_errors
 from lib.workflow import gate_errors, structural_workspace_errors
 
 
@@ -39,11 +39,7 @@ def main(argv: list[str] | None = None) -> int:
     errors = structural_workspace_errors(workspace)
     if args.gate:
         errors.extend(gate_errors(workspace))
-        errors.extend(citation_errors(workspace, guide=True))
-        errors.extend(symmetry_errors(workspace))
-        errors.extend(edge_errors(workspace))
-        errors.extend(readability_errors(workspace))
-        errors.extend(stale_errors(workspace, today_of(args)))
+        errors.extend(content_gate_errors(workspace, today_of(args), include_guide=True))
     if errors:
         for error in errors:
             print(error)

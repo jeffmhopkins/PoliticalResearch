@@ -225,7 +225,7 @@ The measure would replace a parks levy that is set to end[^22]. It does not add 
 
 ## Current law and proposed change
 
-The city code says the current parks levy expires after the 2026 tax year[^22]. A yes vote replaces it at the same rate[^23]. A no vote lets it expire[^24].
+The city code says the current parks levy, adopted in 2020, expires after the 2026 tax year[^22]. A yes vote replaces it at the same rate[^23]. A no vote lets it expire[^24].
 
 ## What a yes vote does
 
@@ -243,7 +243,7 @@ Not found (searched: fictional university budget notes and fictional news budget
 
 ## Vote threshold
 
-Westland's levy rule says the measure passes with more than half the votes cast on it[^26].
+Westland's 2019 levy rule says the measure passes with more than half the votes cast on it[^26].
 
 ## Funding by side
 
@@ -275,7 +275,8 @@ See `findings.yaml`.
 
 # Methodology
 
-Version v1.0 assembled on 2026-10-20. Environment notes are in env.md for this workspace.
+Version v1.0 assembled on 2026-10-20. Environment rating is not recorded in env.md.
+Sources flagged suspected_injection: 0.
 Parallel subagents: not used; roles run one at a time in fresh contexts.
 Findings recorded: 2. Accepted: 1. Disputed: 1.
 Disputed and unconfirmed claims are not used in summaries. Blockers are removed rather than left disputed.

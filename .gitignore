@@ -22,6 +22,8 @@ examples/sample-election/final/guide.pdf
 examples/sample-election/final/guide-with-sources.zip
 examples/sample-election/versions/
 examples/sample-election/archive/
+link-check.json
+**/link-check.json
 
 # Tool caches and local installs from bootstrap
 .cache/
