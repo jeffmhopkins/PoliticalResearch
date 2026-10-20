@@ -1,0 +1,61 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://github.com/jeffmhopkins/PoliticalResearch/templates/findings.schema.yaml"
+title: Findings file
+type: array
+items:
+  $ref: "#/$defs/finding"
+$defs:
+  finding:
+    type: object
+    required: [id, round, reviewer, claim_id, type, severity, issue, evidence, status]
+    additionalProperties: false
+    properties:
+      id:
+        type: string
+        pattern: "^F-[0-9]{4}$"
+      round:
+        type: integer
+        minimum: 1
+      reviewer:
+        type: string
+        enum: [factcheck, sourcing, neutrality, privacy-legal]
+      claim_id:
+        type: string
+      type:
+        type: string
+        enum: [factual, sourcing, neutrality, symmetry, stale, privacy, legal-risk]
+      severity:
+        type: string
+        enum: [blocker, major, minor]
+      issue:
+        type: string
+        minLength: 1
+      evidence:
+        type: array
+        minItems: 1
+        items:
+          type: string
+          minLength: 1
+      status:
+        type: string
+        enum: [open, addressed, accepted, reopened, disputed, wontfix-approved]
+      caused_by_edit:
+        type: boolean
+      coordinator_note:
+        type: string
+      response:
+        type: object
+        required: [action, rationale]
+        additionalProperties: false
+        properties:
+          action:
+            type: string
+            enum: [fix, rebut, dispute]
+          rationale:
+            type: string
+          evidence:
+            type: array
+            items:
+              type: string
+          changelog_ref:
+            type: string

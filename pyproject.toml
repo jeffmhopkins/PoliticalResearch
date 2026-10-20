@@ -1,0 +1,9 @@
+[project]
+name = "political-research"
+version = "0.1.0"
+description = "Agent instructions and tools for nonpartisan, cited voter guides."
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["scripts"]

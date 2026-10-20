@@ -1,0 +1,261 @@
+item_id: measure-h
+item_type: measure
+claims:
+- id: measure-h.title.001
+  section: title
+  text: The official label is Measure H, Parks levy.
+  marker: 20
+  sources:
+  - marker: 20
+    url: https://fictional.example/oak-county/2026/measure-h
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Oak County Elections (fictional)
+    title: Measure H ballot label
+    doc_type: Official ballot label
+    published: '2026-09-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Ballot label, verbatim
+    quote: Measure H asks whether Cedar Hollow should replace the expiring parks levy.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: measure-h.qualification.001
+  section: qualification
+  text: The city council referred Measure H to the ballot.
+  marker: 21
+  sources:
+  - marker: 21
+    url: https://fictional.example/cedar-hollow/resolutions/2026-14
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow Council (fictional)
+    title: Resolution 2026-14, referring Measure H
+    doc_type: Council resolution
+    published: '2026-07-09'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Referral clause
+    quote: The council referred Measure H to the November ballot.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: measure-h.law.001
+  section: law
+  text: The current parks levy, adopted in 2020, expires after the 2026 tax year.
+  marker: 22
+  sources:
+  - marker: 22
+    url: https://fictional.example/cedar-hollow/code/parks-levy
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow Code (fictional)
+    title: Parks levy chapter
+    doc_type: Municipal code
+    published: '2020-01-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Expiration section
+    quote: The current parks levy expires after the 2026 tax year.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: measure-h.yes.001
+  section: 'yes'
+  text: A yes vote replaces the expiring levy at the same rate.
+  marker: 23
+  sources:
+  - marker: 23
+    url: https://fictional.example/oak-county/2026/measure-h
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Oak County Elections (fictional)
+    title: Measure H ballot label
+    doc_type: Official ballot label
+    published: '2026-09-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Yes effect sentence
+    quote: A yes vote replaces the expiring levy at the same rate.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: measure-h.no.001
+  section: 'no'
+  text: A no vote lets the current levy expire.
+  marker: 24
+  sources:
+  - marker: 24
+    url: https://fictional.example/oak-county/2026/measure-h
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Oak County Elections (fictional)
+    title: Measure H ballot label
+    doc_type: Official ballot label
+    published: '2026-09-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: No effect sentence
+    quote: A no vote lets the current levy expire.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: measure-h.fiscal.001
+  section: fiscal
+  text: The official note estimates 1.2 million dollars a year for parks if the levy passes.
+  marker: 25
+  sources:
+  - marker: 25
+    url: https://fictional.example/westland-fiscal/measure-h
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland fiscal office (fictional)
+    title: Measure H fiscal note
+    doc_type: Official fiscal note
+    published: '2026-08-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Estimate table
+    quote: The note estimates 1.2 million dollars a year for parks if the levy passes.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+  as_of: '2026-08-01'
+- id: measure-h.threshold.001
+  section: threshold
+  text: Under the 2019 levy rule, the measure needs more than half the votes cast on it.
+  marker: 26
+  sources:
+  - marker: 26
+    url: https://fictional.example/westland-code/levy-threshold
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland Elections Code (fictional)
+    title: Local levy approval rule
+    doc_type: Statute
+    published: '2019-01-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Section 4
+    quote: A local levy passes with more than half the votes cast on the measure.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: measure-h.funding.001
+  section: funding
+  text: Yes on H reported 20000 dollars in receipts for the quarter ending September 30, 2026.
+  marker: 27
+  sources:
+  - marker: 27
+    url: https://fictional.example/westland-finance/yes-on-h-q3
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland campaign finance office (fictional)
+    title: Yes on H committee, quarter ending September 30, 2026
+    doc_type: Campaign filing
+    published: '2026-10-12'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Receipts line
+    quote: The Yes on H committee reported 20000 dollars in receipts.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+  as_of: '2026-09-30'
+  filing_period: 2026-07-01 through 2026-09-30
+- id: measure-h.funding.002
+  section: funding
+  text: No on H reported 18000 dollars in receipts for the quarter ending September 30, 2026.
+  marker: 28
+  sources:
+  - marker: 28
+    url: https://fictional.example/westland-finance/no-on-h-q3
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland campaign finance office (fictional)
+    title: No on H committee, quarter ending September 30, 2026
+    doc_type: Campaign filing
+    published: '2026-10-12'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Receipts line
+    quote: The No on H committee reported 18000 dollars in receipts.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+  as_of: '2026-09-30'
+  filing_period: 2026-07-01 through 2026-09-30
+- id: measure-h.supporters.001
+  section: supporters
+  text: The parks board and the library board signed the argument for Measure H.
+  marker: 29
+  sources:
+  - marker: 29
+    url: https://fictional.example/oak-county/2026/pamphlet-h
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow pamphlet (fictional)
+    title: Official arguments, Measure H
+    doc_type: Voter pamphlet
+    published: '2026-09-20'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Argument for, signature block
+    quote: The parks board and the library board signed the argument for Measure H.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: measure-h.opponents.001
+  section: opponents
+  text: A homeowners association and a grocer signed the argument against Measure H.
+  marker: 30
+  sources:
+  - marker: 30
+    url: https://fictional.example/oak-county/2026/pamphlet-h
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow pamphlet (fictional)
+    title: Official arguments, Measure H
+    doc_type: Voter pamphlet
+    published: '2026-09-20'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Argument against, signature block
+    quote: The homeowners association and a grocer signed the argument against Measure H.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false

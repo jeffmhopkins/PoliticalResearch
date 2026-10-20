@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="$if(lang)$$lang$$else$en$endif$">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>$if(title)$$title$$else$Voter guide$endif$</title>
+$for(css)$
+  <link rel="stylesheet" href="$css$" />
+$endfor$
+  <link rel="stylesheet" href="guide-narrow.css" media="(max-width: 40rem)" />
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <header class="banner" role="note">
+    <p><strong>Not an official ballot. Not voting instructions.</strong> This research guide is not from an election office. Confirm contests, deadlines, and polling places with the official office linked in the guide.</p>
+  </header>
+  <main id="content">
+$if(toc)$
+    <nav id="TOC" aria-label="Table of contents">
+$toc$
+    </nav>
+$endif$
+$body$
+  </main>
+  <footer>
+    <p>Version $version$. Content hash $content-hash$.</p>
+    <p>Not an official ballot and not voting instructions.</p>
+  </footer>
+</body>
+</html>

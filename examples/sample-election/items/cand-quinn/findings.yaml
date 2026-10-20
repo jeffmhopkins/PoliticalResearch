@@ -1,0 +1,16 @@
+- id: F-0001
+  round: 1
+  reviewer: sourcing
+  claim_id: cand-quinn.funding.001
+  type: sourcing
+  severity: minor
+  issue: The first draft omitted the October 15, 2026 filing date.
+  evidence:
+  - https://fictional.example/westland-finance/quinn-2026-q3
+  - Filing stamp line
+  status: accepted
+  response:
+    action: fix
+    rationale: Added the filing date and the quarter end to the funding section.
+    evidence: []
+    changelog_ref: CL-0001

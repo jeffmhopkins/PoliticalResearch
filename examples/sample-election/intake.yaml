@@ -1,0 +1,26 @@
+election_id: fictional-cedar-hollow-2026
+requester_label: household
+election_date: '2026-11-03'
+election_type: general
+jurisdiction_label: Cedar Hollow, Oak County, Westland
+scope: whole_ballot
+contest_ids:
+- race-mayor
+- measure-h
+include_legislation: false
+legislation_topics: []
+depth: standard
+formats:
+- md
+- html
+- pdf
+languages:
+- en
+accessibility_needs: Plain language summaries and a single HTML page.
+offline_archive: false
+parallel_subagents: false
+address_location: null
+sharing_approved: false
+sharing_approved_at: null
+ballot_photo_deleted: true
+notes: Fictional fixture. No real requester and no street address.

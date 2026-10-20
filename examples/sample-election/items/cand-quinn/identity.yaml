@@ -1,0 +1,14 @@
+item_id: cand-quinn
+full_legal_name: Avery Jordan Quinn
+ballot_name: Avery Quinn
+office: Mayor of Cedar Hollow
+district: Cedar Hollow
+city: Cedar Hollow
+county: Oak County
+state: Westland
+filing_ids:
+- WL-FICTION-1001
+occupation: classroom teacher
+campaign_site: https://quinn-for-cedar.example/
+description: Adult candidate listed on the fictional Cedar Hollow mayoral ballot as the incumbent.
+photo_included: false

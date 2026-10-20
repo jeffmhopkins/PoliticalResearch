@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jeffmhopkins/PoliticalResearch/templates/loop-state.schema.json",
+  "title": "Loop state",
+  "type": "object",
+  "required": ["item_id", "round", "max_rounds", "mode", "status", "open_counts", "signoffs", "gaps", "updated_at"],
+  "additionalProperties": false,
+  "properties": {
+    "item_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+    "round": {"type": "integer", "minimum": 0},
+    "max_rounds": {"type": "integer", "minimum": 1},
+    "mode": {"type": "string", "enum": ["initial", "refresh"]},
+    "status": {
+      "type": "string",
+      "enum": ["researching", "in-review", "fixing", "signed-off", "capped-disputed"]
+    },
+    "open_counts": {
+      "type": "object",
+      "required": ["blocker", "major", "minor"],
+      "additionalProperties": false,
+      "properties": {
+        "blocker": {"type": "integer", "minimum": 0},
+        "major": {"type": "integer", "minimum": 0},
+        "minor": {"type": "integer", "minimum": 0}
+      }
+    },
+    "signoffs": {
+      "type": "object",
+      "required": ["factcheck", "sourcing", "neutrality", "privacy-legal"],
+      "additionalProperties": false,
+      "properties": {
+        "factcheck": {"$ref": "#/$defs/signoff"},
+        "sourcing": {"$ref": "#/$defs/signoff"},
+        "neutrality": {"$ref": "#/$defs/signoff"},
+        "privacy-legal": {"$ref": "#/$defs/signoff"}
+      }
+    },
+    "gaps": {"type": "array", "items": {"type": "string"}},
+    "removed_claims": {"type": "array", "items": {"type": "string"}},
+    "updated_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET$"
+    }
+  },
+  "$defs": {
+    "signoff": {
+      "type": "object",
+      "required": ["signed", "at", "round"],
+      "additionalProperties": false,
+      "properties": {
+        "signed": {"type": "boolean"},
+        "at": {"type": ["string", "null"]},
+        "round": {"type": ["integer", "null"]}
+      }
+    }
+  }
+}

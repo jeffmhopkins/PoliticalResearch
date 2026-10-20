@@ -1,0 +1,124 @@
+item_id: race-mayor
+item_type: race
+claims:
+- id: race-mayor.contest.001
+  section: contest
+  text: Two candidates are listed for mayor of Cedar Hollow.
+  marker: 32
+  sources:
+  - marker: 32
+    url: https://fictional.example/oak-county/2026/sample-ballot
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Oak County Elections (fictional)
+    title: Sample ballot, Cedar Hollow, November 3, 2026
+    doc_type: Official sample ballot
+    published: '2026-09-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Mayor contest header
+    quote: Mayor of Cedar Hollow, Avery Quinn and Blake Okonkwo.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: race-mayor.contest.002
+  section: contest
+  text: Avery Quinn of Cedar Hollow is marked incumbent on the sample ballot.
+  marker: 33
+  sources:
+  - marker: 33
+    url: https://fictional.example/oak-county/2026/sample-ballot
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Oak County Elections (fictional)
+    title: Sample ballot, Cedar Hollow, November 3, 2026
+    doc_type: Official sample ballot
+    published: '2026-09-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Mayor contest, incumbent mark
+    quote: Avery Quinn, incumbent.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: race-mayor.contest.003
+  section: contest
+  text: Blake Okonkwo, appointed in 2016, is a city parks planner.
+  marker: 34
+  sources:
+  - marker: 34
+    url: https://fictional.example/cedar-hollow/personnel/okonkwo-2016
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow Personnel (fictional)
+    title: Parks planner appointment notice
+    doc_type: Personnel notice
+    published: '2016-03-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Job title line
+    quote: Blake Okonkwo, parks planner.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - occupation
+- id: race-mayor.funding.001
+  section: funding
+  text: Both mayoral committees filed a report covering the quarter that ended September 30, 2026.
+  marker: 35
+  sources:
+  - marker: 35
+    url: https://fictional.example/westland-finance/2026-mayor-index
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland campaign finance office (fictional)
+    title: 2026 mayoral filings index
+    doc_type: Filing index
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Mayor row
+    quote: Both mayoral committees filed a report for the quarter ending September 30, 2026.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: race-mayor.logistics.001
+  section: logistics
+  text: Oak County publishes election information on its elections office page.
+  marker: 40
+  sources:
+  - marker: 40
+    url: https://fictional.example/oak-county/elections
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Oak County Elections (fictional)
+    title: Elections office home page
+    doc_type: Official office page
+    published: '2026-10-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Page header
+    quote: Official election information is published at this office.
+    confidence: verified
+  confidence: verified
+  drives_summary: false
+  polarity: neutral
+  about_person: false

@@ -1,0 +1,59 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://github.com/jeffmhopkins/PoliticalResearch/templates/intake.schema.yaml"
+title: Intake answers
+description: Requester personal data does not belong in this file.
+type: object
+required: [election_id, requester_label, scope, include_legislation, depth, formats, languages, offline_archive, sharing_approved]
+additionalProperties: false
+properties:
+  election_id:
+    type: string
+  requester_label:
+    type: string
+  election_date:
+    type: string
+  election_type:
+    type: string
+  jurisdiction_label:
+    type: string
+  scope:
+    type: string
+    enum: [whole_ballot, selected]
+  contest_ids:
+    type: array
+    items:
+      type: string
+  include_legislation:
+    type: boolean
+  legislation_topics:
+    type: array
+    items:
+      type: string
+  depth:
+    type: string
+    enum: [quick, standard, deep]
+  formats:
+    type: array
+    items:
+      type: string
+      enum: [md, html, pdf]
+  languages:
+    type: array
+    items:
+      type: string
+  accessibility_needs:
+    type: string
+  offline_archive:
+    type: boolean
+  parallel_subagents:
+    type: boolean
+  address_location:
+    type: [string, "null"]
+  sharing_approved:
+    type: boolean
+  sharing_approved_at:
+    type: [string, "null"]
+  ballot_photo_deleted:
+    type: boolean
+  notes:
+    type: string
