@@ -6,22 +6,25 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 MODE="install"
 MINIMAL=0
+WITH_TRANSCRIPTION=0
 
 usage() {
   cat <<'EOF'
-Usage: ./bootstrap.sh [--check | --install] [--minimal]
+Usage: ./bootstrap.sh [--check | --install] [--minimal] [--with-transcription]
 
-  --check     Report the environment and exit 2 unless the rating is Full.
-  --install   Install tools, create .venv, and report. This is the default.
-  --minimal   Skip the heavy tools: yt-dlp, faster-whisper, monolith,
-              headless Chromium, and pa11y. Core build tools still install.
+  --check               Report the environment and exit 2 unless the rating is Full.
+  --install             Install tools, create .venv, and report. This is the default.
+  --minimal             Skip the heavy defaults: yt-dlp, monolith, headless
+                        Chromium, and pa11y. Core build tools still install.
+  --with-transcription  Also install faster-whisper and download the Whisper
+                        model named by whisper_model in config.yaml (default base).
+                        Off unless you pass this flag or set whisper_transcription: true.
 
-A normal install also fetches ffmpeg, yt-dlp, faster-whisper (Whisper model
-from config.yaml, default base), monolith, a headless browser, and pa11y.
-If one of those installs fails, bootstrap continues and the environment report
-lists that sandbox capability as reduced. The Full / Reduced / Minimal tooling
-rating is unchanged by those failures.
---check never installs.
+A normal install fetches ffmpeg, yt-dlp, monolith, a headless browser, and pa11y.
+It does not install Whisper. If one of the installs that did run fails, bootstrap
+continues and the environment report lists that sandbox capability as reduced.
+The Full / Reduced / Minimal tooling rating is unchanged by those failures.
+--check never installs. --minimal does not cancel --with-transcription.
 
 The script does not commit, push, or talk to the upstream git remote.
 EOF
@@ -32,6 +35,7 @@ while [[ $# -gt 0 ]]; do
     --check) MODE="check" ;;
     --install) MODE="install" ;;
     --minimal) MINIMAL=1 ;;
+    --with-transcription) WITH_TRANSCRIPTION=1 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 2 ;;
   esac
@@ -105,12 +109,22 @@ install_browser() {
   fi
 }
 
-install_transcripts() {
+config_wants_transcription() {
+  grep -Eq '^whisper_transcription:[[:space:]]*true[[:space:]]*(#.*)?$' "$ROOT/config.yaml"
+}
+
+install_ytdlp() {
   if ! command -v ffmpeg >/dev/null 2>&1; then
     apt_install ffmpeg
   fi
-  .venv/bin/python -m pip install "yt-dlp" "faster-whisper" \
-    || echo "Transcript packages failed to install. Transcript capability stays reduced."
+  .venv/bin/python -m pip install "yt-dlp" \
+    || echo "yt-dlp failed to install. Audio download stays reduced. Continuing."
+}
+
+install_whisper() {
+  .venv/bin/python -m pip install "faster-whisper" \
+    || echo "faster-whisper failed to install. Whisper transcription stays unavailable. Continuing."
+  prefetch_whisper_model
 }
 
 prefetch_whisper_model() {
@@ -171,13 +185,17 @@ if [[ "$MODE" == "install" ]]; then
   fi
   mkdir -p output
   if [[ "$MINIMAL" -eq 0 ]]; then
-    install_transcripts
-    prefetch_whisper_model
+    install_ytdlp
     install_monolith
     install_browser
     install_a11y
   else
-    echo "Minimal install: skipping yt-dlp, faster-whisper, monolith, Chromium, and pa11y."
+    echo "Minimal install: skipping yt-dlp, monolith, Chromium, and pa11y."
+  fi
+  if [[ "$WITH_TRANSCRIPTION" -eq 1 ]] || config_wants_transcription; then
+    install_whisper
+  else
+    echo "Whisper transcription is opt-in. Run ./bootstrap.sh --with-transcription to install faster-whisper and the model in config.yaml."
   fi
 fi
 

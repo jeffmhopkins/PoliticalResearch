@@ -558,8 +558,9 @@ def test_transcript_skips_when_tools_are_absent(tmp_path: Path, monkeypatch):
         publisher="Cedar Hollow Forum",
         clock="2026-10-20 12:00 ET",
     )
-    assert code == 0
-    assert "Skipping transcript" in message
+    assert code == 1
+    assert "--with-transcription" in message
+    assert "whisper_transcription" in message
     assert not (tmp_path / "items" / "cand-example" / "imports").exists()
 
 
@@ -689,7 +690,7 @@ def test_optional_capabilities_do_not_change_a_full_rating():
     }
     assert rate(snapshot) == "Full"
     missing = "\n".join(capability_lines({}))
-    assert "transcripts: not installed" in missing
+    assert "transcripts: opt-in, not installed" in missing
     assert "archive capture: not installed" in missing
     assert "accessibility: built-in only" in missing
     ready = "\n".join(
@@ -716,6 +717,18 @@ def test_optional_capabilities_do_not_change_a_full_rating():
             {
                 "yt-dlp": True,
                 "ffmpeg": True,
+                "monolith": True,
+                "headless_browser": True,
+                "pa11y": True,
+            }
+        )
+        == "ready"
+    )
+    assert (
+        sandbox_capability(
+            {
+                "yt-dlp": True,
+                "ffmpeg": True,
                 "whisper": True,
                 "monolith": True,
                 "headless_browser": True,
@@ -726,25 +739,50 @@ def test_optional_capabilities_do_not_change_a_full_rating():
     )
 
 
-def test_bootstrap_help_lists_the_minimal_opt_out():
+def test_bootstrap_help_lists_minimal_and_transcription_flags():
     result = subprocess.run(["./bootstrap.sh", "--help"], cwd=ROOT, capture_output=True, text=True, check=False)
     assert result.returncode == 0
     assert "--minimal" in result.stdout
+    assert "--with-transcription" in result.stdout
     assert "faster-whisper" in result.stdout
     assert "pa11y" in result.stdout
     assert "--with-transcripts" not in result.stdout
 
 
-def test_whisper_model_comes_from_config_and_defaults_to_base(tmp_path: Path):
-    from lib.transcripts import whisper_model_name
+def test_whisper_settings_default_off_and_model_base(tmp_path: Path):
+    from lib.transcripts import whisper_model_name, whisper_transcription_enabled
 
-    (tmp_path / "config.yaml").write_text("whisper_model: small\n", encoding="utf-8")
+    (tmp_path / "config.yaml").write_text("whisper_model: small\nwhisper_transcription: true\n", encoding="utf-8")
     assert whisper_model_name(tmp_path) == "small"
-    (tmp_path / "config.yaml").write_text("whisper_model: '../large'\n", encoding="utf-8")
+    assert whisper_transcription_enabled(tmp_path) is True
+    (tmp_path / "config.yaml").write_text("whisper_model: '../large'\nwhisper_transcription: false\n", encoding="utf-8")
     assert whisper_model_name(tmp_path) == "base"
+    assert whisper_transcription_enabled(tmp_path) is False
     (tmp_path / "config.yaml").write_text("max_rounds: 3\n", encoding="utf-8")
     assert whisper_model_name(tmp_path) == "base"
+    assert whisper_transcription_enabled(tmp_path) is False
     assert whisper_model_name(ROOT) == "base"
+    assert whisper_transcription_enabled(ROOT) is False
+
+
+def test_transcribe_cli_explains_how_to_enable_whisper(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setattr("lib.transcripts.transcripts_ready", lambda root=None: False)
+    import transcribe
+
+    code = transcribe.main(
+        [
+            "--workspace",
+            str(tmp_path),
+            "--url",
+            "https://fictional.example/forum",
+            "--item-id",
+            "cand-example",
+            "--now",
+            "2026-10-20 12:00 ET",
+        ]
+    )
+    assert code == 1
+    assert "--with-transcription" in capsys.readouterr().out
 
 
 def _accessible_html() -> str:

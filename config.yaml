@@ -8,8 +8,10 @@ timezone: America/New_York
 pdf_engine_preference:
   - weasyprint
   - wkhtmltopdf
-# faster-whisper model used by scripts/transcribe.py. base keeps the download small.
-# small is the next step up. Change this before the first transcription.
+# Opt-in. ./bootstrap.sh does not install faster-whisper or download a model
+# unless you pass --with-transcription, or set this to true and re-run bootstrap.
+whisper_transcription: false
+# Model downloaded only after that opt-in. base stays small; small is the next step.
 whisper_model: base
 legislation_included_by_default: false
 languages_v1:

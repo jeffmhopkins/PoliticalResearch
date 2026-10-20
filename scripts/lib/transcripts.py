@@ -1,7 +1,8 @@
 """Optional forum and debate transcripts.
 
-The pipeline is usable only when yt-dlp, ffmpeg, and either faster-whisper or the
-whisper CLI are installed. A missing tool is a skip, not a failed research run.
+yt-dlp can be installed by a normal bootstrap. faster-whisper and its model are
+opt-in (`./bootstrap.sh --with-transcription`, or `whisper_transcription: true`).
+A missing Whisper install exits with a message and does not write a claim.
 Output is an unreviewed import. It is not merged into claims.yaml.
 """
 
@@ -18,9 +19,11 @@ from lib.quality import SENTENCE_SPLIT_RE
 from lib.util import dump_yaml, load_config, repo_root, resolve_bin, slugify
 
 SKIP_MESSAGE = (
-    "Skipping transcript: yt-dlp, ffmpeg, and whisper or faster-whisper are not all installed. "
-    "Transcript capability is reduced. ./bootstrap.sh installs them unless you passed --minimal. "
-    "Cite the recording page directly until then."
+    "Whisper transcription is not available. It is opt-in: set whisper_transcription: true "
+    "in config.yaml or run ./bootstrap.sh --with-transcription. That installs faster-whisper "
+    "and downloads the whisper_model (default base). yt-dlp still comes from a normal bootstrap; "
+    "./bootstrap.sh --minimal skips yt-dlp, monolith, Chromium, and pa11y. "
+    "Cite the recording page until transcription is enabled."
 )
 _MODEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,40}$")
 DEFAULT_WHISPER_MODEL = "base"
@@ -48,6 +51,11 @@ def tool_status(root: Path | None = None) -> dict[str, bool]:
         "whisper": resolve_bin("whisper", root) is not None,
         "faster-whisper": faster_whisper_available(root),
     }
+
+
+def whisper_transcription_enabled(root: Path | None = None) -> bool:
+    """True when config.yaml opts in. The bootstrap flag installs the package."""
+    return load_config(root).get("whisper_transcription") is True
 
 
 def whisper_model_name(root: Path | None = None) -> str:
@@ -134,7 +142,7 @@ def transcribe_item(
 ) -> tuple[int, str]:
     if download is None or transcribe is None:
         if not transcripts_ready():
-            return 0, SKIP_MESSAGE
+            return 1, SKIP_MESSAGE
         download = download or live_download
         transcribe = transcribe or live_transcribe
     dest = workspace / "items" / item_id / "imports" / "transcripts"
@@ -146,13 +154,13 @@ def transcribe_item(
     except Exception as exc:  # noqa: BLE001 - surface the tool error and stop this import
         return 1, f"Transcript download failed: {exc}"
     if audio is None:
-        return 0, SKIP_MESSAGE
+        return 1, SKIP_MESSAGE
     try:
         raw = transcribe(Path(audio))
     except Exception as exc:  # noqa: BLE001
         return 1, f"Transcription failed: {exc}"
     if raw is None:
-        return 0, SKIP_MESSAGE
+        return 1, SKIP_MESSAGE
     segments = normalize_segments(raw)
     if not segments:
         return 1, "Transcript was empty."

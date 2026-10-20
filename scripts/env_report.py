@@ -157,7 +157,7 @@ def render(root: Path, snapshot: dict) -> str:
         "",
         "The headline rating is local tooling. API keys are optional and disclosed on their own line. Missing keys do not by themselves lower a Full tooling rating.",
         "",
-        "Sandbox capabilities are transcripts, full-page capture, and the external accessibility check. `./bootstrap.sh` installs them. `./bootstrap.sh --minimal` skips them. A failed install does not abort bootstrap; that capability stays reduced and the headline rating is unchanged.",
+        "Sandbox capabilities are yt-dlp, full-page capture, and the external accessibility check. `./bootstrap.sh` installs them. `./bootstrap.sh --minimal` skips them. Whisper transcription is opt-in (`--with-transcription` or `whisper_transcription: true` in config.yaml). A failed install does not abort bootstrap; that capability stays reduced and the headline rating is unchanged.",
         "",
         "## Tools",
         "",
@@ -185,8 +185,9 @@ def render(root: Path, snapshot: dict) -> str:
     lines.extend(capability_lines(snapshot["optional"]))
     lines.append("")
     lines.append(
-        "A normal ./bootstrap.sh installs these. ./bootstrap.sh --minimal skips them. "
-        "They do not change the Full / Reduced / Minimal rating."
+        "yt-dlp, monolith, a headless browser, and pa11y install with ./bootstrap.sh. "
+        "./bootstrap.sh --minimal skips them. Whisper installs only with --with-transcription "
+        "or whisper_transcription: true. None of these change the Full / Reduced / Minimal rating."
     )
     lines.extend(["", "## API keys", "", "Values are never printed.", ""])
     for name, present in keys.items():
@@ -237,8 +238,9 @@ def render(root: Path, snapshot: dict) -> str:
     caps = {line.split(":")[0].lstrip("- ").strip(): line.split(":", 1)[1].strip() for line in capability_lines(snapshot["optional"])}
     if caps.get("transcripts") != "ready":
         lines.append(
-            "- Forum transcripts are unavailable, so that capability is reduced. "
-            "Re-run ./bootstrap.sh without --minimal. A failed install does not stop bootstrap."
+            "- Whisper transcription is opt-in and not installed, so that capability is reduced. "
+            "Run ./bootstrap.sh --with-transcription, or set whisper_transcription: true and re-run bootstrap. "
+            "A failed install does not stop bootstrap."
         )
     archive_state = caps.get("archive capture", "not installed")
     if archive_state == "not installed":
@@ -269,8 +271,12 @@ def configured_whisper_model(root: Path) -> str:
 
 
 def sandbox_capability(optional: dict) -> str:
-    values = [line.split(":", 1)[1].strip() for line in capability_lines(optional)]
-    if len(values) == 3 and values[0] == "ready" and values[1] == "ready" and values[2] in {"pa11y", "axe"}:
+    """Defaults only. Whisper is opt-in and does not change this line."""
+    values = {line.split(":")[0].lstrip("- ").strip(): line.split(":", 1)[1].strip() for line in capability_lines(optional)}
+    downloads = bool(optional.get("yt-dlp") and optional.get("ffmpeg"))
+    archive_ready = values.get("archive capture") == "ready"
+    accessibility = values.get("accessibility") in {"pa11y", "axe"}
+    if downloads and archive_ready and accessibility:
         return "ready"
     return "reduced"
 
@@ -299,7 +305,7 @@ def capability_lines(optional: dict) -> list[str]:
     else:
         accessibility = "built-in only"
     return [
-        f"- transcripts: {'ready' if transcripts else 'not installed'}",
+        f"- transcripts: {'ready' if transcripts else 'opt-in, not installed'}",
         f"- archive capture: {archive}",
         f"- accessibility: {accessibility}",
     ]
