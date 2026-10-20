@@ -170,6 +170,7 @@ def test_identity_anchors_must_match_identity_yaml():
         },
         "fixture",
         identities=[_identity()],
+        draft="Avery Quinn worked as a classroom teacher[^1].",
     )
     assert matched == []
     impostor = _identity()
@@ -592,6 +593,191 @@ def test_small_screen_css_uses_a_max_width_query():
     assert "@media screen" not in css
     assert "font-size: 1.05rem" in narrow
     assert 'media="(max-width: 40rem)"' in template
+
+
+def test_banner_exemption_is_the_exact_sentence():
+    colon = prose_marker_errors("> **FICTIONAL EXAMPLE:** The candidate was convicted in 2019.", "draft")
+    official = prose_marker_errors("> Not an official ballot: the candidate was convicted in 2019.", "draft")
+    buried = prose_marker_errors("> The candidate was convicted in 2019 in this fictional example.", "draft")
+    assert colon and official and buried
+    assert any("convicted in 2019" in error for error in colon)
+    assert any("convicted in 2019" in error for error in official)
+    assert any("convicted in 2019" in error for error in buried)
+    allowed = prose_marker_errors("> **FICTIONAL EXAMPLE:** this race is invented.", "draft")
+    assert allowed == []
+
+
+def test_not_found_gap_does_not_span_a_sentence():
+    glued = prose_marker_errors(
+        "Not found (searched: the county index.The candidate was convicted in 2019).",
+        "draft",
+    )
+    assert glued
+    assert any("convicted in 2019" in error for error in glued)
+    assert prose_marker_errors("Not found (searched: the county index).", "draft") == []
+
+
+def test_identity_requires_a_distinguishing_anchor_in_the_draft_sentence():
+    okonkwo = _identity()
+    okonkwo["ballot_name"] = "Blake Okonkwo"
+    okonkwo["full_legal_name"] = "Blake Amari Okonkwo"
+    okonkwo["city"] = "Cedar Hollow"
+    okonkwo["state"] = "Westland"
+    okonkwo["occupation"] = "parks planner"
+    quote_only = semantic_claim_errors(
+        {
+            "item_type": "candidate",
+            "claims": [
+                _claim(
+                    about_person=True,
+                    identity_attributes=["ballot_name", "city"],
+                    text="John Smith of Chicago was convicted in 2019.",
+                    sources=[_source(quote="Blake Okonkwo of Cedar Hollow was the candidate.")],
+                )
+            ],
+        },
+        "fixture",
+        identities=[okonkwo],
+        draft="John Smith of Chicago was convicted in 2019[^1].",
+    )
+    assert any("claim text does not contain two anchor values" in error for error in quote_only)
+    generic = semantic_claim_errors(
+        {
+            "item_type": "candidate",
+            "claims": [
+                _claim(
+                    about_person=True,
+                    identity_attributes=["occupation", "state"],
+                    text="A parks planner in Westland was convicted in 2019.",
+                )
+            ],
+        },
+        "fixture",
+        identities=[okonkwo],
+        draft="A parks planner in Westland was convicted in 2019[^1].",
+    )
+    assert any("name or filing id" in error for error in generic)
+    fuzzy = _identity()
+    fuzzy["city"] = "Ana"
+    fuzzy["occupation"] = "law"
+    buried = semantic_claim_errors(
+        {
+            "item_type": "candidate",
+            "claims": [
+                _claim(
+                    about_person=True,
+                    identity_attributes=["ballot_name", "city"],
+                    text="The banana lawsuit named Avery Quinn.",
+                )
+            ],
+        },
+        "fixture",
+        identities=[fuzzy],
+        draft="The banana lawsuit named Avery Quinn[^1].",
+    )
+    assert any("two anchor values" in error for error in buried)
+    draft_miss = semantic_claim_errors(
+        {
+            "item_type": "candidate",
+            "claims": [
+                _claim(
+                    about_person=True,
+                    identity_attributes=["ballot_name", "city"],
+                    text="Avery Quinn of Cedar Hollow was convicted in 2019.",
+                    sources=[_source(quote="Avery Quinn of Cedar Hollow was convicted in 2019.")],
+                )
+            ],
+        },
+        "fixture",
+        identities=[_identity()],
+        draft="The candidate was convicted in 2019[^1].",
+    )
+    assert any("draft sentence" in error for error in draft_miss)
+
+
+def test_year_label_is_a_whole_word_on_the_marker_sentence(tmp_path: Path):
+    item = tmp_path / "items" / "cand-a"
+    item.mkdir(parents=True)
+    claim = _claim(text="The 2018 certificate is on file.", sources=[_source(published="2018-11-20")])
+    dump_yaml(item / "claims.yaml", {"item_id": "cand-a", "item_type": "candidate", "claims": [claim]})
+    dump_yaml(tmp_path / "ballot.yaml", {"election": {"date": "2026-11-03"}, "contests": []})
+    (item / "draft.md").write_text("# A\n\nThe certificate is on file[^1].\n", encoding="utf-8")
+    assert any("2018" in error for error in year_label_errors(tmp_path))
+    (item / "draft.md").write_text("# A\n\nThe 20180 certificate is on file[^1].\n", encoding="utf-8")
+    assert any("2018" in error for error in year_label_errors(tmp_path))
+    (item / "draft.md").write_text("# A\n\nThe 2018 certificate is on file[^1].\n", encoding="utf-8")
+    assert year_label_errors(tmp_path) == []
+
+
+def test_confirm_refuses_a_directory_symlink_outside_private(tmp_path: Path):
+    init_workspace(tmp_path, "photos", "household", "2026-10-20 12:00 ET")
+    ballot = yaml.safe_load((tmp_path / "ballot.yaml").read_text(encoding="utf-8"))
+    ballot["contests"] = [
+        {
+            "id": "race-one",
+            "type": "race",
+            "title": "Mayor",
+            "official_source_url": "https://fictional.example/ballot",
+            "candidates": [],
+        }
+    ]
+    dump_yaml(tmp_path / "ballot.yaml", ballot)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    secret = outside / "secret.png"
+    secret.write_bytes(b"not-a-real-photo")
+    (tmp_path / "private" / "linked").symlink_to(outside, target_is_directory=True)
+    (tmp_path / "private" / "address.txt").write_text("PO Box 12\n", encoding="utf-8")
+    assert confirm_ballot(tmp_path, "2026-10-20 12:00 ET") == []
+    assert secret.exists()
+    assert (tmp_path / "private" / "linked").is_symlink()
+    assert (tmp_path / "private" / "address.txt").exists()
+    intake = yaml.safe_load((tmp_path / "intake.yaml").read_text(encoding="utf-8"))
+    assert intake["ballot_photo_deleted"] is not True
+
+
+def test_fetch_refuses_shared_space_and_checks_each_redirect_first(monkeypatch):
+    assert unsafe_fetch_target("http://100.64.0.1/")
+    calls = []
+
+    class _Response:
+        def __init__(self, status, location=""):
+            self.status_code = status
+            self.headers = {"Location": location} if location else {}
+            self.url = "https://fictional.example/start"
+            self.content = b""
+            self.is_redirect = status in {301, 302, 303, 307, 308}
+
+        def json(self):
+            return {"ok": True}
+
+    def fake_request(method, url, **kwargs):
+        calls.append(url)
+        assert kwargs.get("allow_redirects") is False
+        if url == "https://fictional.example/start":
+            return _Response(302, "http://127.0.0.1/secret")
+        raise AssertionError(f"requested {url} before it was allowed")
+
+    import requests
+
+    monkeypatch.setattr(requests, "request", fake_request)
+    from lib.archive import http_fetch
+    from lib.api_clients import ApiError, get_json
+
+    try:
+        http_fetch("https://fictional.example/start")
+    except RuntimeError as exc:
+        assert "not allowed" in str(exc)
+    else:
+        raise AssertionError("redirect to loopback was fetched")
+    try:
+        get_json("https://fictional.example/start")
+    except ApiError as exc:
+        assert "not allowed" in str(exc)
+    else:
+        raise AssertionError("get_json followed a loopback redirect")
+    assert calls
+    assert all(url == "https://fictional.example/start" for url in calls)
 
 
 def test_relative_workspace_build_finds_the_guide():

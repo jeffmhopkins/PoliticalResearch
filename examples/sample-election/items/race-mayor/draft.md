@@ -3,7 +3,7 @@
 > **FICTIONAL EXAMPLE:** this race is invented.
 
 <!-- summary -->
-Two people are running for mayor of Cedar Hollow[^32]. Avery Quinn is the current mayor[^33]. Blake Okonkwo is a city parks planner appointed in 2016[^34]. Both filed a campaign finance report for the quarter that ended in September 2026[^35].
+Two people are running for mayor of Cedar Hollow[^32]. Avery Quinn of Cedar Hollow is the current mayor[^33]. Blake Okonkwo of Cedar Hollow is a city parks planner appointed in 2016[^34]. Both filed a campaign finance report for the quarter that ended in September 2026[^35].
 
 ## Contest
 
@@ -13,9 +13,9 @@ The fictional sample ballot lists the office of mayor of Cedar Hollow[^32]. The 
 
 | Topic | Avery Quinn | Blake Okonkwo |
 | --- | --- | --- |
-| Ballot line | Nonpartisan incumbent[^33] | Nonpartisan challenger[^10] |
-| Work cited here | Teacher, then council and mayor[^3][^2] | Parks planner since 2016[^11] |
-| Latest filing | Quarter ending September 30, 2026[^5] | Quarter ending September 30, 2026[^14] |
+| Ballot line | Avery Quinn of Cedar Hollow, nonpartisan incumbent[^33] | Blake Okonkwo of Cedar Hollow, nonpartisan challenger[^10] |
+| Work cited here | Avery Quinn of Cedar Hollow, teacher, then council and mayor[^3][^2] | Blake Okonkwo of Cedar Hollow, parks planner since 2016[^11] |
+| Latest filing | Avery Quinn of Cedar Hollow, quarter ending September 30, 2026[^5] | Blake Okonkwo of Cedar Hollow, quarter ending September 30, 2026[^14] |
 
 ## Competitiveness
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from lib.util import redact
+from lib.util import redact, safe_request
 
 
 class ApiError(RuntimeError):
@@ -139,18 +139,12 @@ def fec_stub(candidate_id: str, cycle: str, payload: dict) -> dict:
 def get_json(url: str, *, headers: dict | None = None, params: dict | None = None, secrets: list[str] | None = None, timeout: int = 30) -> dict:
     import requests
 
-    from lib.util import unsafe_fetch_target
-
-    reason = unsafe_fetch_target(url)
-    if reason:
-        raise ApiError(f"Refusing fetch: {reason}")
     try:
-        response = requests.get(url, headers=headers or {}, params=params or {}, timeout=timeout)
+        response = safe_request("GET", url, headers=headers or {}, params=params or {}, timeout=timeout)
+    except RuntimeError as exc:
+        raise ApiError(redact(str(exc), secrets or [])) from exc
     except requests.RequestException as exc:
         raise ApiError(redact(str(exc), secrets or [])) from exc
-    redirected = unsafe_fetch_target(response.url)
-    if redirected:
-        raise ApiError(f"Refusing redirect: {redirected}")
     if response.status_code >= 400:
         raise ApiError(redact(f"HTTP {response.status_code} from {url}", secrets or []))
     try:

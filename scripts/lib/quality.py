@@ -32,7 +32,8 @@ GAP_SENTENCES = {
     "limited public record.",
     "no issue positions (judicial ethics rules).",
 }
-GAP_NOT_FOUND_RE = re.compile(r"^not found \(searched: .+\)\.$", re.IGNORECASE)
+# Sentence punctuation inside the parentheses would hide a second sentence, so it is not allowed.
+GAP_NOT_FOUND_RE = re.compile(r"^not found \(searched: [^!.?]+\)\.$", re.IGNORECASE)
 EXEMPT_HEADINGS = {
     "how to use this guide",
     "methodology",
@@ -121,7 +122,22 @@ ANCHOR_FIELDS = {
     "state",
     "campaign_site",
 }
-EXEMPT_QUOTE_BITS = ("not an official ballot", "fictional example", "not voting instructions")
+# A blockquote is exempt only when the whole sentence is one of these banners.
+# Comparison is after emphasis and punctuation are stripped, so a banner phrase
+# followed by a fact does not match.
+BANNER_SENTENCES = (
+    "FICTIONAL EXAMPLE: the places, people, measures, and documents in this guide are invented, sources on fictional.example are placeholders and not real records, and this is not a voting guide.",
+    "Not an official ballot and not voting instructions: confirm contests, deadlines, and polling places with the election office linked below.",
+    "FICTIONAL EXAMPLE: this race is invented.",
+    "FICTIONAL EXAMPLE: this measure is invented.",
+    "FICTIONAL EXAMPLE: Avery Quinn is not a real person, and Cedar Hollow and Westland are not real places.",
+    "FICTIONAL EXAMPLE: Blake Okonkwo is not a real person, and Cedar Hollow and Westland are not real places.",
+    "FICTIONAL EXAMPLE: these publishers are invented.",
+    "Not an official ballot. Not voting instructions.",
+    "Not an official ballot.",
+    "Not voting instructions.",
+)
+DISTINGUISHING_ANCHOR_FIELDS = {"full_legal_name", "ballot_name", "name", "filing_ids", "filing_id"}
 WITHDRAWN_RE = re.compile(r"^Withdrawn on \d{4}-\d{2}-\d{2}\b")
 JUDICIAL_CORE = [
     "retention question",
@@ -188,11 +204,13 @@ def anchors_match_one_record(attrs: list, records: list) -> bool:
     return False
 
 
-def anchor_values(record: dict) -> list[str]:
-    values: list[str] = []
+def anchor_entries(record: dict) -> list[tuple[str, bool]]:
+    """Anchor values from one identity record, flagged when the value can distinguish a person."""
+    entries: list[tuple[str, bool]] = []
     for key in (
         "full_legal_name",
         "ballot_name",
+        "name",
         "office",
         "district",
         "city",
@@ -203,38 +221,51 @@ def anchor_values(record: dict) -> list[str]:
     ):
         raw = str(record.get(key) or "").strip()
         if len(raw) >= 3:
-            values.append(raw)
+            entries.append((raw, key in DISTINGUISHING_ANCHOR_FIELDS))
     filing_ids = record.get("filing_ids")
     if filing_ids is None:
         filing_ids = record.get("filing_id")
-    if isinstance(filing_ids, str) and filing_ids.strip():
-        values.append(filing_ids.strip())
-    elif isinstance(filing_ids, list):
+    if isinstance(filing_ids, str):
+        filing_ids = [filing_ids]
+    if isinstance(filing_ids, list):
         for item in filing_ids:
             text = str(item or "").strip()
             if len(text) >= 3:
-                values.append(text)
-    return values
+                entries.append((text, True))
+    return entries
 
 
-def independent_anchor_values(record: dict, blob: str) -> list[str]:
-    """Values from one identity record that appear in the text, ignoring a value nested inside a longer match."""
-    lowered = blob.lower()
-    found = [value for value in anchor_values(record) if value.lower() in lowered]
-    independent: list[str] = []
-    for value in sorted(found, key=len, reverse=True):
-        if any(value.lower() in chosen.lower() for chosen in independent):
+def _value_on_word_boundary(value: str, blob: str) -> bool:
+    return re.search(rf"(?<!\w){re.escape(value)}(?!\w)", blob, flags=re.IGNORECASE) is not None
+
+
+def independent_anchor_values(record: dict, blob: str) -> list[tuple[str, bool]]:
+    """Values from one record that appear as whole words, dropping a value nested in a longer match."""
+    found = [entry for entry in anchor_entries(record) if _value_on_word_boundary(entry[0], blob)]
+    independent: list[tuple[str, bool]] = []
+    for value, distinguishing in sorted(found, key=lambda item: len(item[0]), reverse=True):
+        if any(value.lower() in chosen[0].lower() for chosen in independent):
             continue
-        independent.append(value)
+        independent.append((value, distinguishing))
     return independent
 
 
-def claim_identity_blob(claim: dict) -> str:
-    parts = [str(claim.get("text") or "")]
-    for source in claim.get("sources") or []:
-        if isinstance(source, dict):
-            parts.append(str(source.get("quote") or ""))
-    return "\n".join(parts)
+def anchors_identify_person(record: dict, blob: str) -> bool:
+    matched = independent_anchor_values(record, blob)
+    return len(matched) >= 2 and any(distinguishing for _value, distinguishing in matched)
+
+
+def _marker_sentences(draft: str, markers: list[int]) -> list[str]:
+    tokens = [f"[^{marker}]" for marker in markers]
+    if not tokens:
+        return []
+    sentences: list[str] = []
+    for line in (draft or "").splitlines():
+        for part in SENTENCE_SPLIT_RE.split(line):
+            text = part.strip()
+            if text and any(token in text for token in tokens):
+                sentences.append(text)
+    return sentences
 
 
 def identities_for_item(workspace, item, doc: dict) -> list[dict]:
@@ -250,7 +281,7 @@ def identities_for_item(workspace, item, doc: dict) -> list[dict]:
     return records
 
 
-def semantic_claim_errors(doc: dict, label: str, identities: list | None = None) -> list[str]:
+def semantic_claim_errors(doc: dict, label: str, identities: list | None = None, draft: str = "") -> list[str]:
     errors: list[str] = []
     seen_markers: dict[int, str] = {}
     for claim in doc.get("claims") or []:
@@ -291,14 +322,32 @@ def semantic_claim_errors(doc: dict, label: str, identities: list | None = None)
             elif isinstance(attrs, list) and len(attrs) >= 2 and not anchors_match_one_record(attrs, records):
                 errors.append(f"{label}: {cid} identity_attributes do not match one identity.yaml record")
             else:
-                blob = claim_identity_blob(claim)
                 eligible = records
                 if isinstance(attrs, list) and len(attrs) >= 2:
                     eligible = [record for record in records if anchors_match_one_record(attrs, [record])]
-                if not any(len(independent_anchor_values(record, blob)) >= 2 for record in eligible):
+                claim_text = str(claim.get("text") or "")
+                if not any(anchors_identify_person(record, claim_text) for record in eligible):
                     errors.append(
-                        f"{label}: {cid} claim text or source quote does not contain two anchor values from one identity.yaml record"
+                        f"{label}: {cid} claim text does not contain two anchor values from one identity.yaml record, including a name or filing id"
                     )
+                markers = []
+                for source in sources:
+                    if isinstance(source, dict):
+                        marker = source_marker(claim, source)
+                        if marker is not None:
+                            markers.append(marker)
+                sentences = _marker_sentences(draft, markers)
+                if not sentences:
+                    errors.append(
+                        f"{label}: {cid} draft sentence carrying the marker does not contain two anchor values from one identity.yaml record, including a name or filing id"
+                    )
+                else:
+                    for sentence in sentences:
+                        if not any(anchors_identify_person(record, sentence) for record in eligible):
+                            errors.append(
+                                f"{label}: {cid} draft sentence carrying the marker does not contain two anchor values from one identity.yaml record, including a name or filing id"
+                            )
+                            break
         tiers = []
         publishers = []
         markers = []
@@ -437,10 +486,17 @@ def _is_gap_text(text: str) -> bool:
     return all(_gap_sentence(part) for part in sentences)
 
 
+def _banner_key(sentence: str) -> str:
+    text = re.sub(r"[*_>`]", "", sentence).lower()
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+BANNER_KEYS = {_banner_key(sentence) for sentence in BANNER_SENTENCES}
+
+
 def _is_banner_sentence(sentence: str) -> bool:
-    lowered = re.sub(r"[*_>`]", " ", sentence).lower()
-    lowered = re.sub(r"\s+", " ", lowered)
-    return any(bit in lowered for bit in EXEMPT_QUOTE_BITS)
+    return _banner_key(sentence) in BANNER_KEYS
 
 
 def prose_marker_errors(text: str, label: str) -> list[str]:
@@ -911,15 +967,21 @@ def stale_errors(workspace, today: date, max_days: int | None = None) -> list[st
 
 
 def _year_is_on_claim(claim_text: str, draft: str, marker: int | None, year: str) -> bool:
-    if year in claim_text:
-        return True
+    """The year must be a whole word in every draft sentence that carries this marker."""
+    del claim_text
     if marker is None or not draft:
         return False
     token = f"[^{marker}]"
-    for sentence in SENTENCE_SPLIT_RE.split(draft):
-        if token in sentence and year in sentence:
-            return True
-    return False
+    pattern = re.compile(rf"(?<!\d){re.escape(year)}(?!\d)")
+    found = False
+    for line in draft.splitlines():
+        for sentence in SENTENCE_SPLIT_RE.split(line):
+            if token not in sentence:
+                continue
+            found = True
+            if pattern.search(sentence) is None:
+                return False
+    return found
 
 
 def year_label_errors(workspace) -> list[str]:
@@ -950,7 +1012,7 @@ def year_label_errors(workspace) -> list[str]:
             if _year_is_on_claim(str(claim.get("text") or ""), draft, marker, label):
                 continue
             errors.append(
-                f"{claim.get('id')}: published {published} is before election year {election_year}; label the year in that claim's sentence or on its marker"
+                f"{claim.get('id')}: published {published} is before election year {election_year}; label the year as a whole word in the draft sentence that carries the marker"
             )
     return errors
 

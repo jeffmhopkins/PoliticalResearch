@@ -10,7 +10,7 @@ import shutil
 import socket
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 from zoneinfo import ZoneInfo
 
 import yaml
@@ -160,14 +160,9 @@ def looks_like_street_address(value: str) -> bool:
 def _blocked_ip(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped is not None:
         address = address.ipv4_mapped
-    return bool(
-        address.is_private
-        or address.is_loopback
-        or address.is_link_local
-        or address.is_reserved
-        or address.is_multicast
-        or address.is_unspecified
-    )
+    # is_private misses shared address space (100.64.0.0/10). is_global is false for
+    # private, loopback, link-local, reserved, multicast, unspecified, and that range.
+    return not address.is_global
 
 
 def _parse_ipv4_literal(host: str) -> ipaddress.IPv4Address | None:
@@ -263,6 +258,41 @@ def unsafe_fetch_target(url: str) -> str | None:
         if _blocked_ip(resolved):
             return f"host {host} resolves to {resolved}, which is not allowed"
     return None
+
+
+def safe_request(method: str, url: str, *, headers: dict | None = None, params: dict | None = None, timeout: int = 30, max_redirects: int = 5):
+    """HTTP request with redirects disabled. Each hop is checked before it is requested."""
+    import requests
+
+    current = url
+    extra_params = params or None
+    verb = method
+    for _hop in range(max_redirects + 1):
+        reason = unsafe_fetch_target(current)
+        if reason:
+            raise RuntimeError(f"Refusing fetch: {reason}")
+        response = requests.request(
+            verb,
+            current,
+            headers=headers or {},
+            params=extra_params,
+            timeout=timeout,
+            allow_redirects=False,
+        )
+        extra_params = None
+        if response.status_code not in {301, 302, 303, 307, 308}:
+            return response
+        location = response.headers.get("Location") or response.headers.get("location")
+        if not location:
+            return response
+        nxt = urljoin(response.url or current, location.strip())
+        reason = unsafe_fetch_target(nxt)
+        if reason:
+            raise RuntimeError(f"Refusing redirect: {reason}")
+        if verb.upper() == "POST" and response.status_code in {301, 302, 303}:
+            verb = "GET"
+        current = nxt
+    raise RuntimeError("Refusing fetch: too many redirects")
 
 
 def resolve_bin(name: str, root: Path | None = None) -> str | None:

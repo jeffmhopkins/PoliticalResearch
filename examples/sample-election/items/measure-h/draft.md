@@ -15,7 +15,7 @@ Measure H is a referral[^21]. The Cedar Hollow council sent it to the ballot by 
 
 ## Plain-language summary
 
-The measure would replace a parks levy that is set to end[^22]. It does not add a second levy on top of a levy that continues[^22][^23].
+The measure would replace a parks levy that is set to end, the one adopted in 2020[^22]. It does not add a second levy on top of the 2020 levy that continues[^22][^23].
 
 ## Current law and proposed change
 
@@ -27,7 +27,7 @@ A yes vote replaces the expiring parks levy at the same rate[^23]. The official 
 
 ## What a no vote does
 
-A no vote lets the current parks levy expire after the 2026 tax year[^24]. The code section on expiration is the same one cited for current law[^22].
+A no vote lets the current parks levy expire after the 2026 tax year[^24]. The code section on the 2020 levy's expiration is the same one cited for current law[^22].
 
 ## Fiscal impact
 

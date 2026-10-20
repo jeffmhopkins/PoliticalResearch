@@ -8,7 +8,7 @@ import sys
 import _boot  # noqa: F401
 from lib.cli import base_parser, workspace_from
 from lib.quality import classify_link, iter_claim_sources, source_marker, wayback_api_url
-from lib.util import dump_json, iter_items, load_yaml, unsafe_fetch_target
+from lib.util import dump_json, iter_items, load_yaml, safe_request, unsafe_fetch_target
 
 
 def _has_archive(source: dict) -> bool:
@@ -44,23 +44,15 @@ def main(argv: list[str] | None = None) -> int:
             status = None
             if not args.offline and url:
                 try:
-                    import requests
-
-                    response = requests.head(url, timeout=15, allow_redirects=True)
-                    redirected = unsafe_fetch_target(response.url)
-                    if redirected:
-                        print(f"blocked-redirect\t{marker}\t{response.url}\t{redirected}")
-                        failures.append(url)
-                        continue
+                    response = safe_request("HEAD", url, timeout=15)
                     status = response.status_code
                     if status in {403, 405}:
-                        follow = requests.get(url, timeout=20, allow_redirects=True)
-                        redirected = unsafe_fetch_target(follow.url)
-                        if redirected:
-                            print(f"blocked-redirect\t{marker}\t{follow.url}\t{redirected}")
-                            failures.append(url)
-                            continue
+                        follow = safe_request("GET", url, timeout=20)
                         status = follow.status_code
+                except RuntimeError as exc:
+                    print(f"blocked-redirect\t{marker}\t{url}\t{exc}")
+                    failures.append(url)
+                    continue
                 except Exception as exc:  # noqa: BLE001
                     print(f"UNCHECKED {url} ({exc})")
                     status = None

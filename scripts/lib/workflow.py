@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from datetime import date
 from pathlib import Path
@@ -197,20 +198,72 @@ def confirm_ballot(workspace: Path, clock: str) -> list[str]:
     return []
 
 
+def _resolves_inside(path: Path, root: Path) -> bool:
+    try:
+        resolved = path.resolve(strict=False)
+        resolved.relative_to(root.resolve())
+    except (OSError, RuntimeError, ValueError):
+        return False
+    return True
+
+
 def _delete_ballot_images(workspace: Path) -> bool:
-    """Delete image and PDF files anywhere under private/. Leave address.txt. True when none remain."""
+    """Delete image and PDF files under private/. A symlink that escapes private/ leaves the flag unset."""
     private = workspace / "private"
     suffixes = {".jpg", ".jpeg", ".png", ".heic", ".pdf", ".webp", ".gif", ".tif", ".tiff"}
+    if private.is_symlink():
+        return False
     if not private.is_dir():
         return True
-    for path in list(private.rglob("*")):
-        if path.is_file() and path.suffix.lower() in suffixes:
+    unsafe = False
+    for root, dirnames, filenames in os.walk(private, followlinks=False):
+        root_path = Path(root)
+        for dirname in dirnames:
+            entry = root_path / dirname
             try:
-                path.unlink()
+                if entry.is_symlink() and not _resolves_inside(entry, private):
+                    unsafe = True
             except OSError:
-                continue
-    remaining = [path for path in private.rglob("*") if path.is_file() and path.suffix.lower() in suffixes]
-    return not remaining
+                unsafe = True
+        for filename in filenames:
+            entry = root_path / filename
+            try:
+                is_link = entry.is_symlink()
+                target_suffix = ""
+                if is_link:
+                    try:
+                        target_suffix = entry.resolve(strict=False).suffix.lower()
+                    except (OSError, RuntimeError):
+                        unsafe = True
+                        continue
+                    if not _resolves_inside(entry, private) and target_suffix not in suffixes and entry.suffix.lower() not in suffixes:
+                        continue
+                if entry.suffix.lower() in suffixes or target_suffix in suffixes:
+                    try:
+                        entry.unlink()
+                    except OSError:
+                        unsafe = True
+            except OSError:
+                unsafe = True
+    if unsafe:
+        return False
+    for root, dirnames, filenames in os.walk(private, followlinks=False):
+        root_path = Path(root)
+        for dirname in dirnames:
+            entry = root_path / dirname
+            if entry.is_symlink() and not _resolves_inside(entry, private):
+                return False
+        for filename in filenames:
+            entry = root_path / filename
+            if entry.suffix.lower() in suffixes:
+                return False
+            if entry.is_symlink():
+                try:
+                    if entry.resolve(strict=False).suffix.lower() in suffixes:
+                        return False
+                except (OSError, RuntimeError):
+                    return False
+    return True
 
 
 def approve_sharing(workspace: Path, clock: str) -> list[str]:
@@ -908,6 +961,12 @@ def structural_workspace_errors(workspace: Path) -> list[str]:
         blob = path.read_text(encoding="utf-8")
         if looks_like_street_address(blob):
             errors.append(f"{path.name} contains a street address. Keep addresses in private/ only.")
+    draft_parts = []
+    for item in iter_items(workspace):
+        draft_path = item / "draft.md"
+        if draft_path.exists():
+            draft_parts.append(draft_path.read_text(encoding="utf-8"))
+    combined_draft = "\n".join(draft_parts)
     for item in iter_items(workspace):
         claims_path = item / "claims.yaml"
         if claims_path.exists():
@@ -922,6 +981,7 @@ def structural_workspace_errors(workspace: Path) -> list[str]:
                         doc,
                         f"{item.name}/claims.yaml",
                         identities_for_item(workspace, item, doc),
+                        draft=combined_draft,
                     )
                 )
                 if doc.get("item_type") == "candidate":

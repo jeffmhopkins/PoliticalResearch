@@ -373,13 +373,12 @@ def _write_zip(workspace: Path, zip_path: Path) -> None:
 
 
 def http_fetch(url: str):
-    import requests
+    from lib.util import safe_request
 
-    reason = unsafe_fetch_target(url)
-    if reason:
-        raise RuntimeError(f"Refusing fetch: {reason}")
-    response = requests.get(url, timeout=30, headers={"User-Agent": "PoliticalResearch-archive/0.1"})
-    redirected = unsafe_fetch_target(response.url)
-    if redirected:
-        raise RuntimeError(f"Refusing redirect: {redirected}")
+    response = safe_request(
+        "GET",
+        url,
+        timeout=30,
+        headers={"User-Agent": "PoliticalResearch-archive/0.1"},
+    )
     return response.status_code, response.url, response.content, response.headers.get("Content-Type", "")

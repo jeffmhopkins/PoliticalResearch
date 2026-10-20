@@ -27,7 +27,7 @@ Use the official election office, not this guide, for dates, deadlines, and poll
 > **FICTIONAL EXAMPLE:** this race is invented.
 
 <!-- summary -->
-Two people are running for mayor of Cedar Hollow[^32]. Avery Quinn is the current mayor[^33]. Blake Okonkwo is a city parks planner appointed in 2016[^34]. Both filed a campaign finance report for the quarter that ended in September 2026[^35].
+Two people are running for mayor of Cedar Hollow[^32]. Avery Quinn of Cedar Hollow is the current mayor[^33]. Blake Okonkwo of Cedar Hollow is a city parks planner appointed in 2016[^34]. Both filed a campaign finance report for the quarter that ended in September 2026[^35].
 
 ## Contest
 
@@ -37,9 +37,9 @@ The fictional sample ballot lists the office of mayor of Cedar Hollow[^32]. The 
 
 | Topic | Avery Quinn | Blake Okonkwo |
 | --- | --- | --- |
-| Ballot line | Nonpartisan incumbent[^33] | Nonpartisan challenger[^10] |
-| Work cited here | Teacher, then council and mayor[^3][^2] | Parks planner since 2016[^11] |
-| Latest filing | Quarter ending September 30, 2026[^5] | Quarter ending September 30, 2026[^14] |
+| Ballot line | Avery Quinn of Cedar Hollow, nonpartisan incumbent[^33] | Blake Okonkwo of Cedar Hollow, nonpartisan challenger[^10] |
+| Work cited here | Avery Quinn of Cedar Hollow, teacher, then council and mayor[^3][^2] | Blake Okonkwo of Cedar Hollow, parks planner since 2016[^11] |
+| Latest filing | Avery Quinn of Cedar Hollow, quarter ending September 30, 2026[^5] | Blake Okonkwo of Cedar Hollow, quarter ending September 30, 2026[^14] |
 
 ## Competitiveness
 
@@ -80,39 +80,39 @@ See `findings.yaml`.
 
 ## Identity
 
-Avery Quinn appears on the fictional Cedar Hollow mayoral ballot[^1]. The office is mayor, the party line says nonpartisan, and the ballot marks the candidate as the incumbent[^1]. The filing lists the campaign site quinn-for-cedar.example[^1].
+Avery Quinn of Cedar Hollow appears on the fictional mayoral ballot[^1]. The ballot lists Avery Quinn of Cedar Hollow as the nonpartisan incumbent[^1]. The filing for Avery Quinn of Cedar Hollow lists the campaign site quinn-for-cedar.example[^1].
 
 ## Prior offices and public service
 
-Avery Quinn was elected to the Cedar Hollow city council for a four-year term that began after the 2018 election[^2]. The certificate says the voters elected Quinn, rather than an appointment[^2].
+Avery Quinn of Cedar Hollow was elected to the city council for a four-year term that began after the 2018 election[^2]. The 2018 certificate says the voters elected Avery Quinn of Cedar Hollow, rather than an appointment[^2].
 
 ## Occupational history
 
-Before that council term, Avery Quinn worked as a classroom teacher from 2004 through 2018[^3]. The staff directory lists the role as teacher and does not list an ownership share in a business[^3].
+Before that council term, Avery Quinn of Cedar Hollow worked as a classroom teacher from 2004 through 2018[^3]. The 2018 staff directory lists Avery Quinn of Cedar Hollow as a teacher and does not list an ownership share in a business[^3].
 
 ## Education
 
-The State University of Westland registrar says Avery Quinn received a bachelor of arts degree in 2004[^4]. No later degree was listed on the filing checked for this fictional profile[^4].
+The State University of Westland registrar says Avery Quinn of Cedar Hollow received a bachelor of arts degree in 2004[^4]. No later degree was listed for Avery Quinn of Cedar Hollow on the 2004 filing checked for this fictional profile[^4].
 
 ## Campaign funding
 
-The Quinn committee filed on October 15, 2026 for the quarter that ended September 30, 2026[^5]. The summary lines show 48200 dollars in receipts, 31000 dollars spent, 17200 dollars in cash on hand, and no debt[^5]. Cash on hand means money the report still showed at the end of that filing period[^5].
+Avery Quinn of Cedar Hollow filed on October 15, 2026 for the quarter that ended September 30, 2026[^5]. The summary for Avery Quinn of Cedar Hollow shows 48200 dollars in receipts, 31000 dollars spent, 17200 dollars in cash on hand, and no debt[^5]. Cash on hand for Avery Quinn of Cedar Hollow means money the report still showed at the end of that filing period[^5].
 
 ## Record vs rhetoric
 
-On June 4, 2024, Mayor Quinn voted yes on the city parks budget[^6]. In the 2026 questionnaire, Quinn wrote that the levy should stay at the amount printed on the ballot[^7]. The vote is a budget vote, and the questionnaire sentence is about a later levy question[^6][^7].
+On June 4, 2024, Avery Quinn of Cedar Hollow voted yes on the city parks budget[^6]. In the 2026 questionnaire, Avery Quinn of Cedar Hollow wrote that the levy should stay at the amount printed on the ballot[^7]. The 2024 parks vote by Avery Quinn of Cedar Hollow is a budget vote, and the questionnaire sentence is about a later levy question[^6][^7].
 
 ## Positions in own words
 
-The Cedar Hollow League of Voters asked each mayoral candidate the same parks question[^7]. Quinn answered, "I will ask the council to keep the levy at the amount printed on the ballot."[^7]
+The Cedar Hollow League of Voters asked Avery Quinn of Cedar Hollow the same parks question[^7]. Avery Quinn of Cedar Hollow answered, "I will ask the council to keep the levy at the amount printed on the ballot."[^7]
 
 ## Debates and forums
 
-Quinn spoke at the September 20, 2026 library forum[^8]. At 00:14:10 Quinn said, "The parks budget I voted for is the one in the 2024 minutes."[^8]
+Avery Quinn of Cedar Hollow spoke at the September 20, 2026 library forum[^8]. At 00:14:10 Avery Quinn of Cedar Hollow said, "The parks budget I voted for is the one in the 2024 minutes."[^8]
 
 ## Endorsements
 
-The Cedar Hollow Firefighters Association said on September 2, 2026 that it endorses Avery Quinn[^9]. That sentence is the association's position, not a finding about Quinn's record[^9].
+The Cedar Hollow Firefighters Association said on September 2, 2026 that it endorses Avery Quinn of Cedar Hollow[^9]. That sentence is the association's position about Avery Quinn of Cedar Hollow, not a finding about the voting record[^9].
 
 ## Legal issues
 
@@ -120,7 +120,7 @@ Not found (searched: fictional Oak County court index, fictional Westland court 
 
 ## Strongest case
 
-The cited record shows an elected council term, a yes vote on the 2024 parks budget, and a filed finance report[^2][^6][^5].
+The 2018 council term and the 2024 parks vote for Avery Quinn of Cedar Hollow are in the cited record, along with a filed finance report[^2][^6][^5].
 
 ## Interest-group ratings
 
@@ -144,7 +144,7 @@ See `findings.yaml`.
 
 ## Identity
 
-Blake Okonkwo appears on the fictional Cedar Hollow mayoral ballot[^10]. The office is mayor, the party line says nonpartisan, and the ballot does not mark the candidate as the incumbent[^10]. The filing lists the campaign site okonkwo-for-cedar.example[^10].
+Blake Okonkwo of Cedar Hollow appears on the fictional mayoral ballot[^10]. The ballot lists Blake Okonkwo of Cedar Hollow as a nonpartisan challenger and does not mark the candidate as the incumbent[^10]. The filing for Blake Okonkwo of Cedar Hollow lists the campaign site okonkwo-for-cedar.example[^10].
 
 ## Prior offices and public service
 
@@ -152,33 +152,33 @@ Not found (searched: fictional council certificates and the 2026 ballot filing).
 
 ## Occupational history
 
-A city personnel notice says the parks director appointed Blake Okonkwo as a planner in 2016[^11]. The notice lists the role as employee and does not list ownership of a firm[^11].
+A city personnel notice says the parks director appointed Blake Okonkwo of Cedar Hollow as a parks planner in 2016[^11]. The 2016 notice lists Blake Okonkwo of Cedar Hollow as an employee and does not list ownership of a firm[^11].
 
 ## Education
 
-Westland State College says Blake Okonkwo received a master of public administration degree in 2015[^12]. No other degree was listed on the filing checked for this fictional profile[^12].
+Westland State College says Blake Okonkwo of Cedar Hollow received a master of public administration degree in 2015[^12]. No other degree was listed for Blake Okonkwo of Cedar Hollow on the 2015 filing checked for this fictional profile[^12].
 
 ## Campaign funding
 
-The Okonkwo committee filed on October 15, 2026 for the quarter that ended September 30, 2026[^14]. The summary lines show 30100 dollars in receipts, 18400 dollars spent, 11700 dollars in cash on hand, and no debt[^14].
+Blake Okonkwo of Cedar Hollow filed on October 15, 2026 for the quarter that ended September 30, 2026[^14]. The summary for Blake Okonkwo of Cedar Hollow shows 30100 dollars in receipts, 18400 dollars spent, 11700 dollars in cash on hand, and no debt[^14].
 
-A Quinn campaign mailer said Okonkwo's donors are mostly real-estate developers[^18]. The itemized filing instead lists a 2500 dollar receipt from Friends of the River Path as the largest line[^19]. This characterization is disputed and is not used in the summary[^18][^19].
+A Quinn campaign mailer said Blake Okonkwo of Cedar Hollow has donors who are mostly real-estate developers[^18]. The itemized filing for Blake Okonkwo of Cedar Hollow instead lists a 2500 dollar receipt from Friends of the River Path as the largest line[^19]. This characterization of Blake Okonkwo of Cedar Hollow is disputed and is not used in the summary[^18][^19].
 
 ## Record vs rhetoric
 
-A 2025 parks department report names Blake Okonkwo as the lead on the river path repair[^13]. In the questionnaire, Okonkwo wrote that a levy change should follow a published repair list[^15]. The report describes a completed project, and the questionnaire talks about a future list[^13][^15].
+A 2025 parks department report names Blake Okonkwo of Cedar Hollow as the lead on the river path repair[^13]. In the questionnaire, Blake Okonkwo of Cedar Hollow wrote that a levy change should follow a published repair list[^15]. The 2025 report on Blake Okonkwo of Cedar Hollow describes a completed project, and the questionnaire talks about a future list[^13][^15].
 
 ## Positions in own words
 
-The Cedar Hollow League of Voters asked each mayoral candidate the same parks question[^15]. Okonkwo answered, "I will publish the parks repair list before I ask for a levy change."[^15]
+The Cedar Hollow League of Voters asked Blake Okonkwo of Cedar Hollow the same parks question[^15]. Blake Okonkwo of Cedar Hollow answered, "I will publish the parks repair list before I ask for a levy change."[^15]
 
 ## Debates and forums
 
-Okonkwo spoke at the September 20, 2026 library forum[^16]. At 00:28:40 Okonkwo said, "I managed the river path repair and I will publish the project list."[^16]
+Blake Okonkwo of Cedar Hollow spoke at the September 20, 2026 library forum[^16]. At 00:28:40 Blake Okonkwo of Cedar Hollow said, "I managed the river path repair and I will publish the project list."[^16]
 
 ## Endorsements
 
-Friends of the River Path said on September 5, 2026 that it endorses Blake Okonkwo[^17]. That sentence is the group's position, not a finding about Okonkwo's record[^17].
+Friends of the River Path said on September 5, 2026 that it endorses Blake Okonkwo of Cedar Hollow[^17]. That sentence is the group's position about Blake Okonkwo of Cedar Hollow, not a finding about the voting record[^17].
 
 ## Legal issues
 
@@ -186,7 +186,7 @@ Not found (searched: fictional Oak County court index, fictional Westland court 
 
 ## Strongest case
 
-The cited record shows a parks planner appointment, the river path project, and a filed finance report[^11][^13][^14].
+The cited record for Blake Okonkwo of Cedar Hollow shows a 2016 parks planner appointment, the 2025 river path project, and a filed finance report[^11][^13][^14].
 
 ## Interest-group ratings
 
@@ -221,7 +221,7 @@ Measure H is a referral[^21]. The Cedar Hollow council sent it to the ballot by 
 
 ## Plain-language summary
 
-The measure would replace a parks levy that is set to end[^22]. It does not add a second levy on top of a levy that continues[^22][^23].
+The measure would replace a parks levy that is set to end, the one adopted in 2020[^22]. It does not add a second levy on top of the 2020 levy that continues[^22][^23].
 
 ## Current law and proposed change
 
@@ -233,7 +233,7 @@ A yes vote replaces the expiring parks levy at the same rate[^23]. The official 
 
 ## What a no vote does
 
-A no vote lets the current parks levy expire after the 2026 tax year[^24]. The code section on expiration is the same one cited for current law[^22].
+A no vote lets the current parks levy expire after the 2026 tax year[^24]. The code section on the 2020 levy's expiration is the same one cited for current law[^22].
 
 ## Fiscal impact
 
