@@ -52,9 +52,12 @@ Do not recommend a vote. Do not invent ballot contents. Do not commit `output/`,
 Instructions, policies, templates, schemas, and small scripts. The agent does the research. The scripts keep the files valid: schemas, citation markers, symmetry, the review cap, resume, and the HTML/PDF build.
 
 ```bash
-./bootstrap.sh          # check or install tools, write output/env.md
-./bootstrap.sh --check  # report only; exit 2 unless the rating is Full
+./bootstrap.sh            # core tools plus transcripts, monolith, Chromium, and pa11y
+./bootstrap.sh --minimal  # core tools only; skip those heavy installs
+./bootstrap.sh --check    # report only; exit 2 unless the rating is Full
 ```
+
+`--check` never installs. A heavy install that fails is reported and bootstrap continues. The tooling rating can stay **Full** while sandbox capabilities (transcripts, full-page capture, pa11y) are **reduced**. `config.yaml` sets `whisper_model` (default `base`) so the Whisper download stays small.
 
 Ratings:
 
@@ -120,6 +123,9 @@ These match `config.yaml`.
 | Paid data APIs | Optional keys only. No Ballotpedia or BallotReady client. Democracy Works is called only if you set its URL |
 | Legislation | Off unless intake says `include_legislation: true` and lists topics |
 | PDF engine | weasyprint, then wkhtmltopdf |
+| Transcripts | Installed by `./bootstrap.sh`. `--minimal` skips them. Model is `whisper_model` (default `base`) |
+| Offline captures | HTTP body and PDF always. Monolith and a screenshot install by default; `--minimal` skips them |
+| Accessibility | Built-in HTML checks always. pa11y installs by default; `--minimal` skips it |
 | Languages | English in v1 |
 | Human sign-off | Required before sharing, not before assembly |
 | Strongest case | One cited sentence per candidate, plus equal-length arguments on measures and bills |

@@ -5,7 +5,7 @@ Verify this checklist before research. `./bootstrap.sh` writes the tooling ratin
 - [ ] **Environment.** You are in a Linux sandbox with a shell. You can install packages, or they are already installed.
 - [ ] **Required capabilities.** You can search the web and fetch pages, read and write local files, run shell commands and Python 3, and read PDFs (`pdftotext` from poppler-utils).
 - [ ] **Strongly recommended.** You can spawn parallel subagents so researchers and reviewers work separately. If you cannot, run each role one at a time in a fresh context and say that in the methodology.
-- [ ] **Bootstrap tools.** `./bootstrap.sh` installs or checks pandoc, a PDF engine (weasyprint, then wkhtmltopdf), poppler-utils, a Python virtualenv, and the packages in `requirements.txt`.
+- [ ] **Bootstrap tools.** `./bootstrap.sh` installs pandoc, a PDF engine (weasyprint, then wkhtmltopdf), poppler-utils, a Python virtualenv, the packages in `requirements.txt`, and the sandbox tools: ffmpeg, yt-dlp, faster-whisper, monolith, headless Chromium or Chrome, and pa11y. `./bootstrap.sh --minimal` skips those heavy tools. If a heavy install fails, continue. `output/env.md` keeps the tooling rating and marks that sandbox capability reduced. Built-in HTML checks, HTTP archive copies, and PDF prints still run. The Whisper model is `whisper_model` in `config.yaml` (default `base`).
 - [ ] **Optional API keys.** Copy `.env.example` to `.env` if bootstrap did not. Keys: OpenFEC, Google Civic, Democracy Works (key plus URL), Open States, Congress.gov, LegiScan. Missing keys are disclosed in `output/env.md`. Scripts exit successfully and tell you to use official pages instead. Do not invent the data the API would have returned.
 - [ ] **Behavior.** Ask the intake questions. Get ballot confirmation before research. Never state ballot contents, dates, or deadlines from model memory. Cite every factual claim. Never commit or push `output/`, `private/`, or `.env`. Never recommend how to vote. There is no values-matching mode.
 - [ ] **If something is missing.** Tell the requester what is missing and what the report will lack. Continue only if they say to continue. Record the rating and the gaps in the methodology.
@@ -99,7 +99,8 @@ All run files live under `output/<election-id>/`, which is git-ignored.
 | `items/<id>/CHANGELOG.md` | researcher and cap script | |
 | `final/guide.md` | assembler | Source of truth for the report |
 | `final/guide.html`, `final/guide.pdf` | `build.sh` | |
-| `archive/` | `archive_sources.py` | Only if `offline_archive` is true |
+| `archive/` | `archive_sources.py` | Only if `offline_archive` is true. Manifest hashes the page, PDF, monolith HTML, and screenshot when those tools exist |
+| `items/<id>/imports/transcripts/` | `transcribe.py` | Unreviewed timestamped transcript. Not a claim until a researcher copies a checked quote |
 
 # Scripts
 
@@ -121,7 +122,7 @@ Run them with the virtualenv Python after `./bootstrap.sh`:
 ./scripts/build.sh --workspace <path>
 ```
 
-`fec.py`, `openstates.py`, and `congress.py` write unreviewed JSON imports. They do not create claims. `check_links.py` and `staleness.py` are review tools. `swap.py` writes a blinded draft. `readability.py` and `edge_cases.py` support the gate. `refresh.py` plans a later pass. `archive_sources.py` runs only when the requester opted in.
+`fec.py`, `openstates.py`, and `congress.py` write unreviewed JSON imports. They do not create claims. `transcribe.py` writes an unreviewed timestamped transcript and a citation stub; it does not edit `claims.yaml`, and it skips when yt-dlp, ffmpeg, and whisper or faster-whisper are absent. `check_links.py` and `staleness.py` are review tools. `swap.py` writes a blinded draft. `readability.py` and `edge_cases.py` support the gate. `refresh.py` plans a later pass. `archive_sources.py` runs only when the requester opted in. It always tries an HTTP copy and a PDF print, adds a monolith file and a Chromium screenshot when those tools exist, and on a failed fetch records `capture_failed` plus a Wayback copy when one exists. `build.sh` runs `a11y_check.py`: built-in HTML checks always run; pa11y or axe runs only when installed, and an installed checker that reports errors fails the build.
 
 # Definition of done
 
@@ -135,4 +136,4 @@ Run them with the virtualenv Python after `./bootstrap.sh`:
 
 # Defaults chosen for v1
 
-See `config.yaml` and the README. Max review rounds are 3. A refresh uses 1 round. Legislation is off unless requested. The PDF engine is weasyprint, then wkhtmltopdf. The guide is English. Human approval is required before sharing, not before assembly. Candidates get one strongest-case sentence. Interest-group ratings appear only as a pair from opposite sides, or they are omitted.
+See `config.yaml` and the README. Max review rounds are 3. A refresh uses 1 round. Legislation is off unless requested. The PDF engine is weasyprint, then wkhtmltopdf. The guide is English. Human approval is required before sharing, not before assembly. Candidates get one strongest-case sentence. Interest-group ratings appear only as a pair from opposite sides, or they are omitted. The Whisper model is `base` unless `config.yaml` says otherwise. Bootstrap installs transcript, capture, and pa11y tools unless the run used `--minimal`.

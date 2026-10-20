@@ -21,6 +21,8 @@ A negative claim is `verified` only with a T1 source or two independent sources.
 
 Quotes are verbatim and short. Paraphrase is not quoted.
 
+For a forum or debate video, run `scripts/transcribe.py --election-id <id> --item-id <id> --url <recording>` when `output/env.md` says transcripts are ready. The script writes a timestamped transcript and an unreviewed citation stub under `items/<id>/imports/transcripts/`. Check the quote, then copy `suggested_source` into `claims.yaml`. The locator is `Timestamp HH:MM:SS`. Do not treat the stub as a signed-off claim. Large media is not kept unless you pass `--keep-media`. The Whisper model is `whisper_model` in `config.yaml` (default `base`). `./bootstrap.sh` installs yt-dlp and faster-whisper; `./bootstrap.sh --minimal` does not. If the tools are absent, cite the recording page and say that a machine transcript was not made.
+
 ## Review responses
 
 Answer every open finding with one of:

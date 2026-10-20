@@ -23,6 +23,8 @@ examples/sample-election/final/guide-with-sources.zip
 examples/sample-election/versions/
 examples/sample-election/archive/
 
-# Tool caches
+# Tool caches and local installs from bootstrap
 .cache/
+.tools/
+node_modules/
 *.log

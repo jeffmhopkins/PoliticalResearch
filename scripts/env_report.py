@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 import subprocess
 import sys
@@ -41,8 +42,23 @@ def python_ok() -> tuple[bool, str]:
     return False, f"{version.major}.{version.minor}.{version.micro}"
 
 
-def command_ok(name: str) -> bool:
-    return shutil.which(name) is not None
+def command_ok(name: str, root: Path | None = None) -> bool:
+    if shutil.which(name) is not None:
+        return True
+    if root is not None and (root / ".venv" / "bin" / name).is_file():
+        return True
+    return False
+
+
+def module_ok(root: Path, module: str) -> bool:
+    venv = root / ".venv" / "bin" / "python"
+    python = str(venv) if venv.exists() else sys.executable
+    result = subprocess.run([python, "-c", f"import {module}"], capture_output=True)
+    return result.returncode == 0
+
+
+def browser_ok() -> bool:
+    return any(command_ok(name) for name in ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable"))
 
 
 def deps_ok(root: Path) -> tuple[bool, str]:
@@ -76,11 +92,14 @@ def collect(root: Path) -> dict:
     deps, deps_detail = deps_ok(root)
     tools["python_deps"] = deps
     optional = {
-        "ffmpeg": command_ok("ffmpeg"),
-        "yt-dlp": command_ok("yt-dlp"),
-        "whisper": command_ok("whisper"),
-        "monolith": command_ok("monolith"),
-        "pa11y": command_ok("pa11y"),
+        "ffmpeg": command_ok("ffmpeg", root),
+        "yt-dlp": command_ok("yt-dlp", root),
+        "whisper": command_ok("whisper", root),
+        "faster-whisper": module_ok(root, "faster_whisper"),
+        "monolith": command_ok("monolith", root),
+        "headless_browser": browser_ok(),
+        "pa11y": command_ok("pa11y", root),
+        "axe": command_ok("axe", root),
     }
     env = parse_env(root / ".env")
     keys = {name: bool(env.get(name, "").strip()) for name in KEY_NAMES}
@@ -132,9 +151,13 @@ def render(root: Path, snapshot: dict) -> str:
         f"- API access: **{api_line}**",
         f"- Python: {snapshot['python_version']}",
         f"- PDF engine: {snapshot['pdf_name']}",
+        f"- Sandbox capabilities: **{sandbox_capability(snapshot['optional'])}**",
+        f"- Whisper model: {configured_whisper_model(root)}",
         f"- Checked: {clock}",
         "",
         "The headline rating is local tooling. API keys are optional and disclosed on their own line. Missing keys do not by themselves lower a Full tooling rating.",
+        "",
+        "Sandbox capabilities are transcripts, full-page capture, and the external accessibility check. `./bootstrap.sh` installs them. `./bootstrap.sh --minimal` skips them. A failed install does not abort bootstrap; that capability stays reduced and the headline rating is unchanged.",
         "",
         "## Tools",
         "",
@@ -158,6 +181,13 @@ def render(root: Path, snapshot: dict) -> str:
     lines.extend(["", "## Optional tools", ""])
     for name, ok in snapshot["optional"].items():
         lines.append(f"- {name}: {'ok' if ok else 'missing'}")
+    lines.extend(["", "## Optional capabilities", ""])
+    lines.extend(capability_lines(snapshot["optional"]))
+    lines.append("")
+    lines.append(
+        "A normal ./bootstrap.sh installs these. ./bootstrap.sh --minimal skips them. "
+        "They do not change the Full / Reduced / Minimal rating."
+    )
     lines.extend(["", "## API keys", "", "Values are never printed.", ""])
     for name, present in keys.items():
         lines.append(f"- {name}: {'set' if present else 'unset'}")
@@ -170,8 +200,17 @@ def render(root: Path, snapshot: dict) -> str:
         if not snapshot.get("gitignore_ok"):
             gaps.append(".gitignore does not list output/ and private/")
     for name, ok in snapshot["optional"].items():
-        if not ok:
-            gaps.append(f"{name} is not installed")
+        if ok:
+            continue
+        if name == "whisper" and snapshot["optional"].get("faster-whisper"):
+            continue
+        if name == "faster-whisper" and snapshot["optional"].get("whisper"):
+            continue
+        if name == "axe" and snapshot["optional"].get("pa11y"):
+            continue
+        if name == "pa11y" and snapshot["optional"].get("axe"):
+            continue
+        gaps.append(f"{name} is not installed")
     for name, present in keys.items():
         if not present:
             gaps.append(f"{name} is unset")
@@ -195,12 +234,75 @@ def render(root: Path, snapshot: dict) -> str:
         lines.append("- Local build tools are present.")
     if api_line != "ready":
         lines.append("- Finance, bill, and ballot API scripts will skip live calls for every unset key. The agent must read official filings and sample ballots in the browser and cite those pages.")
-    if not snapshot["optional"].get("yt-dlp") or not snapshot["optional"].get("ffmpeg"):
-        lines.append("- Forum video transcripts are not captured automatically.")
-    if not snapshot["optional"].get("monolith"):
-        lines.append("- Offline page capture saves the HTTP body and, when it is HTML, a PDF print. It does not build a single-file monolith copy or a screenshot unless those tools exist.")
+    caps = {line.split(":")[0].lstrip("- ").strip(): line.split(":", 1)[1].strip() for line in capability_lines(snapshot["optional"])}
+    if caps.get("transcripts") != "ready":
+        lines.append(
+            "- Forum transcripts are unavailable, so that capability is reduced. "
+            "Re-run ./bootstrap.sh without --minimal. A failed install does not stop bootstrap."
+        )
+    archive_state = caps.get("archive capture", "not installed")
+    if archive_state == "not installed":
+        lines.append(
+            "- Full-page monolith and screenshot capture are unavailable, so that capability is reduced. "
+            "HTTP body and PDF print still run when offline_archive is true."
+        )
+    elif archive_state.startswith("partial"):
+        lines.append("- Offline archive capture is only partly installed, so that capability is reduced. HTTP body and PDF print still run.")
+    if caps.get("accessibility") == "built-in only":
+        lines.append(
+            "- Accessibility is reduced to the built-in HTML checks. "
+            "pa11y installs with ./bootstrap.sh unless you passed --minimal."
+        )
     lines.append("")
     return "\n".join(lines)
+
+
+def configured_whisper_model(root: Path) -> str:
+    path = root / "config.yaml"
+    if not path.exists():
+        return "base"
+    match = re.search(
+        r"(?m)^whisper_model:\s*['\"]?([A-Za-z0-9][A-Za-z0-9._-]{0,40})",
+        path.read_text(encoding="utf-8"),
+    )
+    return match.group(1) if match else "base"
+
+
+def sandbox_capability(optional: dict) -> str:
+    values = [line.split(":", 1)[1].strip() for line in capability_lines(optional)]
+    if len(values) == 3 and values[0] == "ready" and values[1] == "ready" and values[2] in {"pa11y", "axe"}:
+        return "ready"
+    return "reduced"
+
+
+def capability_lines(optional: dict) -> list[str]:
+    transcripts = bool(
+        optional.get("yt-dlp") and optional.get("ffmpeg") and (optional.get("whisper") or optional.get("faster-whisper"))
+    )
+    monolith = bool(optional.get("monolith"))
+    browser = bool(optional.get("headless_browser"))
+    if monolith and browser:
+        archive = "ready"
+    elif monolith or browser:
+        present = []
+        if monolith:
+            present.append("monolith")
+        if browser:
+            present.append("screenshot")
+        archive = "partial (" + ", ".join(present) + ")"
+    else:
+        archive = "not installed"
+    if optional.get("pa11y"):
+        accessibility = "pa11y"
+    elif optional.get("axe"):
+        accessibility = "axe"
+    else:
+        accessibility = "built-in only"
+    return [
+        f"- transcripts: {'ready' if transcripts else 'not installed'}",
+        f"- archive capture: {archive}",
+        f"- accessibility: {accessibility}",
+    ]
 
 
 def main(argv: list[str] | None = None) -> int:

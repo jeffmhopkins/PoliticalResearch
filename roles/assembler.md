@@ -19,7 +19,7 @@ Disputed and removed claims stay out of summaries. The appendix quotes the revie
 
 ## Render
 
-`scripts/build.sh --workspace <path>` writes HTML and PDF, copies versioned files under `versions/`, checks the banner, and runs the built-in accessibility checks.
+`scripts/build.sh --workspace <path>` writes HTML and PDF, copies versioned files under `versions/`, and checks the banner. It runs `scripts/a11y_check.py`. Built-in HTML checks always run. When pa11y or axe is installed, that tool runs too, and errors fail the build. A missing external checker does not fail the build. `./bootstrap.sh` installs pa11y; `./bootstrap.sh --minimal` does not.
 
 ## Share
 
@@ -27,4 +27,4 @@ Stop after the build. The requester reviews the files. Record approval with `scr
 
 ## Offline archive
 
-If `offline_archive` is true, run `scripts/archive_sources.py` after citations are stable and before you zip the guide. The methodology should mention how many sources were captured. The script prints that count.
+If `offline_archive` is true, run `scripts/archive_sources.py` after citations are stable and before you zip the guide. The methodology should mention how many sources were captured. The script prints that count. The manifest records hashes for the saved page and the PDF print. When monolith and headless Chromium or Chrome are installed, it also records a single-file HTML copy and a screenshot. `./bootstrap.sh` installs those tools; `./bootstrap.sh --minimal` does not. A failed fetch is `capture_failed` in the manifest, with a Wayback copy when one exists.

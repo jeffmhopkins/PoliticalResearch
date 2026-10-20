@@ -18,3 +18,5 @@ Every Markdown, HTML, and PDF output says it is not an official ballot and not v
 ## Republication
 
 Quote short excerpts with a locator. The offline archive, when the requester asked for one, is for that person's reference. The README states that archived pages can be copyrighted and are not for republication.
+
+When monolith and headless Chromium or Chrome are installed, a capture also includes a single-file HTML copy and a screenshot, alongside the PDF print. `archive/manifest.csv` records a SHA-256 for each saved file. If the live fetch fails, the manifest says `capture_failed` and the script keeps a Wayback Machine copy when one exists. Do not capture pages that sit behind the requester's logins. `./bootstrap.sh` installs the capture tools. `./bootstrap.sh --minimal`, or a failed install, leaves archive capability reduced: the archive still saves the HTTP body and a PDF print.

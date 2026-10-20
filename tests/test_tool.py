@@ -311,8 +311,14 @@ def test_archive_records_a_capture_without_a_live_site(tmp_path: Path):
     code, message = archive_workspace(tmp_path, fetch, "2026-10-20 12:00 ET")
     assert code == 0, message
     manifest = (tmp_path / "archive" / "manifest.csv").read_text(encoding="utf-8")
-    assert "sha256" in manifest
+    header = manifest.splitlines()[0]
+    assert "sha256" in header
+    assert "monolith_sha256" in header
+    assert "pdf_sha256" in header
+    assert "screenshot_sha256" in header
+    assert "wayback_url" in header
     assert "capture_failed" not in manifest.splitlines()[1]
+    assert "skipped, no headless browser configured" in manifest.splitlines()[1]
     claims = yaml.safe_load((item / "claims.yaml").read_text(encoding="utf-8"))
     assert claims["claims"][0]["sources"][0]["local_copy"].startswith("archive/")
     assert (tmp_path / "final" / "guide-with-sources.zip").exists()
@@ -452,3 +458,303 @@ def test_gitignore_covers_output_and_private():
     assert result.returncode == 0, result.stderr
     assert "output/report.md" in result.stdout
     assert "private/address.txt" in result.stdout
+
+
+def _archive_item(tmp_path: Path):
+    init_workspace(tmp_path, "archive-demo", "household", "2026-10-20 12:00 ET")
+    intake = yaml.safe_load((tmp_path / "intake.yaml").read_text(encoding="utf-8"))
+    intake["offline_archive"] = True
+    dump_yaml(tmp_path / "intake.yaml", intake)
+    item = tmp_path / "items" / "measure-h"
+    item.mkdir(parents=True)
+    dump_yaml(
+        item / "claims.yaml",
+        {"item_id": "measure-h", "item_type": "measure", "claims": [_claim(id="measure-h.title.001", text="A measure title.")]},
+    )
+    return item
+
+
+def test_archive_records_monolith_screenshot_and_pdf_hashes(tmp_path: Path):
+    import csv
+    import hashlib
+
+    _archive_item(tmp_path)
+    html = b"<html><body><p>Fixture</p></body></html>"
+    single = b"<html><body>single file</body></html>"
+    png = b"\x89PNG\r\nfake"
+    pdf = b"%PDF-1.4 fixture"
+
+    def fetch(_url):
+        return 200, "https://fictional.example/doc", html, "text/html"
+
+    def monolith(_url):
+        return single
+
+    def screenshot(_url):
+        return png
+
+    def write_pdf(_body, dest: Path):
+        dest.write_bytes(pdf)
+        return True
+
+    code, message = archive_workspace(
+        tmp_path,
+        fetch,
+        "2026-10-20 12:00 ET",
+        monolith=monolith,
+        screenshot=screenshot,
+        html_to_pdf=write_pdf,
+    )
+    assert code == 0, message
+    rows = list(csv.DictReader((tmp_path / "archive" / "manifest.csv").open(encoding="utf-8")))
+    row = rows[0]
+    assert row["monolith_sha256"] == hashlib.sha256(single).hexdigest()
+    assert row["monolith_path"].endswith(".monolith.html")
+    assert row["screenshot_sha256"] == hashlib.sha256(png).hexdigest()
+    assert row["screenshot_status"] == "captured"
+    assert row["pdf_sha256"] == hashlib.sha256(pdf).hexdigest()
+    assert "capture_failed" not in row["error"]
+    assert (tmp_path / row["monolith_path"]).is_file()
+    assert (tmp_path / row["screenshot_path"]).is_file()
+
+
+def test_archive_records_wayback_when_the_live_fetch_fails(tmp_path: Path):
+    import csv
+    import hashlib
+
+    item = _archive_item(tmp_path)
+    body = b"<html><body>wayback copy</body></html>"
+    wayback_url = "https://web.archive.org/web/20260101000000/https://fictional.example/doc"
+
+    def fetch(_url):
+        raise ConnectionError("dns failed")
+
+    def wayback(_url):
+        return wayback_url, body
+
+    code, message = archive_workspace(tmp_path, fetch, "2026-10-20 12:00 ET", wayback=wayback)
+    assert code == 0, message
+    rows = list(csv.DictReader((tmp_path / "archive" / "manifest.csv").open(encoding="utf-8")))
+    row = rows[0]
+    assert row["error"].startswith("capture_failed:")
+    assert row["wayback_url"] == wayback_url
+    assert row["sha256"] == hashlib.sha256(body).hexdigest()
+    claims = yaml.safe_load((item / "claims.yaml").read_text(encoding="utf-8"))
+    source = claims["claims"][0]["sources"][0]
+    assert source["local_copy"].startswith("archive/")
+    assert source["archive_url"] == wayback_url
+
+
+def test_transcript_skips_when_tools_are_absent(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr("lib.transcripts.transcripts_ready", lambda root=None: False)
+    init_workspace(tmp_path, "transcript-demo", "household", "2026-10-20 12:00 ET")
+    from lib.transcripts import transcribe_item
+
+    code, message = transcribe_item(
+        tmp_path,
+        "cand-example",
+        "https://fictional.example/forum",
+        title="Forum night",
+        publisher="Cedar Hollow Forum",
+        clock="2026-10-20 12:00 ET",
+    )
+    assert code == 0
+    assert "Skipping transcript" in message
+    assert not (tmp_path / "items" / "cand-example" / "imports").exists()
+
+
+def test_transcript_writes_a_timestamped_stub_and_leaves_claims_alone(tmp_path: Path):
+    from lib.quality import sentence_count
+    from lib.transcripts import transcribe_item
+
+    init_workspace(tmp_path, "transcript-demo", "household", "2026-10-20 12:00 ET")
+    item = tmp_path / "items" / "cand-example"
+    item.mkdir(parents=True)
+    claims = {"item_id": "cand-example", "item_type": "candidate", "claims": []}
+    dump_yaml(item / "claims.yaml", claims)
+    before = (item / "claims.yaml").read_text(encoding="utf-8")
+
+    def download(_url, media: Path):
+        path = Path(media) / "audio.wav"
+        path.write_bytes(b"RIFF")
+        return path
+
+    def transcribe(_audio):
+        return [
+            {"start": 1.2, "end": 3.4, "text": "The levy expires next year."},
+            {"start": 4.0, "end": 8.0, "text": "A second sentence follows. And a third."},
+        ]
+
+    code, message = transcribe_item(
+        tmp_path,
+        "cand-example",
+        "https://fictional.example/forum",
+        title="Forum night",
+        publisher="Cedar Hollow Forum",
+        clock="2026-10-20 12:00 ET",
+        download=download,
+        transcribe=transcribe,
+    )
+    assert code == 0, message
+    assert "claims.yaml" in message
+    folder = item / "imports" / "transcripts"
+    text = (folder / "forum-night.txt").read_text(encoding="utf-8")
+    assert "[00:00:01] The levy expires next year." in text
+    payload = json.loads((folder / "forum-night.json").read_text(encoding="utf-8"))
+    assert payload["segments"][0]["start"] == 1.2
+    stub = yaml.safe_load((folder / "forum-night.citation.yaml").read_text(encoding="utf-8"))
+    assert stub["status"] == "unreviewed_import"
+    assert stub["doc_type"] == "Forum transcript"
+    source = stub["suggested_source"]
+    assert source["locator"] == "Timestamp 00:00:01-00:00:08"
+    assert sentence_count(source["quote"]) <= 2
+    assert "third" not in source["quote"].lower()
+    assert (item / "claims.yaml").read_text(encoding="utf-8") == before
+    assert not (folder / "media").exists()
+
+
+def test_a11y_keeps_builtin_checks_when_external_tools_are_absent(tmp_path: Path):
+    from lib.a11y import check_html
+
+    html = tmp_path / "guide.html"
+    html.write_text(_accessible_html(), encoding="utf-8")
+
+    def explode(*_args, **_kwargs):
+        raise AssertionError("external tool should not run")
+
+    code, message = check_html(html, which=lambda _name: None, run=explode)
+    assert code == 0
+    assert "HTML accessibility checks passed." in message
+    assert "not installed" in message
+
+    broken = tmp_path / "broken.html"
+    broken.write_text("<html><body><p>Hello</p></body></html>", encoding="utf-8")
+    code, message = check_html(broken, which=lambda _name: None, run=explode)
+    assert code == 1
+    assert "missing a lang attribute" in message
+
+
+def test_a11y_fails_the_build_when_pa11y_or_axe_reports_an_error(tmp_path: Path):
+    from lib.a11y import check_html
+
+    html = tmp_path / "guide.html"
+    html.write_text(_accessible_html(), encoding="utf-8")
+
+    def which_pa11y(name):
+        return "/usr/bin/pa11y" if name == "pa11y" else None
+
+    def run_pa11y(_cmd, **_kwargs):
+        return subprocess.CompletedProcess(
+            args=_cmd,
+            returncode=2,
+            stdout='[{"type":"error","message":"Missing form label"}]',
+            stderr="",
+        )
+
+    code, message = check_html(html, which=which_pa11y, run=run_pa11y)
+    assert code == 1
+    assert "Missing form label" in message
+
+    def which_axe(name):
+        return "/usr/bin/axe" if name == "axe" else None
+
+    def run_axe(_cmd, **_kwargs):
+        return subprocess.CompletedProcess(args=_cmd, returncode=1, stdout="color contrast", stderr="")
+
+    code, message = check_html(html, which=which_axe, run=run_axe)
+    assert code == 1
+    assert "color contrast" in message
+
+
+def test_optional_capabilities_do_not_change_a_full_rating():
+    from env_report import capability_lines, rate, sandbox_capability
+
+    snapshot = {
+        "tools": {
+            name: True
+            for name in (
+                "bash",
+                "git",
+                "python3",
+                "curl",
+                "jq",
+                "pandoc",
+                "pdftotext",
+                "pdf_engine",
+                "python_deps",
+            )
+        },
+        "gitignore_ok": True,
+        "optional": {},
+    }
+    assert rate(snapshot) == "Full"
+    missing = "\n".join(capability_lines({}))
+    assert "transcripts: not installed" in missing
+    assert "archive capture: not installed" in missing
+    assert "accessibility: built-in only" in missing
+    ready = "\n".join(
+        capability_lines(
+            {
+                "yt-dlp": True,
+                "ffmpeg": True,
+                "faster-whisper": True,
+                "monolith": True,
+                "headless_browser": True,
+                "pa11y": True,
+            }
+        )
+    )
+    assert "transcripts: ready" in ready
+    assert "archive capture: ready" in ready
+    assert "accessibility: pa11y" in ready
+    partial = "\n".join(capability_lines({"monolith": True}))
+    assert "archive capture: partial (monolith)" in partial
+    assert "accessibility: axe" in "\n".join(capability_lines({"axe": True}))
+    assert sandbox_capability({}) == "reduced"
+    assert (
+        sandbox_capability(
+            {
+                "yt-dlp": True,
+                "ffmpeg": True,
+                "whisper": True,
+                "monolith": True,
+                "headless_browser": True,
+                "axe": True,
+            }
+        )
+        == "ready"
+    )
+
+
+def test_bootstrap_help_lists_the_minimal_opt_out():
+    result = subprocess.run(["./bootstrap.sh", "--help"], cwd=ROOT, capture_output=True, text=True, check=False)
+    assert result.returncode == 0
+    assert "--minimal" in result.stdout
+    assert "faster-whisper" in result.stdout
+    assert "pa11y" in result.stdout
+    assert "--with-transcripts" not in result.stdout
+
+
+def test_whisper_model_comes_from_config_and_defaults_to_base(tmp_path: Path):
+    from lib.transcripts import whisper_model_name
+
+    (tmp_path / "config.yaml").write_text("whisper_model: small\n", encoding="utf-8")
+    assert whisper_model_name(tmp_path) == "small"
+    (tmp_path / "config.yaml").write_text("whisper_model: '../large'\n", encoding="utf-8")
+    assert whisper_model_name(tmp_path) == "base"
+    (tmp_path / "config.yaml").write_text("max_rounds: 3\n", encoding="utf-8")
+    assert whisper_model_name(tmp_path) == "base"
+    assert whisper_model_name(ROOT) == "base"
+
+
+def _accessible_html() -> str:
+    return """<!DOCTYPE html>
+<html lang="en">
+<head><title>Guide</title></head>
+<body>
+<a href="#content">Skip</a>
+<p>Not an official ballot</p>
+<main id="content"><h1>Guide</h1><img alt="seal" src="seal.png"></main>
+</body>
+</html>
+"""

@@ -8,6 +8,9 @@ timezone: America/New_York
 pdf_engine_preference:
   - weasyprint
   - wkhtmltopdf
+# faster-whisper model used by scripts/transcribe.py. base keeps the download small.
+# small is the next step up. Change this before the first transcription.
+whisper_model: base
 legislation_included_by_default: false
 languages_v1:
   - en

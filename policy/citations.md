@@ -42,6 +42,8 @@ The assembler also writes a Pandoc footnote definition (`[^12]: ...`) so the mar
 
 Quotes are verbatim, with a locator and a link to the original recording or document. Do not put a paraphrase in quotation marks. Label a translation with the translator.
 
+A forum or debate transcript from `scripts/transcribe.py` is an unreviewed import under `items/<id>/imports/transcripts/`. It is not a claim until you check it against the recording and copy `suggested_source` into `claims.yaml`. Use a verbatim excerpt of at most two sentences. The locator looks like `Timestamp HH:MM:SS` or `Timestamp HH:MM:SS-HH:MM:SS`. Link the original recording. If the transcript tools are not installed, the script skips and you cite the recording page yourself.
+
 ## Numbers
 
 Every figure has an as-of date and, for filings, the filing period. A sum or percentage lists its inputs and cites each one.

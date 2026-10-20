@@ -88,12 +88,6 @@ if [[ -f "$PDF" ]]; then
   cp "$PDF" "$WORKSPACE/versions/guide-${VERSION}.pdf"
 fi
 
-if command -v pa11y >/dev/null 2>&1; then
-  pa11y --runner htmlcs "$HTML" || echo "pa11y reported issues. The built-in check already ran."
-else
-  echo "pa11y is not installed. Ran the built-in HTML checks only."
-fi
-
 echo "Built $HTML"
 if [[ -f "$PDF" ]]; then
   echo "Built $PDF"

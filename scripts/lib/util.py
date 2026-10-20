@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -142,6 +143,16 @@ def iter_items(workspace: Path) -> list[Path]:
 
 def looks_like_street_address(value: str) -> bool:
     return bool(STREET_RE.search(value or ""))
+
+
+def resolve_bin(name: str, root: Path | None = None) -> str | None:
+    found = shutil.which(name)
+    if found:
+        return found
+    candidate = (root or repo_root()) / ".venv" / "bin" / name
+    if candidate.is_file() and os.access(candidate, os.X_OK):
+        return str(candidate)
+    return None
 
 
 def slugify(value: str, limit: int = 60) -> str:
