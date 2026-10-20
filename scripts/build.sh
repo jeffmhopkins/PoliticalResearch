@@ -62,6 +62,7 @@ if ! "$PY" "$ROOT/scripts/check_citations.py" --workspace "$WORKSPACE"; then
 fi
 
 cp "$ROOT/assets/guide.css" "$WORKSPACE/final/guide.css"
+cp "$ROOT/assets/guide-narrow.css" "$WORKSPACE/final/guide-narrow.css"
 HTML="$WORKSPACE/final/guide.html"
 (
   cd "$WORKSPACE/final"

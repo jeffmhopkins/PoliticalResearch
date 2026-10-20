@@ -1,6 +1,6 @@
 # Avery Quinn
 
-> **FICTIONAL EXAMPLE.** Avery Quinn is not a real person. Cedar Hollow and Westland are not real places.
+> **FICTIONAL EXAMPLE:** Avery Quinn is not a real person, and Cedar Hollow and Westland are not real places.
 
 ## Identity
 
@@ -48,7 +48,7 @@ The cited record shows an elected council term, a yes vote on the 2024 parks bud
 
 ## Interest-group ratings
 
-Not found (searched: fictional paired rating pages). Omitted because ratings are included only when a pair from opposite sides exists.
+Not found (searched: fictional paired rating pages; omitted because ratings are included only when a pair from opposite sides exists).
 
 ## Sources and retrieval dates
 

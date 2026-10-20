@@ -82,7 +82,7 @@ claims:
   - office
 - id: cand-okonkwo.record.001
   section: record
-  text: A 2025 parks report names Blake Okonkwo as the lead on the river path repair.
+  text: A 2025 Cedar Hollow parks report names Blake Okonkwo as the lead on the river path repair.
   marker: 13
   sources:
   - marker: 13
@@ -108,8 +108,8 @@ claims:
   - office
 - id: cand-okonkwo.funding.001
   section: funding
-  text: The Okonkwo committee reported 30100 dollars in receipts and 11700 dollars in cash on hand for
-    the quarter that ended September 30, 2026.
+  text: Blake Okonkwo's Cedar Hollow committee reported 30100 dollars in receipts and 11700 dollars in
+    cash on hand for the quarter that ended September 30, 2026.
   marker: 14
   sources:
   - marker: 14
@@ -129,12 +129,16 @@ claims:
   confidence: verified
   drives_summary: true
   polarity: neutral
-  about_person: false
+  about_person: true
   as_of: '2026-09-30'
   filing_period: 2026-07-01 through 2026-09-30
+  identity_attributes:
+  - ballot_name
+  - office
 - id: cand-okonkwo.funding.002
   section: funding
-  text: A Quinn campaign mailer said Okonkwo's donors are mostly real-estate developers.
+  text: A Quinn campaign mailer said Blake Okonkwo of Cedar Hollow has donors who are mostly real-estate
+    developers.
   sources:
   - marker: 18
     url: https://fictional.example/quinn-mailer/2026-10
@@ -175,7 +179,7 @@ claims:
   notes: Disputed. The itemized filing lists Friends of the River Path as the largest receipt.
 - id: cand-okonkwo.positions.001
   section: positions
-  text: Okonkwo wrote that any levy change should follow a published repair list.
+  text: Blake Okonkwo of Cedar Hollow wrote that any levy change should follow a published repair list.
   marker: 15
   sources:
   - marker: 15
@@ -201,7 +205,8 @@ claims:
   - office
 - id: cand-okonkwo.debates.001
   section: debates
-  text: At a September 20, 2026 forum, Okonkwo described managing the river path repair.
+  text: At a September 20, 2026 forum in Cedar Hollow, Blake Okonkwo described managing the river path
+    repair.
   marker: 16
   sources:
   - marker: 16
@@ -227,7 +232,7 @@ claims:
   - office
 - id: cand-okonkwo.endorsements.001
   section: endorsements
-  text: Friends of the River Path says it endorses Blake Okonkwo.
+  text: Friends of the River Path says it endorses Blake Okonkwo of Cedar Hollow.
   marker: 17
   sources:
   - marker: 17

@@ -1,6 +1,6 @@
 # Measure H, Cedar Hollow parks levy
 
-> **FICTIONAL EXAMPLE.** This measure is invented.
+> **FICTIONAL EXAMPLE:** this measure is invented.
 
 <!-- summary -->
 Measure H asks Cedar Hollow voters about a parks levy[^20]. A levy is a tax the ballot asks voters to accept or reject[^20]. A yes vote would replace the expiring levy at the same rate[^23]. A no vote would let that levy expire[^24].

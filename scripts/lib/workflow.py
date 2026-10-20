@@ -198,15 +198,18 @@ def confirm_ballot(workspace: Path, clock: str) -> list[str]:
 
 
 def _delete_ballot_images(workspace: Path) -> bool:
-    """Delete image and PDF files in private/. Leave address.txt. True when none remain."""
+    """Delete image and PDF files anywhere under private/. Leave address.txt. True when none remain."""
     private = workspace / "private"
     suffixes = {".jpg", ".jpeg", ".png", ".heic", ".pdf", ".webp", ".gif", ".tif", ".tiff"}
     if not private.is_dir():
         return True
-    for path in list(private.iterdir()):
+    for path in list(private.rglob("*")):
         if path.is_file() and path.suffix.lower() in suffixes:
-            path.unlink()
-    remaining = [path for path in private.iterdir() if path.is_file() and path.suffix.lower() in suffixes]
+            try:
+                path.unlink()
+            except OSError:
+                continue
+    remaining = [path for path in private.rglob("*") if path.is_file() and path.suffix.lower() in suffixes]
     return not remaining
 
 
@@ -694,14 +697,14 @@ def assemble_guide(workspace: Path, today: str) -> list[str]:
     if fiction:
         parts.extend(
             [
-                "> **FICTIONAL EXAMPLE.** The places, people, measures, and documents in this guide are invented. "
-                "Sources on fictional.example are placeholders, not real records. This is not a voting guide.",
+                "> **FICTIONAL EXAMPLE:** the places, people, measures, and documents in this guide are invented, "
+                "sources on fictional.example are placeholders and not real records, and this is not a voting guide.",
                 "",
             ]
         )
     parts.extend(
         [
-            "> **Not an official ballot. Not voting instructions.** Confirm contests, deadlines, and polling places with the election office linked below.",
+            "> **Not an official ballot and not voting instructions:** confirm contests, deadlines, and polling places with the election office linked below.",
             "",
             "# How to use this guide",
             "",
@@ -876,7 +879,17 @@ def assemble_guide(workspace: Path, today: str) -> list[str]:
         if previous != text:
             snapshot_guide(versions, previous, today)
     guide.write_text(text, encoding="utf-8")
+    _write_claim_baselines(workspace)
     return []
+
+
+def _write_claim_baselines(workspace: Path) -> None:
+    dest = workspace / "versions" / "claims"
+    dest.mkdir(parents=True, exist_ok=True)
+    for item in iter_items(workspace):
+        doc = load_yaml(item / "claims.yaml")
+        if isinstance(doc, dict):
+            dump_yaml(dest / f"{item.name}.yaml", doc)
 
 
 def structural_workspace_errors(workspace: Path) -> list[str]:

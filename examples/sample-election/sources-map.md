@@ -1,6 +1,6 @@
 # Source map
 
-> **FICTIONAL EXAMPLE.** These publishers are invented.
+> **FICTIONAL EXAMPLE:** these publishers are invented.
 
 ## Official
 

@@ -1,9 +1,9 @@
 # Mayor of Cedar Hollow
 
-> **FICTIONAL EXAMPLE.** This race is invented.
+> **FICTIONAL EXAMPLE:** this race is invented.
 
 <!-- summary -->
-Two people are running for mayor of Cedar Hollow[^32]. Avery Quinn is the current mayor[^33]. Blake Okonkwo is a city parks planner[^34]. Both filed a campaign finance report for the quarter that ended in September 2026[^35].
+Two people are running for mayor of Cedar Hollow[^32]. Avery Quinn is the current mayor[^33]. Blake Okonkwo is a city parks planner appointed in 2016[^34]. Both filed a campaign finance report for the quarter that ended in September 2026[^35].
 
 ## Contest
 

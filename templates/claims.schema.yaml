@@ -111,8 +111,6 @@ $defs:
         type: array
         items:
           type: string
-      suspected_injection:
-        type: boolean
       notes:
         type: string
       removed:

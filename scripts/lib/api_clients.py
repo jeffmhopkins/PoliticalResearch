@@ -97,17 +97,11 @@ def contests_from_civic(payload: dict) -> tuple[list[dict], list[str]]:
                 row["party"] = candidate.get("party")
             if candidate.get("incumbent") is True:
                 row["incumbent"] = True
+            campaign = _http_url(candidate.get("candidateUrl"))
+            if campaign:
+                row["campaign_url"] = campaign
             candidates.append(row)
-        url = None
-        for candidate in contest.get("candidates") or []:
-            if not isinstance(candidate, dict):
-                continue
-            found = _http_url(candidate.get("candidateUrl"))
-            if found:
-                url = found
-                break
-        if url is None:
-            url = fallback
+        url = fallback
         contests.append(
             {
                 "id": f"race-{index}",

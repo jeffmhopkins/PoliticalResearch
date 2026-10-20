@@ -1,0 +1,4 @@
+/* Narrow screens. Linked with a max-width media attribute so the print engine does not parse the query. */
+
+main, footer { padding-left: 0.8rem; padding-right: 0.8rem; }
+body { font-size: 1.05rem; }

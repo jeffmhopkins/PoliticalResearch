@@ -79,18 +79,25 @@ def _identity():
 def test_gap_prefix_allows_only_not_found_and_a_whole_sentence_none():
     assert prose_marker_errors("Not found (searched: the county index).", "draft") == []
     assert prose_marker_errors("None.", "draft") == []
+    assert prose_marker_errors("Limited public record.", "draft") == []
     nonetheless = prose_marker_errors("Nonetheless, the filing shows 10000 dollars.", "draft")
     none_of = prose_marker_errors("None of the candidates filed a finance report.", "draft")
-    assert nonetheless and none_of
+    guilty = prose_marker_errors("Not found guilty in 2019.", "draft")
+    omitted = prose_marker_errors("Omitted because the candidate took a bribe.", "draft")
+    thin = prose_marker_errors("Limited public record shows a 2019 conviction.", "draft")
+    assert nonetheless and none_of and guilty and omitted and thin
 
 
 def test_blockquotes_need_markers_unless_they_are_banners():
-    banner = prose_marker_errors("> **FICTIONAL EXAMPLE.** This race is invented.", "draft")
+    banner = prose_marker_errors("> **FICTIONAL EXAMPLE:** this race is invented.", "draft")
     official = prose_marker_errors("> **Not an official ballot. Not voting instructions.**", "draft")
     factual = prose_marker_errors("> The candidate was convicted in 2019.", "draft")
+    hidden = prose_marker_errors("> **FICTIONAL EXAMPLE.** The candidate was convicted in 2019.", "draft")
     assert banner == []
     assert official == []
     assert factual
+    assert hidden
+    assert any("convicted in 2019" in error for error in hidden)
 
 
 def test_marker_reuse_on_one_claim_and_across_the_election_is_an_error(tmp_path: Path):
@@ -131,6 +138,17 @@ def test_suspected_injection_on_a_source_cannot_be_sole_support():
     assert any("cannot drive a summary" in error for error in errors)
     mixed = _claim(sources=[_source(suspected_injection=True), _source(marker=2, url="https://fictional.example/clean")])
     assert semantic_claim_errors({"claims": [mixed]}, "fixture") == []
+    claim_level = _claim(suspected_injection=True)
+    flagged = semantic_claim_errors({"claims": [claim_level]}, "fixture")
+    assert any("belongs on the source" in error for error in flagged)
+    assert any("cannot be verified" in error for error in flagged)
+    from lib.schema import instance_errors, load_schema
+
+    rejected = instance_errors(
+        {"item_id": "cand-fixture", "item_type": "candidate", "claims": [claim_level]},
+        load_schema("claims.schema.yaml"),
+    )
+    assert rejected
 
 
 def test_identity_anchors_must_match_identity_yaml():
@@ -140,14 +158,42 @@ def test_identity_anchors_must_match_identity_yaml():
     missing = semantic_claim_errors({"claims": [_claim(about_person=True, identity_attributes=["ballot_name", "office"])]}, "fixture")
     assert any("no identity.yaml" in error for error in missing)
     matched = semantic_claim_errors(
-        {"item_type": "candidate", "claims": [_claim(about_person=True, identity_attributes=["ballot_name", "occupation"])]},
+        {
+            "item_type": "candidate",
+            "claims": [
+                _claim(
+                    about_person=True,
+                    identity_attributes=["ballot_name", "occupation"],
+                    text="Avery Quinn worked as a classroom teacher.",
+                )
+            ],
+        },
         "fixture",
         identities=[_identity()],
     )
     assert matched == []
+    impostor = _identity()
+    impostor["ballot_name"] = "Blake Okonkwo"
+    impostor["city"] = "Cedar Hollow"
+    wrong = semantic_claim_errors(
+        {
+            "item_type": "candidate",
+            "claims": [
+                _claim(
+                    about_person=True,
+                    identity_attributes=["ballot_name", "city"],
+                    text="John Smith of Chicago was convicted in 2019.",
+                    sources=[_source(quote="John Smith of Chicago was convicted in 2019.")],
+                )
+            ],
+        },
+        "fixture",
+        identities=[impostor],
+    )
+    assert any("two anchor values" in error for error in wrong)
     skipped = _claim(section="funding", about_person=False)
     funding = semantic_claim_errors({"item_type": "candidate", "claims": [skipped]}, "fixture", identities=[_identity()])
-    assert funding == []
+    assert any("must set about_person" in error for error in funding)
     hidden = semantic_claim_errors(
         {"item_type": "candidate", "claims": [_claim(section="record", about_person=False)]},
         "fixture",
@@ -199,7 +245,21 @@ def test_civic_does_not_invent_party_or_incumbent_and_keeps_candidate_url():
     candidate = contests[0]["candidates"][0]
     assert "party" not in candidate
     assert "incumbent" not in candidate
-    assert contests[0]["official_source_url"] == "https://fictional.example/example"
+    assert candidate["campaign_url"] == "https://fictional.example/example"
+    assert contests[0]["official_source_url"] is None
+    both, _notes = contests_from_civic(
+        {
+            "state": [{"sources": [{"officialUrl": "https://fictional.example/official"}]}],
+            "contests": [
+                {
+                    "office": "Mayor",
+                    "candidates": [{"name": "Example Person", "candidateUrl": "https://campaign.example/me"}],
+                }
+            ],
+        }
+    )
+    assert both[0]["official_source_url"] == "https://fictional.example/official"
+    assert both[0]["candidates"][0]["campaign_url"] == "https://campaign.example/me"
 
 
 def test_democracy_works_lookup_sends_the_address(tmp_path: Path, monkeypatch):
@@ -303,16 +363,24 @@ def test_refresh_resets_signoffs_and_marks_claims(tmp_path: Path):
     state = fresh_loop_state("cand-a", "2026-10-20 12:00 ET")
     state["signoffs"]["factcheck"] = {"signed": True, "at": "2026-10-20 12:00 ET", "round": 1}
     dump_json(item / "loop-state.json", state)
-    dump_yaml(item / "claims.yaml", {"item_id": "cand-a", "item_type": "candidate", "claims": [_claim()]})
+    original = [_claim(), _claim(id="cand-a.funding.001", section="funding", marker=2, sources=[_source(marker=2)])]
+    dump_yaml(item / "claims.yaml", {"item_id": "cand-a", "item_type": "candidate", "claims": original})
+    baseline = tmp_path / "versions" / "claims"
+    baseline.mkdir(parents=True)
+    dump_yaml(baseline / "cand-a.yaml", {"item_id": "cand-a", "item_type": "candidate", "claims": original})
+    changed = yaml.safe_load((item / "claims.yaml").read_text(encoding="utf-8"))
+    changed["claims"][0]["text"] = "Avery Quinn of Cedar Hollow filed a new report."
+    dump_yaml(item / "claims.yaml", changed)
     code = refresh.main(
         ["--workspace", str(tmp_path), "--today", "2026-10-20", "--now", "2026-10-20 12:00 ET", "--open-round", "--note", "New filing."]
     )
     assert code == 0
     updated = json.loads((item / "loop-state.json").read_text(encoding="utf-8"))
     assert updated["signoffs"]["factcheck"]["signed"] is False
-    claim = yaml.safe_load((item / "claims.yaml").read_text(encoding="utf-8"))["claims"][0]
-    assert claim["corrected"] is True
-    assert claim["correction_note"] == "New filing."
+    claims = yaml.safe_load((item / "claims.yaml").read_text(encoding="utf-8"))["claims"]
+    assert claims[0]["corrected"] is True
+    assert claims[0]["correction_note"] == "New filing."
+    assert "corrected" not in claims[1]
 
 
 def test_same_day_version_snapshots_do_not_overwrite(tmp_path: Path):
@@ -333,8 +401,15 @@ def test_year_label_and_offline_link_check_are_part_of_the_gate(tmp_path: Path):
     (item / "draft.md").write_text("# A\n\nThe certificate is on file[^1].\n", encoding="utf-8")
     dump_yaml(tmp_path / "ballot.yaml", {"election": {"date": "2026-11-03"}, "contests": []})
     assert any("2018" in error for error in year_label_errors(tmp_path))
+    (item / "draft.md").write_text(
+        "# A\n\nA different race mentioned 2018 in passing.\n\nThe certificate is on file[^1].\n",
+        encoding="utf-8",
+    )
+    assert any("2018" in error for error in year_label_errors(tmp_path))
+    (item / "draft.md").write_text("# A\n\nThe 2018 certificate is on file[^1].\n", encoding="utf-8")
+    assert year_label_errors(tmp_path) == []
     errors = content_gate_errors(tmp_path, date(2026, 10, 20), include_guide=False)
-    assert any("label the year" in error for error in errors)
+    assert not any("label the year" in error for error in errors)
     record = json.loads((tmp_path / "link-check.json").read_text(encoding="utf-8"))
     assert record["mode"] == "offline"
     assert record["checked"] == 1
@@ -421,6 +496,11 @@ def test_privacy_patterns_and_link_local_fetches():
     assert unsafe_fetch_target("http://127.0.0.1/secret")
     assert unsafe_fetch_target("http://169.254.169.254/latest")
     assert unsafe_fetch_target("http://localhost/admin")
+    assert unsafe_fetch_target("http://127.1/")
+    assert unsafe_fetch_target("http://0x7f000001/")
+    assert unsafe_fetch_target("http://2130706433/")
+    assert unsafe_fetch_target("http://0177.0.0.1/")
+    assert unsafe_fetch_target("http://127.0.0.1.nip.io/")
     assert unsafe_fetch_target("https://fictional.example/doc") is None
     from lib.archive import http_fetch
 
@@ -450,6 +530,70 @@ def test_environment_rating_is_quoted_and_readability_uses_a_relative_path(tmp_p
     assert errors[0].startswith("items/cand-a/draft.md")
 
 
+def test_confirm_deletes_nested_ballot_images(tmp_path: Path):
+    init_workspace(tmp_path, "photos", "household", "2026-10-20 12:00 ET")
+    ballot = yaml.safe_load((tmp_path / "ballot.yaml").read_text(encoding="utf-8"))
+    ballot["contests"] = [
+        {
+            "id": "race-one",
+            "type": "race",
+            "title": "Mayor",
+            "official_source_url": "https://fictional.example/ballot",
+            "candidates": [],
+        }
+    ]
+    dump_yaml(tmp_path / "ballot.yaml", ballot)
+    nested = tmp_path / "private" / "nested"
+    nested.mkdir()
+    (nested / "ballot.png").write_bytes(b"not-a-real-photo")
+    (tmp_path / "private" / "address.txt").write_text("PO Box 12\n", encoding="utf-8")
+    assert confirm_ballot(tmp_path, "2026-10-20 12:00 ET") == []
+    assert not (nested / "ballot.png").exists()
+    assert (tmp_path / "private" / "address.txt").exists()
+    intake = yaml.safe_load((tmp_path / "intake.yaml").read_text(encoding="utf-8"))
+    assert intake["ballot_photo_deleted"] is True
+    stuck = tmp_path / "private" / "keep"
+    stuck.mkdir()
+    image = stuck / "ballot.png"
+    image.write_bytes(b"still-here")
+    image.chmod(0o444)
+    stuck.chmod(0o555)
+    again = tmp_path / "second"
+    init_workspace(again, "photos-2", "household", "2026-10-20 12:00 ET")
+    second_ballot = yaml.safe_load((again / "ballot.yaml").read_text(encoding="utf-8"))
+    second_ballot["contests"] = ballot["contests"]
+    dump_yaml(again / "ballot.yaml", second_ballot)
+    held = again / "private" / "nested"
+    held.mkdir()
+    (held / "ballot.png").write_bytes(b"kept")
+    real_unlink = Path.unlink
+
+    def refuse(self, *args, **kwargs):
+        if self.name == "ballot.png":
+            raise OSError("refusing to delete")
+        return real_unlink(self, *args, **kwargs)
+
+    Path.unlink = refuse
+    try:
+        assert confirm_ballot(again, "2026-10-20 12:00 ET") == []
+    finally:
+        Path.unlink = real_unlink
+        stuck.chmod(0o755)
+    kept = yaml.safe_load((again / "intake.yaml").read_text(encoding="utf-8"))
+    assert kept["ballot_photo_deleted"] is not True
+    assert (held / "ballot.png").exists()
+
+
+def test_small_screen_css_uses_a_max_width_query():
+    css = (ROOT / "assets" / "guide.css").read_text(encoding="utf-8")
+    narrow = (ROOT / "assets" / "guide-narrow.css").read_text(encoding="utf-8")
+    template = (ROOT / "assets" / "guide.html.tmpl").read_text(encoding="utf-8")
+    assert "@media (max-width" not in css
+    assert "@media screen" not in css
+    assert "font-size: 1.05rem" in narrow
+    assert 'media="(max-width: 40rem)"' in template
+
+
 def test_relative_workspace_build_finds_the_guide():
     result = subprocess.run(
         ["bash", "scripts/build.sh", "--workspace", "examples/sample-election"],
@@ -460,6 +604,7 @@ def test_relative_workspace_build_finds_the_guide():
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Built" in result.stdout
+    assert "Expected a media type" not in result.stderr
 
 
 def test_bootstrap_help_says_minimal_skips_ffmpeg():

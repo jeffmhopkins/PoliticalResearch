@@ -26,7 +26,7 @@ claims:
   about_person: false
 - id: race-mayor.contest.002
   section: contest
-  text: Avery Quinn is marked incumbent on the sample ballot.
+  text: Avery Quinn of Cedar Hollow is marked incumbent on the sample ballot.
   marker: 33
   sources:
   - marker: 33
@@ -52,7 +52,7 @@ claims:
   - office
 - id: race-mayor.contest.003
   section: contest
-  text: Blake Okonkwo is a city parks planner.
+  text: Blake Okonkwo, appointed in 2016, is a city parks planner.
   marker: 34
   sources:
   - marker: 34

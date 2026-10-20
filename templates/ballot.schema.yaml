@@ -92,6 +92,8 @@ $defs:
         type: boolean
       limited_public_record:
         type: boolean
+      campaign_url:
+        type: string
   contest:
     type: object
     required: [id, type, title, official_source_url]

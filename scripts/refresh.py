@@ -41,7 +41,10 @@ def main(argv: list[str] | None = None) -> int:
     plan.write_text("\n".join(lines), encoding="utf-8")
     print(f"Wrote {plan}")
     note = args.note or "Refresh pass opened."
-    corrected_ids = _mark_corrected(workspace, note) if args.open_round or args.bump else []
+    corrected_ids: list[str] = []
+    saw_claims = False
+    if args.open_round or args.bump:
+        corrected_ids, saw_claims = _mark_corrected(workspace, note)
     if args.bump:
         ballot_path = workspace / "ballot.yaml"
         ballot = load_yaml(ballot_path) or {}
@@ -57,7 +60,10 @@ def main(argv: list[str] | None = None) -> int:
         corrections = load_yaml(corrections_path) or []
         if not isinstance(corrections, list):
             corrections = []
-        for claim_id in corrected_ids or ["refresh"]:
+        logged_ids = corrected_ids if saw_claims else ["refresh"]
+        if saw_claims and not corrected_ids:
+            logged_ids = []
+        for claim_id in logged_ids:
             corrections.append(
                 {
                     "version": ballot["report_version"],
@@ -86,26 +92,52 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _mark_corrected(workspace, note: str) -> list[str]:
+def _claim_fingerprint(claim: dict) -> str:
+    import json
+
+    data = {key: value for key, value in claim.items() if key not in {"corrected", "correction_note"}}
+    return json.dumps(data, sort_keys=True, default=str)
+
+
+def _mark_corrected(workspace, note: str) -> tuple[list[str], bool]:
+    """Mark claims whose content differs from the last published snapshot. Returns ids and whether any claims exist."""
     claim_ids: list[str] = []
-    for item in workspace.joinpath("items").iterdir() if workspace.joinpath("items").is_dir() else []:
+    saw_claims = False
+    items = workspace / "items"
+    if not items.is_dir():
+        return claim_ids, saw_claims
+    for item in items.iterdir():
         if not item.is_dir():
             continue
         path = item / "claims.yaml"
         doc = load_yaml(path)
         if not isinstance(doc, dict):
             continue
+        baseline_doc = load_yaml(workspace / "versions" / "claims" / f"{item.name}.yaml") or {}
+        previous: dict[str, str] = {}
+        if isinstance(baseline_doc, dict):
+            for claim in baseline_doc.get("claims") or []:
+                if isinstance(claim, dict) and claim.get("id"):
+                    previous[str(claim.get("id"))] = _claim_fingerprint(claim)
         changed = False
         for claim in doc.get("claims") or []:
             if not isinstance(claim, dict) or claim.get("removed"):
                 continue
+            saw_claims = True
+            cid = str(claim.get("id"))
+            fingerprint = _claim_fingerprint(claim)
+            if cid in previous and previous[cid] == fingerprint:
+                continue
+            if not previous and cid not in previous:
+                # No published snapshot yet, so this pass cannot show a change.
+                continue
             claim["corrected"] = True
             claim["correction_note"] = note
-            claim_ids.append(str(claim.get("id")))
+            claim_ids.append(cid)
             changed = True
         if changed:
             dump_yaml(path, doc)
-    return claim_ids
+    return claim_ids, saw_claims
 
 
 if __name__ == "__main__":

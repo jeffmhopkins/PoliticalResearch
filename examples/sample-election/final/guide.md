@@ -6,9 +6,9 @@ build_date: 2026-10-20
 fiction: true
 ---
 
-> **FICTIONAL EXAMPLE.** The places, people, measures, and documents in this guide are invented. Sources on fictional.example are placeholders, not real records. This is not a voting guide.
+> **FICTIONAL EXAMPLE:** the places, people, measures, and documents in this guide are invented, sources on fictional.example are placeholders and not real records, and this is not a voting guide.
 
-> **Not an official ballot. Not voting instructions.** Confirm contests, deadlines, and polling places with the election office linked below.
+> **Not an official ballot and not voting instructions:** confirm contests, deadlines, and polling places with the election office linked below.
 
 # How to use this guide
 
@@ -24,10 +24,10 @@ Use the official election office, not this guide, for dates, deadlines, and poll
 
 # Mayor of Cedar Hollow
 
-> **FICTIONAL EXAMPLE.** This race is invented.
+> **FICTIONAL EXAMPLE:** this race is invented.
 
 <!-- summary -->
-Two people are running for mayor of Cedar Hollow[^32]. Avery Quinn is the current mayor[^33]. Blake Okonkwo is a city parks planner[^34]. Both filed a campaign finance report for the quarter that ended in September 2026[^35].
+Two people are running for mayor of Cedar Hollow[^32]. Avery Quinn is the current mayor[^33]. Blake Okonkwo is a city parks planner appointed in 2016[^34]. Both filed a campaign finance report for the quarter that ended in September 2026[^35].
 
 ## Contest
 
@@ -76,7 +76,7 @@ See `findings.yaml`.
 
 # Avery Quinn
 
-> **FICTIONAL EXAMPLE.** Avery Quinn is not a real person. Cedar Hollow and Westland are not real places.
+> **FICTIONAL EXAMPLE:** Avery Quinn is not a real person, and Cedar Hollow and Westland are not real places.
 
 ## Identity
 
@@ -124,7 +124,7 @@ The cited record shows an elected council term, a yes vote on the 2024 parks bud
 
 ## Interest-group ratings
 
-Not found (searched: fictional paired rating pages). Omitted because ratings are included only when a pair from opposite sides exists.
+Not found (searched: fictional paired rating pages; omitted because ratings are included only when a pair from opposite sides exists).
 
 ## Sources and retrieval dates
 
@@ -140,7 +140,7 @@ See `findings.yaml`.
 
 # Blake Okonkwo
 
-> **FICTIONAL EXAMPLE.** Blake Okonkwo is not a real person. Cedar Hollow and Westland are not real places.
+> **FICTIONAL EXAMPLE:** Blake Okonkwo is not a real person, and Cedar Hollow and Westland are not real places.
 
 ## Identity
 
@@ -190,7 +190,7 @@ The cited record shows a parks planner appointment, the river path project, and 
 
 ## Interest-group ratings
 
-Not found (searched: fictional paired rating pages). Omitted because ratings are included only when a pair from opposite sides exists.
+Not found (searched: fictional paired rating pages; omitted because ratings are included only when a pair from opposite sides exists).
 
 ## Sources and retrieval dates
 
@@ -206,7 +206,7 @@ See `findings.yaml`.
 
 # Measure H, Cedar Hollow parks levy
 
-> **FICTIONAL EXAMPLE.** This measure is invented.
+> **FICTIONAL EXAMPLE:** this measure is invented.
 
 <!-- summary -->
 Measure H asks Cedar Hollow voters about a parks levy[^20]. A levy is a tax the ballot asks voters to accept or reject[^20]. A yes vote would replace the expiring levy at the same rate[^23]. A no vote would let that levy expire[^24].

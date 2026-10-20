@@ -37,7 +37,7 @@ Not found (searched: not started).
 
 ## Issue positions
 
-No issue positions (judicial ethics rules). Retention races do not use a "did not respond" label for policy questions.
+No issue positions (judicial ethics rules).
 
 <!-- Optional: reversal rate with the method and its limits, retention campaign spending, prior career. -->
 

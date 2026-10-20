@@ -107,8 +107,8 @@ claims:
   - office
 - id: cand-quinn.funding.001
   section: funding
-  text: The Quinn committee reported 48200 dollars in receipts and 17200 dollars in cash on hand for the
-    quarter that ended September 30, 2026.
+  text: Avery Quinn's Cedar Hollow committee reported 48200 dollars in receipts and 17200 dollars in cash
+    on hand for the quarter that ended September 30, 2026.
   marker: 5
   sources:
   - marker: 5
@@ -128,12 +128,15 @@ claims:
   confidence: verified
   drives_summary: true
   polarity: neutral
-  about_person: false
+  about_person: true
   as_of: '2026-09-30'
   filing_period: 2026-07-01 through 2026-09-30
+  identity_attributes:
+  - ballot_name
+  - office
 - id: cand-quinn.record.001
   section: record
-  text: Mayor Quinn voted yes on the city parks budget on June 4, 2024.
+  text: Mayor Avery Quinn of Cedar Hollow voted yes on the city parks budget on June 4, 2024.
   marker: 6
   sources:
   - marker: 6
@@ -159,7 +162,7 @@ claims:
   - office
 - id: cand-quinn.positions.001
   section: positions
-  text: Quinn wrote that the levy should stay at the amount printed on the ballot.
+  text: Avery Quinn of Cedar Hollow wrote that the levy should stay at the amount printed on the ballot.
   marker: 7
   sources:
   - marker: 7
@@ -185,7 +188,7 @@ claims:
   - office
 - id: cand-quinn.debates.001
   section: debates
-  text: At a September 20, 2026 forum, Quinn pointed to the 2024 parks vote.
+  text: At a September 20, 2026 forum in Cedar Hollow, Avery Quinn pointed to the 2024 parks vote.
   marker: 8
   sources:
   - marker: 8

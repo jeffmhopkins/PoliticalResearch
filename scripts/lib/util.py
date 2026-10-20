@@ -7,6 +7,7 @@ import json
 import os
 import re
 import shutil
+import socket
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
@@ -156,29 +157,111 @@ def looks_like_street_address(value: str) -> bool:
     return bool(STREET_RE.search(value or ""))
 
 
-def unsafe_fetch_target(url: str) -> str | None:
-    """Return a reason when a URL must not be fetched. None means the target is allowed."""
-    parsed = urlparse(url or "")
-    if parsed.scheme not in {"http", "https"}:
-        return f"scheme {parsed.scheme or 'missing'} is not http(s)"
-    host = (parsed.hostname or "").lower().rstrip(".")
-    if not host:
-        return "missing host"
-    if host in {"localhost", "metadata.google.internal"} or host.endswith((".local", ".internal")):
-        return f"host {host} is not allowed"
-    try:
-        address = ipaddress.ip_address(host)
-    except ValueError:
-        address = None
-    if address is not None and (
+def _blocked_ip(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped is not None:
+        address = address.ipv4_mapped
+    return bool(
         address.is_private
         or address.is_loopback
         or address.is_link_local
         or address.is_reserved
         or address.is_multicast
         or address.is_unspecified
-    ):
-        return f"address {host} is not allowed"
+    )
+
+
+def _parse_ipv4_literal(host: str) -> ipaddress.IPv4Address | None:
+    """Accept short, hex, decimal, and octal IPv4 forms such as 127.1 and 0x7f000001."""
+    text = host.strip().lower()
+    if re.fullmatch(r"0x[0-9a-f]+", text) or re.fullmatch(r"\d+", text):
+        try:
+            if text.startswith("0x"):
+                number = int(text, 16)
+            elif text.startswith("0") and len(text) > 1:
+                number = int(text, 8)
+            else:
+                number = int(text, 10)
+        except ValueError:
+            return None
+        if 0 <= number <= 0xFFFFFFFF:
+            return ipaddress.IPv4Address(number)
+        return None
+    parts = text.split(".")
+    if not 1 <= len(parts) <= 4:
+        return None
+    values: list[int] = []
+    for part in parts:
+        if not re.fullmatch(r"(?:0x[0-9a-f]+|\d+)", part):
+            return None
+        try:
+            if part.startswith("0x"):
+                values.append(int(part, 16))
+            elif len(part) > 1 and part.startswith("0"):
+                values.append(int(part, 8))
+            else:
+                values.append(int(part, 10))
+        except ValueError:
+            return None
+    widths = {1: [32], 2: [8, 24], 3: [8, 8, 16], 4: [8, 8, 8, 8]}[len(values)]
+    number = 0
+    for chunk, width in zip(values, widths):
+        if chunk < 0 or chunk >= 2**width:
+            return None
+        number = (number << width) | chunk
+    return ipaddress.IPv4Address(number)
+
+
+def _literal_ip(host: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    try:
+        return ipaddress.ip_address(host)
+    except ValueError:
+        pass
+    if ":" in host:
+        return None
+    return _parse_ipv4_literal(host)
+
+
+def _resolved_ips(host: str) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
+    previous = socket.getdefaulttimeout()
+    try:
+        socket.setdefaulttimeout(3)
+        try:
+            infos = socket.getaddrinfo(host, None)
+        except socket.gaierror:
+            return []
+    finally:
+        socket.setdefaulttimeout(previous)
+    found: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
+    for info in infos:
+        sockaddr = info[4]
+        if not sockaddr:
+            continue
+        try:
+            found.append(ipaddress.ip_address(sockaddr[0]))
+        except ValueError:
+            continue
+    return found
+
+
+def unsafe_fetch_target(url: str) -> str | None:
+    """Return a reason when a URL must not be fetched. None means the target is allowed."""
+    parsed = urlparse(url or "")
+    if parsed.scheme not in {"http", "https"}:
+        return f"scheme {parsed.scheme or 'missing'} is not http(s)"
+    raw_host = parsed.hostname or ""
+    host = raw_host.lower().strip().rstrip(".")
+    if not host:
+        return "missing host"
+    if host in {"localhost", "metadata.google.internal"} or host.endswith((".local", ".internal")):
+        return f"host {host} is not allowed"
+    literal = _literal_ip(host)
+    if literal is not None:
+        if _blocked_ip(literal):
+            return f"address {literal} is not allowed"
+        return None
+    for resolved in _resolved_ips(host):
+        if _blocked_ip(resolved):
+            return f"host {host} resolves to {resolved}, which is not allowed"
     return None
 
 

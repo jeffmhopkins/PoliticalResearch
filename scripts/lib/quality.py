@@ -26,14 +26,13 @@ DISALLOWED_HOSTS = {
     "reddit.com",
     "www.reddit.com",
 }
-GAP_PREFIXES = (
-    "not found",
-    "no issue positions",
-    "limited public record",
-    "omitted because",
-    "omitted.",
+GAP_SENTENCES = {
     "none.",
-)
+    "omitted.",
+    "limited public record.",
+    "no issue positions (judicial ethics rules).",
+}
+GAP_NOT_FOUND_RE = re.compile(r"^not found \(searched: .+\)\.$", re.IGNORECASE)
 EXEMPT_HEADINGS = {
     "how to use this guide",
     "methodology",
@@ -108,7 +107,6 @@ RACE_OVERVIEW = [
     "uncontested",
 ]
 PERSON_ITEM_TYPES = {"candidate", "primary", "local-office", "judicial-retention"}
-PERSON_EXEMPT_SECTIONS = {"campaign funding", "funding", "finance", "logistics"}
 ANCHOR_FIELDS = {
     "full_legal_name",
     "ballot_name",
@@ -190,6 +188,55 @@ def anchors_match_one_record(attrs: list, records: list) -> bool:
     return False
 
 
+def anchor_values(record: dict) -> list[str]:
+    values: list[str] = []
+    for key in (
+        "full_legal_name",
+        "ballot_name",
+        "office",
+        "district",
+        "city",
+        "county",
+        "state",
+        "occupation",
+        "campaign_site",
+    ):
+        raw = str(record.get(key) or "").strip()
+        if len(raw) >= 3:
+            values.append(raw)
+    filing_ids = record.get("filing_ids")
+    if filing_ids is None:
+        filing_ids = record.get("filing_id")
+    if isinstance(filing_ids, str) and filing_ids.strip():
+        values.append(filing_ids.strip())
+    elif isinstance(filing_ids, list):
+        for item in filing_ids:
+            text = str(item or "").strip()
+            if len(text) >= 3:
+                values.append(text)
+    return values
+
+
+def independent_anchor_values(record: dict, blob: str) -> list[str]:
+    """Values from one identity record that appear in the text, ignoring a value nested inside a longer match."""
+    lowered = blob.lower()
+    found = [value for value in anchor_values(record) if value.lower() in lowered]
+    independent: list[str] = []
+    for value in sorted(found, key=len, reverse=True):
+        if any(value.lower() in chosen.lower() for chosen in independent):
+            continue
+        independent.append(value)
+    return independent
+
+
+def claim_identity_blob(claim: dict) -> str:
+    parts = [str(claim.get("text") or "")]
+    for source in claim.get("sources") or []:
+        if isinstance(source, dict):
+            parts.append(str(source.get("quote") or ""))
+    return "\n".join(parts)
+
+
 def identities_for_item(workspace, item, doc: dict) -> list[dict]:
     own = load_yaml(item / "identity.yaml")
     own_records = [own] if isinstance(own, dict) else []
@@ -222,21 +269,36 @@ def semantic_claim_errors(doc: dict, label: str, identities: list | None = None)
             errors.append(f"{label}: {cid} is removed and cannot drive a summary")
         if claim.get("removed") and not str(claim.get("removal_reason") or "").strip():
             errors.append(f"{label}: {cid} is removed without removal_reason")
-        section = norm_heading(str(claim.get("section") or ""))
-        if doc.get("item_type") in PERSON_ITEM_TYPES and section not in PERSON_EXEMPT_SECTIONS:
-            if not claim.get("about_person"):
-                errors.append(
-                    f"{label}: {cid} is a person-claim and must set about_person so it is checked against identity.yaml"
-                )
+        if doc.get("item_type") in PERSON_ITEM_TYPES and not claim.get("about_person"):
+            errors.append(
+                f"{label}: {cid} is a person-claim and must set about_person so it is checked against identity.yaml"
+            )
+        if claim.get("suspected_injection") is True:
+            errors.append(
+                f"{label}: {cid} suspected_injection belongs on the source; a claim-level flag cannot support the claim"
+            )
+            if conf == "verified":
+                errors.append(f"{label}: {cid} cannot be verified from a claim-level suspected_injection flag")
+            if drives:
+                errors.append(f"{label}: {cid} has a claim-level suspected_injection flag and cannot drive a summary")
         if claim.get("about_person"):
             attrs = claim.get("identity_attributes") or []
             if not isinstance(attrs, list) or len(attrs) < 2:
                 errors.append(f"{label}: {cid} is about a person but identity_attributes has fewer than 2 anchors")
-            records = list(identities or [])
+            records = [record for record in (identities or []) if isinstance(record, dict)]
             if not records:
                 errors.append(f"{label}: {cid} is about a person but no identity.yaml record was available to match")
             elif isinstance(attrs, list) and len(attrs) >= 2 and not anchors_match_one_record(attrs, records):
                 errors.append(f"{label}: {cid} identity_attributes do not match one identity.yaml record")
+            else:
+                blob = claim_identity_blob(claim)
+                eligible = records
+                if isinstance(attrs, list) and len(attrs) >= 2:
+                    eligible = [record for record in records if anchors_match_one_record(attrs, [record])]
+                if not any(len(independent_anchor_values(record, blob)) >= 2 for record in eligible):
+                    errors.append(
+                        f"{label}: {cid} claim text or source quote does not contain two anchor values from one identity.yaml record"
+                    )
         tiers = []
         publishers = []
         markers = []
@@ -361,23 +423,29 @@ def _sentences(block: str) -> list[str]:
     return [part.strip(" -*") for part in SENTENCE_SPLIT_RE.split(cleaned) if part.strip(" -*")]
 
 
+def _gap_sentence(sentence: str) -> bool:
+    text = re.sub(r"\s+", " ", sentence).strip().strip("*").strip().lower()
+    if text in GAP_SENTENCES:
+        return True
+    return bool(GAP_NOT_FOUND_RE.fullmatch(text))
+
+
 def _is_gap_text(text: str) -> bool:
     sentences = _sentences(text)
     if not sentences:
         return True
-    return all(part.lower().startswith(GAP_PREFIXES) for part in sentences)
+    return all(_gap_sentence(part) for part in sentences)
 
 
-def _exempt_quote(block: str) -> bool:
-    lowered = block.lower()
+def _is_banner_sentence(sentence: str) -> bool:
+    lowered = re.sub(r"[*_>`]", " ", sentence).lower()
+    lowered = re.sub(r"\s+", " ", lowered)
     return any(bit in lowered for bit in EXEMPT_QUOTE_BITS)
 
 
 def prose_marker_errors(text: str, label: str) -> list[str]:
     errors: list[str] = []
     for block in factual_blocks(text):
-        if block.lstrip().startswith(">") and _exempt_quote(block):
-            continue
         if block.startswith("|"):
             rows = [line for line in block.splitlines() if line.strip().startswith("|")]
             seen_separator = False
@@ -399,14 +467,23 @@ def prose_marker_errors(text: str, label: str) -> list[str]:
             for line in bullet_lines:
                 errors.extend(_sentence_marker_errors(line.strip()[2:].strip(), label, "list item"))
             continue
-        errors.extend(_sentence_marker_errors(block, label, "sentence"))
+        errors.extend(
+            _sentence_marker_errors(
+                block,
+                label,
+                "sentence",
+                banner_ok=block.lstrip().startswith(">"),
+            )
+        )
     return errors
 
 
-def _sentence_marker_errors(block: str, label: str, kind: str) -> list[str]:
+def _sentence_marker_errors(block: str, label: str, kind: str, banner_ok: bool = False) -> list[str]:
     if _is_gap_text(block) and "[^" not in block:
         return []
-    protected = MARKER_RE.sub(" [M] ", block)
+    # Drop emphasis markers so "**EXAMPLE.** Next sentence" still splits on the period.
+    plain_block = re.sub(r"[*_>`]", "", block)
+    protected = MARKER_RE.sub(" [M] ", plain_block)
     errors = []
     for part in SENTENCE_SPLIT_RE.split(protected.strip()):
         text = part.strip()
@@ -414,6 +491,8 @@ def _sentence_marker_errors(block: str, label: str, kind: str) -> list[str]:
             continue
         plain = text.replace("[M]", "").strip()
         if not plain or _is_gap_text(plain):
+            continue
+        if banner_ok and _is_banner_sentence(plain):
             continue
         if "[M]" not in text:
             errors.append(f"{label}: {kind} has no citation marker: {plain[:120]}")
@@ -831,6 +910,18 @@ def stale_errors(workspace, today: date, max_days: int | None = None) -> list[st
     return [line for line in staleness_findings(workspace, today, max_days) if not line.startswith("NOTE ")]
 
 
+def _year_is_on_claim(claim_text: str, draft: str, marker: int | None, year: str) -> bool:
+    if year in claim_text:
+        return True
+    if marker is None or not draft:
+        return False
+    token = f"[^{marker}]"
+    for sentence in SENTENCE_SPLIT_RE.split(draft):
+        if token in sentence and year in sentence:
+            return True
+    return False
+
+
 def year_label_errors(workspace) -> list[str]:
     errors = []
     ballot = load_yaml(workspace / "ballot.yaml") or {}
@@ -855,10 +946,11 @@ def year_label_errors(workspace) -> list[str]:
             if year >= election_year:
                 continue
             label = str(year)
-            if label in str(claim.get("text") or "") or label in draft:
+            marker = source_marker(claim, source)
+            if _year_is_on_claim(str(claim.get("text") or ""), draft, marker, label):
                 continue
             errors.append(
-                f"{claim.get('id')}: published {published} is before election year {election_year}; label the year in the claim or draft"
+                f"{claim.get('id')}: published {published} is before election year {election_year}; label the year in that claim's sentence or on its marker"
             )
     return errors
 

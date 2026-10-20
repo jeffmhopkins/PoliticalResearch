@@ -217,14 +217,15 @@ def quinn_claims():
         claim(
             "cand-quinn.funding.001",
             "funding",
-            "The Quinn committee reported 48200 dollars in receipts and 17200 dollars in cash on hand for the quarter that ended September 30, 2026.",
+            "Avery Quinn's Cedar Hollow committee reported 48200 dollars in receipts and 17200 dollars in cash on hand for the quarter that ended September 30, 2026.",
             [filing],
             as_of="2026-09-30",
             filing_period="2026-07-01 through 2026-09-30",
+            about_person=True,
         ),
-        claim("cand-quinn.record.001", "record", "Mayor Quinn voted yes on the city parks budget on June 4, 2024.", [vote], about_person=True),
-        claim("cand-quinn.positions.001", "positions", "Quinn wrote that the levy should stay at the amount printed on the ballot.", [questions], about_person=True),
-        claim("cand-quinn.debates.001", "debates", "At a September 20, 2026 forum, Quinn pointed to the 2024 parks vote.", [debate], about_person=True),
+        claim("cand-quinn.record.001", "record", "Mayor Avery Quinn of Cedar Hollow voted yes on the city parks budget on June 4, 2024.", [vote], about_person=True),
+        claim("cand-quinn.positions.001", "positions", "Avery Quinn of Cedar Hollow wrote that the levy should stay at the amount printed on the ballot.", [questions], about_person=True),
+        claim("cand-quinn.debates.001", "debates", "At a September 20, 2026 forum in Cedar Hollow, Avery Quinn pointed to the 2024 parks vote.", [debate], about_person=True),
         claim(
             "cand-quinn.endorsements.001",
             "endorsements",
@@ -348,7 +349,7 @@ def okonkwo_claims():
     disputed = claim(
         "cand-okonkwo.funding.002",
         "funding",
-        "A Quinn campaign mailer said Okonkwo's donors are mostly real-estate developers.",
+        "A Quinn campaign mailer said Blake Okonkwo of Cedar Hollow has donors who are mostly real-estate developers.",
         [mailer, donor],
         confidence="disputed",
         drives_summary=False,
@@ -363,22 +364,23 @@ def okonkwo_claims():
         claim("cand-okonkwo.identity.001", "identity", "Blake Okonkwo is on the Cedar Hollow mayoral ballot as a nonpartisan challenger.", [ballot], about_person=True),
         claim("cand-okonkwo.occupation.001", "occupation", "The city appointed Blake Okonkwo as a parks planner in 2016.", [job], about_person=True, identity_attributes=["ballot_name", "occupation"]),
         claim("cand-okonkwo.education.001", "education", "Blake Okonkwo received a master of public administration degree from Westland State College in 2015.", [school], about_person=True),
-        claim("cand-okonkwo.record.001", "record", "A 2025 parks report names Blake Okonkwo as the lead on the river path repair.", [project], about_person=True),
+        claim("cand-okonkwo.record.001", "record", "A 2025 Cedar Hollow parks report names Blake Okonkwo as the lead on the river path repair.", [project], about_person=True),
         claim(
             "cand-okonkwo.funding.001",
             "funding",
-            "The Okonkwo committee reported 30100 dollars in receipts and 11700 dollars in cash on hand for the quarter that ended September 30, 2026.",
+            "Blake Okonkwo's Cedar Hollow committee reported 30100 dollars in receipts and 11700 dollars in cash on hand for the quarter that ended September 30, 2026.",
             [filing],
             as_of="2026-09-30",
             filing_period="2026-07-01 through 2026-09-30",
+            about_person=True,
         ),
         disputed,
-        claim("cand-okonkwo.positions.001", "positions", "Okonkwo wrote that any levy change should follow a published repair list.", [questions], about_person=True),
-        claim("cand-okonkwo.debates.001", "debates", "At a September 20, 2026 forum, Okonkwo described managing the river path repair.", [debate], about_person=True),
+        claim("cand-okonkwo.positions.001", "positions", "Blake Okonkwo of Cedar Hollow wrote that any levy change should follow a published repair list.", [questions], about_person=True),
+        claim("cand-okonkwo.debates.001", "debates", "At a September 20, 2026 forum in Cedar Hollow, Blake Okonkwo described managing the river path repair.", [debate], about_person=True),
         claim(
             "cand-okonkwo.endorsements.001",
             "endorsements",
-            "Friends of the River Path says it endorses Blake Okonkwo.",
+            "Friends of the River Path says it endorses Blake Okonkwo of Cedar Hollow.",
             [endorse],
             confidence="single-source",
             drives_summary=False,
@@ -442,8 +444,8 @@ def race_claims():
     )
     claims = [
         claim("race-mayor.contest.001", "contest", "Two candidates are listed for mayor of Cedar Hollow.", [ballot]),
-        claim("race-mayor.contest.002", "contest", "Avery Quinn is marked incumbent on the sample ballot.", [quinn], about_person=True, identity_attributes=["ballot_name", "office"]),
-        claim("race-mayor.contest.003", "contest", "Blake Okonkwo is a city parks planner.", [planner], about_person=True, identity_attributes=["ballot_name", "occupation"]),
+        claim("race-mayor.contest.002", "contest", "Avery Quinn of Cedar Hollow is marked incumbent on the sample ballot.", [quinn], about_person=True, identity_attributes=["ballot_name", "office"]),
+        claim("race-mayor.contest.003", "contest", "Blake Okonkwo, appointed in 2016, is a city parks planner.", [planner], about_person=True, identity_attributes=["ballot_name", "occupation"]),
         claim("race-mayor.funding.001", "funding", "Both mayoral committees filed a report covering the quarter that ended September 30, 2026.", [both]),
         claim("race-mayor.logistics.001", "logistics", "Oak County publishes election information on its elections office page.", [office], drives_summary=False),
     ]
@@ -596,7 +598,7 @@ def quinn_draft():
     return f"""
 # Avery Quinn
 
-> **FICTIONAL EXAMPLE.** Avery Quinn is not a real person. Cedar Hollow and Westland are not real places.
+> **FICTIONAL EXAMPLE:** Avery Quinn is not a real person, and Cedar Hollow and Westland are not real places.
 
 ## Identity
 
@@ -644,7 +646,7 @@ The cited record shows an elected council term, a yes vote on the 2024 parks bud
 
 ## Interest-group ratings
 
-Not found (searched: fictional paired rating pages). Omitted because ratings are included only when a pair from opposite sides exists.
+Not found (searched: fictional paired rating pages; omitted because ratings are included only when a pair from opposite sides exists).
 {FOOTER}
 """
 
@@ -653,7 +655,7 @@ def okonkwo_draft():
     return f"""
 # Blake Okonkwo
 
-> **FICTIONAL EXAMPLE.** Blake Okonkwo is not a real person. Cedar Hollow and Westland are not real places.
+> **FICTIONAL EXAMPLE:** Blake Okonkwo is not a real person, and Cedar Hollow and Westland are not real places.
 
 ## Identity
 
@@ -703,7 +705,7 @@ The cited record shows a parks planner appointment, the river path project, and 
 
 ## Interest-group ratings
 
-Not found (searched: fictional paired rating pages). Omitted because ratings are included only when a pair from opposite sides exists.
+Not found (searched: fictional paired rating pages; omitted because ratings are included only when a pair from opposite sides exists).
 {FOOTER}
 """
 
@@ -712,10 +714,10 @@ def race_draft():
     return """
 # Mayor of Cedar Hollow
 
-> **FICTIONAL EXAMPLE.** This race is invented.
+> **FICTIONAL EXAMPLE:** this race is invented.
 
 <!-- summary -->
-Two people are running for mayor of Cedar Hollow[^32]. Avery Quinn is the current mayor[^33]. Blake Okonkwo is a city parks planner[^34]. Both filed a campaign finance report for the quarter that ended in September 2026[^35].
+Two people are running for mayor of Cedar Hollow[^32]. Avery Quinn is the current mayor[^33]. Blake Okonkwo is a city parks planner appointed in 2016[^34]. Both filed a campaign finance report for the quarter that ended in September 2026[^35].
 
 ## Contest
 
@@ -768,7 +770,7 @@ def measure_draft():
     return """
 # Measure H, Cedar Hollow parks levy
 
-> **FICTIONAL EXAMPLE.** This measure is invented.
+> **FICTIONAL EXAMPLE:** this measure is invented.
 
 <!-- summary -->
 Measure H asks Cedar Hollow voters about a parks levy[^20]. A levy is a tax the ballot asks voters to accept or reject[^20]. A yes vote would replace the expiring levy at the same rate[^23]. A no vote would let that levy expire[^24].
@@ -951,7 +953,7 @@ Use the official election office, not this guide, for dates, deadlines, and poll
     (DEST / "sources-map.md").write_text(
         """# Source map
 
-> **FICTIONAL EXAMPLE.** These publishers are invented.
+> **FICTIONAL EXAMPLE:** these publishers are invented.
 
 ## Official
 
