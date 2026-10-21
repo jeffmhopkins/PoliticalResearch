@@ -113,6 +113,68 @@ $defs:
           type: string
       notes:
         type: string
+      record_kind:
+        type: string
+        enum: [court, license_individual, license_entity, business, donation, position]
+      court_caption:
+        type: string
+      record_date:
+        type: string
+        pattern: "^([0-9]{4}|[0-9]{4}-[0-9]{2}-[0-9]{2}|undated)$"
+      legal_category:
+        type: string
+        enum:
+          - criminal
+          - civil
+          - financial
+          - ethics_campaign_finance
+          - professional_discipline
+          - labor_consumer
+          - misuse_of_office
+          - prior_statements
+      legal_status:
+        type: string
+        enum:
+          - allegation
+          - allegation_only
+          - lawsuit_filed
+          - charge_or_indictment
+          - settlement_without_admission
+          - consent_decree
+          - conviction_or_adjudicated_finding
+          - convicted
+          - pending
+          - settled
+          - dismissal
+          - dismissed
+          - acquittal
+          - overturned_or_vacated
+      accusation:
+        type: string
+      license_holder:
+        type: string
+        enum: [individual, entity]
+      rhetoric_label:
+        type: string
+        enum: [MATCH, CONTRADICTION, NO RECORD]
+      rhetoric_basis:
+        type: string
+        enum: [record, occupation, silence, statement]
+      shift:
+        type: boolean
+      shift_from:
+        type: string
+        pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+      shift_to:
+        type: string
+        pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+      position_as_of:
+        type: string
+        pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+      wayback_url:
+        type: string
+      wayback_local_copy:
+        type: string
       removed:
         type: boolean
       removal_reason:

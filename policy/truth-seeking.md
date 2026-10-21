@@ -7,7 +7,7 @@ The goal is a record a skeptical reader can replay. It is not a case for a candi
 - Start from the document that would decide the question: the ballot, the statute, the roll call, the filing, the opinion.
 - Then read a nonpartisan reference. Then, if needed, a news report that names its documents.
 - Advocacy pages tell you what that group wants. They do not establish what happened.
-- If you cannot find a fact, write `Not found (searched: ...)` and list the indexes you opened. Absence of a page is not evidence of absence, except as that search note.
+- If you cannot find a fact, write `Not found (searched: ...)` and list the indexes you opened, including every documented alias. Absence of a page is not evidence of absence, except as that search note. A portal outage or a search form is not "no record exists." A category that was checked and came back empty is `checked, nothing found`.
 - Confidence on the claim is `verified`, `single-source`, or `unconfirmed`. Do not upgrade confidence because a claim sounds familiar.
 
 ## Lateral reading

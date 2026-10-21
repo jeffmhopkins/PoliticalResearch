@@ -27,6 +27,73 @@ properties:
         type: string
       outside_spending:
         type: string
+      donations_made:
+        description: Donations the candidate personally made. Recipient, amount, and date only.
+        type: array
+        items:
+          type: object
+          required: [recipient, amount, date]
+          additionalProperties: false
+          properties:
+            recipient:
+              type: string
+            amount:
+              type: string
+            date:
+              type: string
+            filing_url:
+              type: string
+  positions:
+    type: array
+    items:
+      type: object
+      required: [issue, statement, as_of]
+      additionalProperties: false
+      properties:
+        issue:
+          type: string
+        statement:
+          type: string
+        as_of:
+          type: string
+          pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        source_url:
+          type: string
+        wayback_url:
+          type: string
+  legal_sweep:
+    type: object
+    additionalProperties: false
+    required:
+      - criminal
+      - civil
+      - financial
+      - ethics_campaign_finance
+      - professional_discipline
+      - labor_consumer
+      - misuse_of_office
+      - prior_statements
+    properties:
+      aliases_searched:
+        type: array
+        items:
+          type: string
+      criminal:
+        $ref: "#/$defs/legal_category"
+      civil:
+        $ref: "#/$defs/legal_category"
+      financial:
+        $ref: "#/$defs/legal_category"
+      ethics_campaign_finance:
+        $ref: "#/$defs/legal_category"
+      professional_discipline:
+        $ref: "#/$defs/legal_category"
+      labor_consumer:
+        $ref: "#/$defs/legal_category"
+      misuse_of_office:
+        $ref: "#/$defs/legal_category"
+      prior_statements:
+        $ref: "#/$defs/legal_category"
   gaps:
     type: array
     items:
@@ -34,3 +101,14 @@ properties:
   fields:
     type: object
     additionalProperties: true
+$defs:
+  legal_category:
+    type: object
+    required: [status]
+    additionalProperties: false
+    properties:
+      status:
+        type: string
+        enum: [checked_nothing_found, record_found, not_checked, portal_unavailable]
+      note:
+        type: string

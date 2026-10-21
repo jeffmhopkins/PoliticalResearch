@@ -7,7 +7,7 @@ Not found (searched: not started).
 
 ## Identity
 
-<!-- Name, office sought, party or nonpartisan, incumbency, official ballot designation, campaign site. One claim per fact, with a marker. -->
+<!-- Name, office sought, party or nonpartisan, incumbency, official ballot designation, campaign site. One claim per fact, with a marker. Documented former, maiden, and filing names go in identity.yaml aliases. Each source is a URL or a claim id, and the alias is a full name that is not another candidate's. An alias does not replace the two identity anchors. Search every alias before a Not found line. birth_year, when a public record supports it, stays in identity.yaml for the identity gate and is never printed. Do not write a street address here. -->
 
 Not found (searched: not started).
 
@@ -29,19 +29,19 @@ Not found (searched: not started).
 
 ## Campaign funding
 
-<!-- Raised, spent, cash on hand, debt, top donors or industries, self-funding share, outside spending for and against. Include the filing date, filing period, and FEC or state portal source. -->
+<!-- Raised, spent, cash on hand, debt, top donors or industries, self-funding share, outside spending for and against. Include the filing date, filing period, and FEC or state portal source. List donations the candidate personally made as recipient, amount, and date. The committee treasurer or candidate name on a filing is an alias to search, cited from that filing. Do not add alignment commentary. -->
 
 Not found (searched: not started).
 
 ## Record vs rhetoric
 
-<!-- Votes and actions in office, then a claim-versus-record note. When a speech and the record disagree, show both and say so. Weight the record over the rhetoric. -->
+<!-- Votes and actions in office, then one cited label per comparison: MATCH, CONTRADICTION, or NO RECORD. Show the record and the statement. Occupation, business, or industry is not itself a contradiction. A shift needs both endpoint dates and a source for each. Do not add an assessment or a recommendation. -->
 
 Not found (searched: not started).
 
 ## Positions in own words
 
-<!-- The same questions for every candidate, from VOTE411, League of Women Voters, Ballotpedia, or local media. Label "did not respond" when that is the case. -->
+<!-- The same questions for every candidate, from VOTE411, League of Women Voters, Ballotpedia, or local media. Label "did not respond" when that is the case. Date each statement (as_of). Use a Wayback snapshot when the earlier wording is not the live page. Call it a shift only when both endpoints are documented, and include the candidate's explanation when they gave one. -->
 
 Not found (searched: not started).
 
@@ -59,7 +59,7 @@ Not found (searched: not started).
 
 ## Legal issues
 
-<!-- Status label required: convicted, pending, dismissed, settled, or allegation only. Include the date, the source, and the candidate's response or "response requested, not found". Attribute allegations. Never state an unconfirmed allegation as fact. -->
+<!-- Cover criminal, civil, financial, ethics and campaign finance, professional discipline, labor and consumer, misuse of office, and prior statements. Mark a checked empty category "checked, nothing found" and name every alias that was searched. A court record counts only when the caption names the candidate or a documented alias as a party, and matters before the candidate turned 18 are dropped. Status label required: convicted, pending, dismissed, settled, allegation only, or the finer label (dismissal, acquittal, overturned or vacated, settlement without admission). State a dismissal, acquittal, or reversal with the accusation. A settlement without admission is not an admission. Include the date, the source, and the candidate's response or "response requested, not found". Attribute allegations. A portal outage or a search form is not "no record exists". -->
 
 Not found (searched: not started).
 

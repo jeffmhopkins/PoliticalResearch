@@ -154,7 +154,10 @@ def archive_workspace(
             else:
                 notes.append("pdf print skipped")
             _save_screenshot_cached(row, screenshot, page_url, archive_dir, marker, slug, url, url_files)
-        source["local_copy"] = row["path"]
+        if source.get("_snapshot"):
+            claim["wayback_local_copy"] = row["path"]
+        else:
+            source["local_copy"] = row["path"]
         changed_items.add(item_dir)
         captured += 1
         if notes:
@@ -188,6 +191,22 @@ def _collect_jobs(workspace: Path) -> list[tuple]:
             marker = source_marker(claim, source) or seen
             url = str(source.get("url") or "")
             jobs.append((item_dir, doc, claim, source, marker, url))
+        seen_urls = {job[5] for job in jobs if job[0] == item_dir}
+        for claim in doc.get("claims") or []:
+            if not isinstance(claim, dict) or claim.get("removed"):
+                continue
+            snapshot = str(claim.get("wayback_url") or "").strip()
+            if not snapshot or snapshot in seen_urls:
+                continue
+            sources = [source for source in (claim.get("sources") or []) if isinstance(source, dict)]
+            if not sources:
+                continue
+            snap = dict(sources[0])
+            snap["_snapshot"] = True
+            snap["title"] = f"{snap.get('title') or 'snapshot'} wayback"
+            marker = source_marker(claim, sources[0]) or (seen + 1)
+            jobs.append((item_dir, doc, claim, snap, marker, snapshot))
+            seen_urls.add(snapshot)
     return jobs
 
 

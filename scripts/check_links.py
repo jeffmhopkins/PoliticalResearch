@@ -46,7 +46,9 @@ def _fetch_status(url: str, request) -> tuple[int | None, str | None]:
     try:
         response = request("HEAD", url, timeout=15)
         status = response.status_code
-        if status in {403, 405}:
+        if status in {403, 429}:
+            return status, f"{status}; not retried"
+        if status == 405:
             follow = request("GET", url, timeout=20)
             status = follow.status_code
         return status, None

@@ -4,7 +4,7 @@ Prefer the highest tier that actually supports the sentence. Record the tier on 
 
 ## Tiers
 
-- **T1 Primary or official.** Election offices, official voter pamphlets, statutes, bill text, roll calls, court records, FEC and state finance filings, financial disclosures, official fiscal analyses (CBO, a state fiscal office), and the candidate's own words on a recording, filing, or questionnaire.
+- **T1 Primary or official.** Election offices, official voter pamphlets, statutes, bill text, roll calls, court records, FEC and state finance filings, financial disclosures, official fiscal analyses (CBO, a state fiscal office), and the candidate's own words on a recording, filing, questionnaire, campaign site, or official channel the candidate runs. A business the candidate runs is a primary source for what that business says about itself, including a self-disclosure. A license on that site is the business's license unless the page states the individual's own license.
 - **T2 Established nonpartisan reference.** Ballotpedia, VOTE411 and the League of Women Voters, Vote Smart, Open States, GovTrack, Congress.gov summaries and CRS, OpenSecrets, LegiScan.
 - **T3 Journalism.** A named outlet with a corrections policy. Fact-checkers count only if you also cite the underlying document they rely on.
 - **T4 Advocacy or partisan.** Allowed for an attributed position ("the group says"). Never the sole support for a fact. Pair it with the other side when both sides have a comparable source.
@@ -38,7 +38,7 @@ These are gaps or extraction notes, not permission to invent the record.
 
 - FEC candidate pages and some FDACS biography pages are JavaScript shells. The printed summary total is not the donor table. An independent-expenditure block that is only an image has no total.
 - A congress.gov or Biographical Directory Cloudflare challenge is not the page. A later deep link can still load. Say which URL loaded.
-- Sunbiz search often returns 403 to curl while an officer-detail URL still loads. An officer table is not an identity match. A Cloudflare or captcha page is a gap.
+- Sunbiz and the Florida DFS licensee search have adapters in `scripts/portals/`, run with `scripts/portal_search.py`. The adapter requests the results page through the fetch-safety layer and cites the detail URL. `searched-none` with `executed: true` means a recognized results page said, in so many words, that nothing was found, even when the search form is still on that page. A search form that is not a results page, including a form inside a table, is `search-form-only` and was not executed. A challenge, captcha, or bot page is `portal-down` only when it has no result rows. Detail rows are hits even if the page also mentions recaptcha. `portal-down` also covers a portal that did not answer, including a 403, which is not retried. None of those is "no record exists." An officer table is not an identity match. Do not fetch the Sunbiz ByName form as if it were results.
 - Florida Division of Elections website fields are sometimes not URLs. Do not fetch them as pages.
 - TreSel has a two-row header that is not in column order. Committee finance is a POST. A blank committee purpose stays blank.
 - Florida House `www` pages and `myfloridahouse.gov` can bounce to a session picker. `flhouse.gov` returns the member list. Do not treat the picker as the list.

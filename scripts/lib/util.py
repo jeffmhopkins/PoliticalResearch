@@ -277,12 +277,13 @@ def unsafe_fetch_target(url: str) -> str | None:
     return None
 
 
-def safe_request(method: str, url: str, *, headers: dict | None = None, params: dict | None = None, timeout: int = 30, max_redirects: int = 5):
+def safe_request(method: str, url: str, *, headers: dict | None = None, params: dict | None = None, data: str | None = None, timeout: int = 30, max_redirects: int = 5):
     """HTTP request with redirects disabled. Each hop is checked before it is requested."""
     import requests
 
     current = url
     extra_params = params or None
+    body = data
     verb = method
     for _hop in range(max_redirects + 1):
         reason = unsafe_fetch_target(current)
@@ -293,6 +294,7 @@ def safe_request(method: str, url: str, *, headers: dict | None = None, params: 
             current,
             headers=headers or {},
             params=extra_params,
+            data=body,
             timeout=timeout,
             allow_redirects=False,
         )
@@ -308,6 +310,7 @@ def safe_request(method: str, url: str, *, headers: dict | None = None, params: 
             raise RuntimeError(f"Refusing redirect: {reason}")
         if verb.upper() == "POST" and response.status_code in {301, 302, 303}:
             verb = "GET"
+            body = None
         current = nxt
     raise RuntimeError("Refusing fetch: too many redirects")
 

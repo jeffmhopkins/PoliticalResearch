@@ -8,6 +8,7 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import quote
 
+from lib.records import LEGAL_SWEEP_KEYS, alias_names
 from lib.sentences import split_sentences
 from lib.util import RETRIEVED_RE, dump_json, iter_items, load_config, load_yaml, norm_heading, repo_root, unsafe_fetch_target
 
@@ -366,6 +367,8 @@ ANCHOR_FIELDS = {
     "district",
     "state",
     "campaign_site",
+    "alias",
+    "aliases",
 }
 # A blockquote is exempt only when the whole sentence is one of these banners.
 # Comparison is after emphasis and punctuation are stripped, so a banner phrase
@@ -394,6 +397,10 @@ JUDICIAL_CORE = [
     "issue positions",
 ]
 SUMMARY_TYPES = {"race", "measure", "legislation", "judicial-retention"}
+
+
+def _clean_anchor(value: str) -> str:
+    return re.sub(r"\s+", " ", value or "").strip().lower()
 
 
 def sentence_count(text: str) -> int:
@@ -426,6 +433,14 @@ def identity_anchor_matches(record: dict, attr: str) -> bool:
     key = str(attr or "").strip()
     if key == "name":
         return bool(str(record.get("ballot_name") or "").strip() or str(record.get("full_legal_name") or "").strip())
+    if key in {"alias", "aliases"}:
+        raw = record.get("aliases")
+        if not isinstance(raw, list):
+            return False
+        return any(
+            str((item.get("name") if isinstance(item, dict) else item) or "").strip()
+            for item in raw
+        )
     if key in {"filing_id", "filing_ids"}:
         ids = record.get("filing_ids")
         if ids is None:
@@ -473,6 +488,14 @@ def anchor_entries(record: dict) -> list[tuple[str, bool]]:
             text = str(item or "").strip()
             if len(text) >= 3:
                 entries.append((text, True))
+    for item in record.get("aliases") or []:
+        if isinstance(item, dict):
+            text = re.sub(r"\s+", " ", str(item.get("name") or "")).strip()
+        else:
+            text = re.sub(r"\s+", " ", str(item or "")).strip()
+        if len(text) >= 3:
+            # An alias is not a distinguishing anchor. It cannot, by itself, supply both anchors.
+            entries.append((text, False))
     return entries
 
 
@@ -481,19 +504,34 @@ def _value_on_word_boundary(value: str, blob: str) -> bool:
 
 
 def independent_anchor_values(record: dict, blob: str) -> list[tuple[str, bool]]:
-    """Values from one record that appear as whole words, dropping a value nested in a longer match."""
+    """Values from one record that appear as whole words, dropping a value nested in a longer match.
+
+    A longer alias does not hide a distinguishing name or filing id contained in it.
+    """
     found = [entry for entry in anchor_entries(record) if _value_on_word_boundary(entry[0], blob)]
     independent: list[tuple[str, bool]] = []
     for value, distinguishing in sorted(found, key=lambda item: len(item[0]), reverse=True):
-        if any(value.lower() in chosen[0].lower() for chosen in independent):
-            continue
-        independent.append((value, distinguishing))
+        skip = False
+        for chosen_value, chosen_distinguishing in independent:
+            if value.lower() == chosen_value.lower():
+                skip = True
+                break
+            if value.lower() in chosen_value.lower():
+                if distinguishing and not chosen_distinguishing:
+                    continue
+                skip = True
+                break
+        if not skip:
+            independent.append((value, distinguishing))
     return independent
 
 
 def anchors_identify_person(record: dict, blob: str) -> bool:
+    """Two anchors from one record, including a name or filing id that is not only an alias."""
     matched = independent_anchor_values(record, blob)
-    return len(matched) >= 2 and any(distinguishing for _value, distinguishing in matched)
+    alias_keys = {_clean_anchor(name) for name in alias_names(record)}
+    non_alias = [entry for entry in matched if _clean_anchor(entry[0]) not in alias_keys]
+    return len(matched) >= 2 and len(non_alias) >= 1 and any(distinguishing for _value, distinguishing in non_alias)
 
 
 def _bind_trailing_markers(text: str) -> str:
@@ -2215,7 +2253,59 @@ def structured_symmetry_errors(workspace) -> list[str]:
                         continue
                     if any(values) and not all(item_id for item_id, fields in field_maps if field in fields):
                         errors.append(f"{contest.get('id')}: field '{field}' is missing for a candidate")
+        sweep_rows = []
+        for item_id, data in profiles:
+            sweep = data.get("legal_sweep")
+            if isinstance(sweep, dict):
+                sweep_rows.append((item_id, sweep))
+        if sweep_rows:
+            present = {item_id for item_id, _sweep in sweep_rows}
+            for candidate in candidates:
+                item_id = str(candidate.get("item_id") or candidate.get("id"))
+                if item_id not in present:
+                    errors.append(
+                        f"{item_id}: legal_sweep is missing while another candidate in the race has one"
+                    )
+            key_sets = []
+            for item_id, sweep in sweep_rows:
+                keys = {key for key in sweep if key != "aliases_searched"}
+                missing = [key for key in LEGAL_SWEEP_KEYS if key not in keys]
+                if missing:
+                    errors.append(f"{item_id}: legal_sweep is missing {', '.join(missing)}")
+                key_sets.append((item_id, keys))
+            if len(key_sets) >= 2:
+                union_keys = set().union(*(keys for _item, keys in key_sets))
+                for item_id, keys in key_sets:
+                    absent = sorted(union_keys - keys)
+                    if absent:
+                        errors.append(
+                            f"{item_id}: legal_sweep omits {', '.join(absent)} that another candidate lists"
+                        )
+            if len(sweep_rows) >= 2:
+                for key in LEGAL_SWEEP_KEYS:
+                    states = [(item_id, _sweep_search_state(sweep.get(key))) for item_id, sweep in sweep_rows]
+                    checked = [item_id for item_id, state in states if state == "checked"]
+                    unchecked = [item_id for item_id, state in states if state == "not_checked"]
+                    if checked and unchecked:
+                        for item_id in unchecked:
+                            errors.append(
+                                f"{item_id}: legal_sweep.{key} is not_checked while another candidate in the race was checked"
+                            )
     return errors
+
+
+def _sweep_search_state(row) -> str:
+    """Collapse a category status to whether that category was searched."""
+    if not isinstance(row, dict):
+        return "missing"
+    status = str(row.get("status") or "")
+    if status in {"checked_nothing_found", "record_found"}:
+        return "checked"
+    if status == "not_checked":
+        return "not_checked"
+    if status == "portal_unavailable":
+        return "portal_unavailable"
+    return status or "missing"
 
 
 def content_gate_errors(workspace, today: date, *, include_guide: bool = True) -> list[str]:

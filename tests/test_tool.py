@@ -77,6 +77,7 @@ def test_schema_files_are_valid_draft_2020():
         "ballot.schema.yaml",
         "intake.schema.yaml",
         "identity.schema.yaml",
+        "profile.schema.yaml",
         "effort.schema.json",
     ):
         errors = check_schema_document(load_schema(name))

@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import _boot  # noqa: F401
 from lib.cli import base_parser, workspace_from
 from lib.quality import blinded_swap
+from lib.records import redact_rendered_birth
 from lib.util import load_yaml
 
 LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -28,6 +29,11 @@ def _names_for(candidate: dict, identity: dict, alias: str, site_alias: str) -> 
         str(identity.get("full_legal_name") or ""),
         str(identity.get("ballot_name") or ""),
     ]
+    for row in identity.get("aliases") or []:
+        if isinstance(row, dict):
+            full_names.append(str(row.get("name") or ""))
+        else:
+            full_names.append(str(row or ""))
     for name in full_names:
         _add(pairs, name, alias)
         tokens = [token for token in name.replace(",", " ").split() if token]
@@ -55,6 +61,7 @@ def main(argv: list[str] | None = None) -> int:
         print("No contests found.", file=sys.stderr)
         return 1
     replacements: list[tuple[str, str]] = []
+    birth_years: list[int] = []
     chunks: list[str] = []
     person_index = 0
     covered = False
@@ -72,6 +79,9 @@ def main(argv: list[str] | None = None) -> int:
                 identity = load_yaml(workspace / "items" / item_id / "identity.yaml") or {}
                 if not isinstance(identity, dict):
                     identity = {}
+                birth = identity.get("birth_year")
+                if isinstance(birth, int):
+                    birth_years.append(birth)
                 replacements.extend(_names_for(candidate, identity, alias, site_alias))
                 draft = workspace / "items" / item_id / "draft.md"
                 if draft.exists():
@@ -91,6 +101,7 @@ def main(argv: list[str] | None = None) -> int:
         print("No race or measure contest found.", file=sys.stderr)
         return 1
     blinded = blinded_swap("\n\n".join(chunks), replacements)
+    blinded = redact_rendered_birth(blinded, birth_years)
     header = (
         "# Blinded swap draft\n\n"
         "Names, surnames, and campaign web addresses are replaced across the whole ballot. "

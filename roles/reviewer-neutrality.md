@@ -8,6 +8,7 @@ Run `scripts/symmetry_check.py` and `scripts/swap.py`. Read the blinded draft. F
 - Loaded wording, slogans outside quotes, or unequal argument length.
 - A summary that uses an unconfirmed or disputed claim.
 - Left skew, right skew, or flattery toward the requester.
+- A record-versus-rhetoric label that is missing a citation, applied to only one candidate, or used as an assessment. Occupation is not a `CONTRADICTION`. Alignment commentary on the candidate's own donations is a neutrality finding.
 
 Do not score candidates. Do not suggest who should win.
 

@@ -13,7 +13,7 @@ Not found (searched: not started).
 
 ## Comparison
 
-<!-- A table with the same rows for every candidate. Every factual cell needs a marker or a not-found note. -->
+<!-- A table with the same rows for every candidate. Every factual cell needs a marker or a not-found note. Include a Record vs. rhetoric row. Each cell is a cited MATCH, CONTRADICTION, or NO RECORD label, or Not found. -->
 
 Not found (searched: not started).
 

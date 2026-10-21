@@ -24,7 +24,7 @@ from lib.quality import (
 from lib.schema import instance_errors, load_schema
 from lib.sentences import split_sentences
 from lib.util import coerce_yaml_dates, dump_json, dump_yaml, repo_root, unsafe_fetch_target
-from lib.workflow import _draft_looks_ready, confirm_ballot, fresh_loop_state, init_workspace, signoff
+from lib.workflow import _draft_looks_ready, confirm_ballot, fresh_loop_state, init_workspace, record_unchecked, signoff
 
 ROOT = repo_root()
 EXAMPLE = ROOT / "examples" / "sample-election"
@@ -638,6 +638,7 @@ def test_same_context_signoff_is_a_process_gap(tmp_path: Path):
     item = tmp_path / "items" / "cand-a"
     item.mkdir(parents=True)
     dump_json(item / "loop-state.json", fresh_loop_state("cand-a", "2026-10-20 12:00 ET"))
+    assert record_unchecked(item, "factcheck", "2026-10-20 12:00 ET", []) == []
     assert signoff(item, "factcheck", "2026-10-20 12:00 ET", same_context=True) == []
     state = json.loads((item / "loop-state.json").read_text(encoding="utf-8"))
     assert state["signoffs"]["factcheck"]["signed"] is True
