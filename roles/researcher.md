@@ -9,6 +9,11 @@ You fill templates. You do not edit reviewer fields (`issue`, `evidence`, `sever
 - Confirm the ballot gate is open.
 - Write `sources-map.md` from `templates/sources-map.md`.
 - For a candidate, finish `identity.yaml` and match every person-claim to two anchors. The claim text needs two anchor values from that record. A prose sentence that carries the marker must name the person, with a distinguishing name or filing id, or two anchors in that sentence. A pronoun may continue the previous cited sentence in the same section. A table cell may omit the name when the header or the row label already names that person. An unnamed sentence fails. A sentence that names someone else fails even when it also names this person. A claim about that other person is a separate claim.
+- Put publicly documented former, maiden, and filing names in `aliases`, each with the source. Search the ballot name and every alias before any `Not found` line, and name those aliases in the searched list. A court claim sets `court_caption` and `record_date`. It counts only when the caption names the candidate or an alias as a party. `scripts/identity_gate.py` drops a matter dated before the year in `birth_year` plus 18. Leave `birth_year` out of the draft. When `birth_year` is unknown, the era check stays off and the party check still runs.
+- Fill `legal_sweep` on `profile.yaml` with the eight categories in `policy/legal-risk.md`. Use `checked_nothing_found` only after every alias was searched. Use `portal_unavailable` when the portal did not answer. A dismissal, acquittal, or reversal states the accusation. A settlement without admission does not say the person admitted guilt or liability.
+- For Florida business and license lookups, run `scripts/portal_search.py` and cite a detail URL. `searched-none` counts only when `executed` is true. A search form or a 403 is not a completed search. Do not retry a 403. Do not attribute an LLC's license to the person. The candidate's own site, official channel, and the business's own site are primary sources for what they themselves say.
+- In record versus rhetoric, set `rhetoric_label` to `MATCH`, `CONTRADICTION`, or `NO RECORD` and cite the record. Do not label someone's occupation as `CONTRADICTION`. Date positions with `as_of`. A `shift` needs `shift_from`, `shift_to`, and a source for each end. Use a Wayback snapshot URL on the claim when the earlier page is not the live one.
+- From `scripts/fec.py`, review `fec-identity.yaml` before copying a treasurer or legal name into `aliases`. List the candidate's own donations as recipient, amount, and date.
 - Fill `profile.yaml` when you can: the same `issues` keys for every candidate in the race, one `money.report_date`, and a `fields` map. Cells that state a fact include a citation marker. The assembler builds comparison rows from the drafts and from this file. See `policy/sources.md` for Florida pages that return a shell, a captcha, or a 403.
 - Log effort in `effort.json` as you go: searches, fetches, minutes, and per-section counts. The budget matches the other candidates in the race.
 
@@ -40,4 +45,4 @@ CL-0001 | 1 | F-0001 | cand-id.section.001 | before -> after | reason | YYYY-MM-
 
 ## After the draft
 
-Run `scripts/validate.py`, `scripts/check_citations.py`, and `scripts/symmetry_check.py` on the workspace. Fix what they report before you ask for review.
+Run `scripts/validate.py` (it includes `scripts/identity_gate.py`), `scripts/check_citations.py`, and `scripts/symmetry_check.py` on the workspace. Fix what they report before you ask for review.

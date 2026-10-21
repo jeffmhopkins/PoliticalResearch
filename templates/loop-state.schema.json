@@ -42,6 +42,21 @@
       "description": "Recorded when a reviewer signs off in the same context as the research."
     },
     "removed_claims": {"type": "array", "items": {"type": "string"}},
+    "not_checked": {
+      "type": "array",
+      "description": "What this review round left unchecked, highest-risk items first. An empty items list means the reviewer recorded that nothing was left unchecked.",
+      "items": {
+        "type": "object",
+        "required": ["reviewer", "round", "items"],
+        "additionalProperties": false,
+        "properties": {
+          "reviewer": {"type": "string", "enum": ["factcheck", "sourcing", "neutrality", "privacy-legal"]},
+          "round": {"type": "integer", "minimum": 0},
+          "items": {"type": "array", "items": {"type": "string"}},
+          "note": {"type": "string"}
+        }
+      }
+    },
     "updated_at": {
       "type": "string",
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET$"

@@ -8,14 +8,27 @@ import sys
 import _boot  # noqa: F401
 from lib.cli import base_parser, clock_from, workspace_from
 from lib.util import iter_items
-from lib.workflow import REVIEWERS, close_round, enforce_cap, open_round, signoff, write_status
+from lib.workflow import (
+    REVIEWERS,
+    close_round,
+    enforce_cap,
+    open_round,
+    record_unchecked,
+    review_queue,
+    signoff,
+    write_status,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = base_parser("Coordinator helper for the correction loop.")
-    parser.add_argument("command", choices=["open-round", "close-round", "signoff", "enforce-cap", "status"])
+    parser.add_argument(
+        "command",
+        choices=["open-round", "close-round", "signoff", "enforce-cap", "status", "note-unchecked", "review-order"],
+    )
     parser.add_argument("--item")
     parser.add_argument("--reviewer", choices=REVIEWERS)
+    parser.add_argument("--note", action="append", default=None, help="One unchecked item. Repeat for more. Omit for an empty list.")
     parser.add_argument(
         "--same-context",
         action="store_true",
@@ -26,6 +39,15 @@ def main(argv: list[str] | None = None) -> int:
     clock = clock_from(args)
     if args.command == "status":
         print(write_status(workspace, clock))
+        return 0
+    if args.command == "review-order":
+        items = [workspace / "items" / args.item] if args.item else iter_items(workspace)
+        if not items:
+            print("No items.", file=sys.stderr)
+            return 1
+        for item in items:
+            print(f"## {item.name}")
+            print("\n".join(review_queue(item)))
         return 0
     items = [workspace / "items" / args.item] if args.item else iter_items(workspace)
     if not items:
@@ -39,6 +61,11 @@ def main(argv: list[str] | None = None) -> int:
             errors.extend(close_round(item, clock))
         elif args.command == "enforce-cap":
             errors.extend(enforce_cap(item, clock))
+        elif args.command == "note-unchecked":
+            if not args.reviewer:
+                print("note-unchecked needs --reviewer.", file=sys.stderr)
+                return 2
+            errors.extend(record_unchecked(item, args.reviewer, clock, args.note))
         else:
             if not args.reviewer:
                 print("signoff needs --reviewer.", file=sys.stderr)

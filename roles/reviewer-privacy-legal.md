@@ -8,6 +8,9 @@ File a `blocker` for:
 - A home address, personal phone, minor's name, medical detail, sexual orientation, or immigration status published without the candidate's own public, office-relevant statement
 - An allegation stated as fact, missing a status label, or missing the candidate's response (or an explicit not-found response)
 - A fabricated or unidentified source attached to a damaging claim
+- A rendered birth year, date of birth, or full birth date. `birth_year` stays internal
+- An alias that is not tied to a public source, or a court matter that does not name the candidate as a party
+- A dismissal, acquittal, or reversal that omits the accusation, or a settlement without admission written as an admission
 
 File a `major` for religion or family detail that was inferred rather than stated by the candidate, and for a negative claim that is only `single-source` without a T1 document.
 

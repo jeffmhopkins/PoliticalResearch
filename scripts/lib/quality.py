@@ -8,6 +8,7 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import quote
 
+from lib.records import LEGAL_SWEEP_KEYS
 from lib.sentences import split_sentences
 from lib.util import RETRIEVED_RE, dump_json, iter_items, load_config, load_yaml, norm_heading, repo_root, unsafe_fetch_target
 
@@ -366,6 +367,8 @@ ANCHOR_FIELDS = {
     "district",
     "state",
     "campaign_site",
+    "alias",
+    "aliases",
 }
 # A blockquote is exempt only when the whole sentence is one of these banners.
 # Comparison is after emphasis and punctuation are stripped, so a banner phrase
@@ -426,6 +429,14 @@ def identity_anchor_matches(record: dict, attr: str) -> bool:
     key = str(attr or "").strip()
     if key == "name":
         return bool(str(record.get("ballot_name") or "").strip() or str(record.get("full_legal_name") or "").strip())
+    if key in {"alias", "aliases"}:
+        raw = record.get("aliases")
+        if not isinstance(raw, list):
+            return False
+        return any(
+            str((item.get("name") if isinstance(item, dict) else item) or "").strip()
+            for item in raw
+        )
     if key in {"filing_id", "filing_ids"}:
         ids = record.get("filing_ids")
         if ids is None:
@@ -473,6 +484,13 @@ def anchor_entries(record: dict) -> list[tuple[str, bool]]:
             text = str(item or "").strip()
             if len(text) >= 3:
                 entries.append((text, True))
+    for item in record.get("aliases") or []:
+        if isinstance(item, dict):
+            text = re.sub(r"\s+", " ", str(item.get("name") or "")).strip()
+        else:
+            text = re.sub(r"\s+", " ", str(item or "")).strip()
+        if len(text) >= 3:
+            entries.append((text, True))
     return entries
 
 
@@ -2215,6 +2233,34 @@ def structured_symmetry_errors(workspace) -> list[str]:
                         continue
                     if any(values) and not all(item_id for item_id, fields in field_maps if field in fields):
                         errors.append(f"{contest.get('id')}: field '{field}' is missing for a candidate")
+        sweep_rows = []
+        for item_id, data in profiles:
+            sweep = data.get("legal_sweep")
+            if isinstance(sweep, dict):
+                sweep_rows.append((item_id, sweep))
+        if sweep_rows:
+            present = {item_id for item_id, _sweep in sweep_rows}
+            for candidate in candidates:
+                item_id = str(candidate.get("item_id") or candidate.get("id"))
+                if item_id not in present:
+                    errors.append(
+                        f"{item_id}: legal_sweep is missing while another candidate in the race has one"
+                    )
+            key_sets = []
+            for item_id, sweep in sweep_rows:
+                keys = {key for key in sweep if key != "aliases_searched"}
+                missing = [key for key in LEGAL_SWEEP_KEYS if key not in keys]
+                if missing:
+                    errors.append(f"{item_id}: legal_sweep is missing {', '.join(missing)}")
+                key_sets.append((item_id, keys))
+            if len(key_sets) >= 2:
+                union_keys = set().union(*(keys for _item, keys in key_sets))
+                for item_id, keys in key_sets:
+                    absent = sorted(union_keys - keys)
+                    if absent:
+                        errors.append(
+                            f"{item_id}: legal_sweep omits {', '.join(absent)} that another candidate lists"
+                        )
     return errors
 
 

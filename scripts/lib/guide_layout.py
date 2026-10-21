@@ -59,17 +59,19 @@ _SMALL_DONOR_RE = re.compile(r"small donor|under \$200|\$200", re.IGNORECASE)
 _OUTSIDE_RE = re.compile(r"outside spending|independent expenditure", re.IGNORECASE)
 _REPORT_DATE_RE = re.compile(r"quarter|filed on|report date|as of", re.IGNORECASE)
 _PARTY_RE = re.compile(r"incumbent|challenger|nonpartisan|party", re.IGNORECASE)
+_RHETORIC_LABEL_RE = re.compile(r"\b(?:MATCH|CONTRADICTION|NO RECORD)\b")
 
 
 class _Row:
     """One comparison row. A patterned row takes the most specific unused sentence."""
 
-    def __init__(self, label: str, section: str, pattern: re.Pattern | None = None, money_key: str | None = None, fallback_first: bool = False):
+    def __init__(self, label: str, section: str, pattern: re.Pattern | None = None, money_key: str | None = None, fallback_first: bool = False, omit_if_empty: bool = False):
         self.label = label
         self.section = section
         self.pattern = pattern
         self.money_key = money_key
         self.fallback_first = fallback_first
+        self.omit_if_empty = omit_if_empty
 
 
 _COMPARISON_GROUPS = [
@@ -108,6 +110,7 @@ _COMPARISON_GROUPS = [
         "Record",
         [
             _Row("Record", "record vs rhetoric"),
+            _Row("Record vs. rhetoric", "record vs rhetoric", _RHETORIC_LABEL_RE, omit_if_empty=True),
             _Row("Endorsements", "endorsements"),
             _Row("Debates and forums", "debates and forums"),
             _Row("Legal issues", "legal issues"),
@@ -913,6 +916,8 @@ class _GuideModel:
                 label = spec.label
                 cells = [cells_for[label] for cells_for in assigned]
                 if cells and all(cell == NOT_FOUND_CELL for cell in cells):
+                    if spec.omit_if_empty:
+                        continue
                     dropped.append(label.lower())
                     continue
                 rows.append((label, cells))

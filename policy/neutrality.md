@@ -30,6 +30,7 @@ The reader edition opens with the ballot, then one contest at a time, inside a p
 - Use descriptive names for policies. Partisan slogans appear only inside quotations.
 - Do not write picks, scores, ranks, or "how to vote."
 - Do not use judging adjectives such as "extreme" or "common-sense."
+- Record versus rhetoric uses one cited label per comparison: `MATCH`, `CONTRADICTION`, or `NO RECORD`. The label is a description of the two cited items. It is not an assessment and not a recommendation. Occupation, business, or industry is not a `CONTRADICTION`. Apply the same labels to every candidate. Donations the candidate made are listed as recipient, amount, and date, without alignment commentary.
 - There is no values-matching mode. Do not ask the requester for a party or a set of values, and do not tilt coverage toward a preference you inferred.
 
 ## Blinded swap

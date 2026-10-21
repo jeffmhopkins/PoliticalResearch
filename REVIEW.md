@@ -53,11 +53,11 @@ The reviewer who filed the finding then sets `accepted` or `reopened`. A reopene
 5. At the cap, `scripts/loop.py close-round` converts leftovers: blockers remove the claim, majors become disputed, minors become `wontfix-approved`.
 6. Do not add a new major or minor after round 1 unless the finding sets `caused_by_edit: true` because a fix in that round created it. `scripts/validate.py` rejects other late non-blockers. A new blocker is always allowed.
 
-`scripts/loop.py signoff --reviewer <name>` refuses to sign while that reviewer still has a finding that is not `accepted`, `disputed`, or `wontfix-approved`.
+`scripts/loop.py signoff --reviewer <name>` refuses to sign while that reviewer still has a finding that is not `accepted`, `disputed`, or `wontfix-approved`. Fact-check and sourcing also need a `not_checked` entry for the current round, written with `scripts/loop.py note-unchecked`. A clean draft still goes through every reviewer. Do not skip a later pass because an earlier read found nothing.
 
 ## Loop state
 
-`loop-state.json` stores the round, open counts by severity, a sign-off per reviewer, and `status`: `researching`, `in-review`, `fixing`, `signed-off`, or `capped-disputed`.
+`loop-state.json` stores the round, open counts by severity, a sign-off per reviewer, `not_checked` lists, and `status`: `researching`, `in-review`, `fixing`, `signed-off`, or `capped-disputed`.
 
 `scripts/loop.py status` rewrites `STATUS.md` from those files.
 

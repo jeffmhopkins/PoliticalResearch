@@ -415,6 +415,18 @@ def signoff(item: Path, reviewer: str, clock: str, *, same_context: bool = False
     ]
     if pending:
         return [f"{reviewer} still has unresolved findings: {', '.join(str(item_id) for item_id in pending)}"]
+    if reviewer in {"factcheck", "sourcing"}:
+        round_no = state.get("round")
+        recorded = [
+            entry
+            for entry in (state.get("not_checked") or [])
+            if isinstance(entry, dict) and entry.get("reviewer") == reviewer and entry.get("round") == round_no
+        ]
+        if not recorded:
+            return [
+                f"{reviewer} must record a not-checked list for round {round_no} before sign-off. "
+                "Use scripts/loop.py note-unchecked. An empty list means nothing was left unchecked."
+            ]
     if same_context:
         state.setdefault("process_gaps", []).append(
             f"{reviewer} signed off in the same context as the research. "
@@ -424,6 +436,52 @@ def signoff(item: Path, reviewer: str, clock: str, *, same_context: bool = False
     state["updated_at"] = clock
     dump_json(state_path, state)
     return []
+
+
+def record_unchecked(item: Path, reviewer: str, clock: str, notes: list[str] | None = None) -> list[str]:
+    """Store this round's unchecked list. An empty list is an explicit 'nothing left unchecked'."""
+    if reviewer not in REVIEWERS:
+        return [f"Unknown reviewer {reviewer}. Use one of: {', '.join(REVIEWERS)}"]
+    state_path = item / "loop-state.json"
+    state = load_json(state_path)
+    if not isinstance(state, dict):
+        return ["loop-state.json is missing"]
+    round_no = int(state.get("round") or 0)
+    entries = [entry for entry in (state.get("not_checked") or []) if isinstance(entry, dict)]
+    entries = [entry for entry in entries if not (entry.get("reviewer") == reviewer and entry.get("round") == round_no)]
+    items = []
+    for note in notes or []:
+        text = str(note or "").strip()
+        if text and text not in items:
+            items.append(text)
+    entries.append({"reviewer": reviewer, "round": round_no, "items": items})
+    state["not_checked"] = entries
+    state["updated_at"] = clock
+    dump_json(state_path, state)
+    return []
+
+
+def review_queue(item: Path) -> list[str]:
+    """Negative and absence claims first. The rest follow."""
+    doc = load_yaml(item / "claims.yaml") or {}
+    claims = doc.get("claims") if isinstance(doc, dict) else []
+    negative = []
+    rest = []
+    absence = re.compile(r"\b(?:not found|no record|nothing found|does not exist|has none|never)\b", re.IGNORECASE)
+    for claim in claims or []:
+        if not isinstance(claim, dict) or claim.get("removed"):
+            continue
+        line = f"{claim.get('id')} polarity={claim.get('polarity') or 'unset'}"
+        text = str(claim.get("text") or "")
+        if claim.get("polarity") == "negative" or absence.search(text):
+            negative.append(line)
+        else:
+            rest.append(line)
+    lines = ["# highest risk first: absence and negative claims"]
+    lines.extend(negative or ["# none"])
+    lines.append("# remaining claims")
+    lines.extend(rest or ["# none"])
+    return lines
 
 
 def close_round(item: Path, clock: str) -> list[str]:
@@ -719,6 +777,7 @@ def scaffold_item(
                 "county": "",
                 "state": "",
                 "filing_ids": [],
+                "aliases": [],
                 "campaign_site": "",
                 "description": "",
                 "photo_included": False,

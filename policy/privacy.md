@@ -25,3 +25,5 @@ Religion and family follow the same rule. A relative who is an officeholder, lob
 Official biographies sometimes include family fields in the page data, including Florida court biographies, `myfloridalegal.com` attorney-general biographies, and Senate handbook pages. Do not copy a spouse, child, or other family field into the guide unless the person publicly raised that fact and it is relevant to the office. The field's presence on the page is not that public statement.
 
 Identity anchors are photo-free. Do not add a portrait to the guide.
+
+`identity.yaml` may store `birth_year` when a public record supports it. That year is an internal input to the court-record era check. Do not print it, a full date of birth, or an age that exists only because the year was stored. `scripts/identity_gate.py` rejects a draft, claim, or guide that renders it. Aliases are limited to names a public filing, court caption, or the candidate's own words document, and each alias records that source.

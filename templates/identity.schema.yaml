@@ -33,6 +33,28 @@ properties:
     type: array
     items:
       type: string
+  aliases:
+    description: Publicly documented former, maiden, or filing names. Each entry names the source that recorded it.
+    type: array
+    items:
+      type: object
+      required: [name, source]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          minLength: 1
+        kind:
+          type: string
+          enum: [former, maiden, legal, also_known_as, filing, ballot]
+  birth_year:
+    description: Internal identity check only. Do not render this value, a date of birth, or an age derived only from it.
+    type: integer
+    minimum: 1800
+    maximum: 2100
   description:
     type: string
   photo_included:

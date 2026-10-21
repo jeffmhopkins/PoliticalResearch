@@ -118,6 +118,143 @@ def contests_from_civic(payload: dict) -> tuple[list[dict], list[str]]:
     return contests, notes
 
 
+def _fec_results(payload: dict) -> list[dict]:
+    results = payload.get("results") if isinstance(payload, dict) else None
+    if not isinstance(results, list):
+        return []
+    return [row for row in results if isinstance(row, dict)]
+
+
+def fec_aliases_from_payloads(candidate_id: str, candidate_payload: dict, committees: list[dict]) -> list[dict]:
+    """Names from the candidate record and committee treasurer fields. Unreviewed."""
+    aliases = []
+    seen: set[str] = set()
+
+    def add(name: str, source: str) -> None:
+        text = " ".join(str(name or "").split())
+        key = text.casefold()
+        if not text or key in seen:
+            return
+        seen.add(key)
+        aliases.append({"name": text, "source": source, "kind": "filing"})
+
+    for row in _fec_results(candidate_payload):
+        add(str(row.get("name") or ""), f"OpenFEC candidate {candidate_id} name field")
+    for row in committees:
+        if not isinstance(row, dict):
+            continue
+        committee_id = str(row.get("committee_id") or "").strip()
+        source = f"OpenFEC committee {committee_id} treasurer_name" if committee_id else "OpenFEC committee treasurer_name"
+        add(str(row.get("treasurer_name") or ""), source)
+    return aliases
+
+
+def fec_donations_from_schedule(payload: dict) -> list[dict]:
+    """Recipient, amount, and date. Street addresses and alignment notes are not copied."""
+    donations = []
+    for row in _fec_results(payload):
+        committee = row.get("committee") if isinstance(row.get("committee"), dict) else {}
+        committee_id = str(row.get("committee_id") or committee.get("committee_id") or "").strip()
+        recipient = str(committee.get("name") or row.get("committee_name") or committee_id).strip()
+        amount = row.get("contribution_receipt_amount")
+        date = str(row.get("contribution_receipt_date") or "")[:10]
+        image = str(row.get("image_number") or "").strip()
+        if image:
+            filing_url = f"https://docquery.fec.gov/cgi-bin/fecimg/?{image}"
+        elif committee_id:
+            filing_url = f"https://www.fec.gov/data/committee/{committee_id}/"
+        else:
+            filing_url = "https://www.fec.gov/data/receipts/"
+        if not recipient or amount is None or not date:
+            continue
+        donations.append(
+            {
+                "recipient": recipient,
+                "amount": amount,
+                "date": date,
+                "filing_url": filing_url,
+                "contributor_name": str(row.get("contributor_name") or ""),
+            }
+        )
+    return donations
+
+
+def fec_identity_stub(candidate_id: str, cycle: str, aliases: list[dict], donations: list[dict], notes: list[str] | None = None) -> dict:
+    return {
+        "status": "unreviewed_import",
+        "source": "OpenFEC",
+        "candidate_id": candidate_id,
+        "cycle": cycle,
+        "aliases": aliases,
+        "donations_made": donations,
+        "lookup_notes": list(notes or []),
+        "note": (
+            "Unreviewed import. Copy a documented alias into identity.yaml only after you cite the filing. "
+            "List the candidate's own donations as recipient, amount, and date. "
+            "Do not add alignment commentary. Do not treat this stub as a claim."
+        ),
+    }
+
+
+def collect_fec_imports(candidate_id: str, cycle: str, getter) -> tuple[dict, dict, dict]:
+    """Totals plus alias and donation stubs. getter(url, params) returns JSON or raises ApiError."""
+    totals_payload = getter(
+        f"https://api.open.fec.gov/v1/candidate/{candidate_id}/totals/",
+        {"cycle": cycle},
+    )
+    totals = fec_stub(candidate_id, cycle, totals_payload)
+    notes: list[str] = []
+    try:
+        candidate_payload = getter(f"https://api.open.fec.gov/v1/candidate/{candidate_id}/", {})
+    except ApiError as exc:
+        candidate_payload = {}
+        notes.append(f"Candidate name lookup failed ({exc}). No alias was invented.")
+    try:
+        committee_payload = getter(
+            f"https://api.open.fec.gov/v1/candidate/{candidate_id}/committees/",
+            {},
+        )
+        committees = _fec_results(committee_payload)
+    except ApiError as exc:
+        committees = []
+        notes.append(f"Committee lookup failed ({exc}). No treasurer name was invented.")
+    filled = []
+    for row in committees[:5]:
+        if row.get("treasurer_name") or not row.get("committee_id"):
+            filled.append(row)
+            continue
+        try:
+            detail = getter(f"https://api.open.fec.gov/v1/committee/{row.get('committee_id')}/", {})
+        except ApiError as exc:
+            notes.append(f"Committee {row.get('committee_id')} lookup failed ({exc}).")
+            filled.append(row)
+            continue
+        detail_row = _fec_results(detail)
+        merged = dict(row)
+        if detail_row and detail_row[0].get("treasurer_name"):
+            merged["treasurer_name"] = detail_row[0].get("treasurer_name")
+        filled.append(merged)
+    aliases = fec_aliases_from_payloads(candidate_id, candidate_payload, filled)
+    donations: list[dict] = []
+    candidate_name = ""
+    for row in _fec_results(candidate_payload):
+        candidate_name = str(row.get("name") or "").strip()
+        if candidate_name:
+            break
+    if not candidate_name:
+        notes.append("Candidate name was not in the FEC payload, so donations by the candidate were not searched.")
+    else:
+        try:
+            schedule = getter(
+                "https://api.open.fec.gov/v1/schedules/schedule_a/",
+                {"contributor_name": candidate_name, "per_page": 20, "sort": "-contribution_receipt_date"},
+            )
+            donations = fec_donations_from_schedule(schedule)
+        except ApiError as exc:
+            notes.append(f"Donation lookup failed ({exc}). No donation was invented.")
+    return totals, fec_identity_stub(candidate_id, cycle, aliases, donations, notes), totals_payload
+
+
 def fec_stub(candidate_id: str, cycle: str, payload: dict) -> dict:
     results = payload.get("results") or []
     latest = results[0] if results and isinstance(results[0], dict) else {}
