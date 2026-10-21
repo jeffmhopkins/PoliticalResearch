@@ -6,7 +6,7 @@ import html
 import re
 from urllib.parse import urlencode, urljoin
 
-from portals.base import PortalResult, PortalRow, classify_search_page, is_challenge_page
+from portals.base import PortalResult, PortalRow, classify_search_page
 from portals.fetch import PortalFetchError
 
 DEFAULT_BASE = "https://licenseesearch.fldfs.com"
@@ -108,7 +108,7 @@ class DfsPortal:
                 executed=False,
                 note="DFS licensee search is unavailable now",
             )
-        rows = [] if is_challenge_page(page) else parse_dfs_rows(page, final_url, limit)
+        rows = parse_dfs_rows(page, final_url, limit)
         status, executed, note = classify_search_page(
             page,
             len(rows),

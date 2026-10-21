@@ -11,7 +11,7 @@ This guide is research for one requester. It is not an official ballot and it is
 - An unconfirmed negative claim is removed or labeled. It is not written as fact.
 - A dismissal, acquittal, or reversal is reported with the accusation. Dropping the accusation leaves the outcome unexplained.
 - A settlement without admission is not an admission of guilt or liability.
-- Court records count only when the caption names the candidate, or a documented alias, as a party. The surname match is case-sensitive, at least three characters, and a whole word. A function word is not a party name. A full-text mention is not that. A matter dated before the year the candidate turned 18 is dropped. `birth_year` in `identity.yaml` is the internal input for that cutoff. It is not printed.
+- Court records count only when the caption names the candidate, or a documented alias, as a party. The surname match ignores case, stays on a word boundary, and is at least three characters. A function word is not a party name. A full-text mention is not that. A matter dated before the year the candidate turned 18 is dropped. `birth_year` in `identity.yaml` is the internal input for that cutoff. It is not printed.
 - Search every documented alias before marking a category clear. An alias is a full name. Its `source` is a URL or the claim id of the evidence record, not a free-text note. It cannot be another candidate's name. An alias does not, by itself, satisfy the two identity anchors. `scripts/identity_gate.py` checks the caption, the year, and the alias list.
 
 ## Category sweep

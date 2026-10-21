@@ -275,13 +275,14 @@ def surnames_for(names: list[str]) -> set[str]:
 def names_party(caption: str, surnames: set[str]) -> bool:
     """True when the caption names one of these surnames as a whole word.
 
-    The match is case-sensitive and ignores tokens shorter than the minimum.
+    Matching ignores case, so ``STATE V. HALE`` names Hale. The token still has
+    to be at least three characters, not a function word, and on a word boundary.
     """
     text = caption or ""
     for token in surnames:
         if not token or len(token) < MIN_PARTY_SURNAME or token.casefold() in _PARTY_STOPWORDS:
             continue
-        if re.search(rf"(?<![\w'-]){re.escape(token)}(?![\w'-])", text):
+        if re.search(rf"(?<![\w'-]){re.escape(token)}(?![\w'-])", text, re.IGNORECASE):
             return True
     return False
 
@@ -335,40 +336,134 @@ def court_gate(
     return errors
 
 
-def rendered_birth_errors(text: str, birth_years: list[int] | None = None) -> list[str]:
-    """Phrases that would publish a birth year or a date of birth.
+_GAP_CLAUSE = re.compile(r"not found \(searched:.*?\)", re.IGNORECASE)
+_PLACE_HEAD = re.compile(
+    r"\b(?:city|town|county|village|township|borough|community|neighborhood|district|"
+    r"hollow|heights|springs|valley|hills|creek|river|lake|island|falls|grove|ridge|"
+    r"harbor|harbour|beach|park|prairie|mesa|canyon|bluff|junction|crossing|landing|"
+    r"commons|ville|burg|shire|ford|port|mount|bay|point|state)\b",
+    re.IGNORECASE,
+)
 
-    Whitespace, including line breaks, is part of the match: `born` and the year
-    may sit on different lines. An unrelated year, such as a budget year, is left alone.
+
+def place_names(record: dict | None) -> list[str]:
+    """City, county, and state from one identity. Used so a place is not a person."""
+    if not isinstance(record, dict):
+        return []
+    names = []
+    for field in ("city", "county", "state"):
+        text = _clean_name(str(record.get(field) or ""))
+        if len(text) >= MIN_PARTY_SURNAME:
+            names.append(text)
+    return names
+
+
+def _in_gap_note(text: str, start: int, end: int) -> bool:
+    """True when this span sits inside a Not found (searched: ...) list."""
+    for gap in _GAP_CLAUSE.finditer(text or ""):
+        if gap.start() <= start and end <= gap.end():
+            return True
+    return False
+
+
+def _subject_is_place(subject: str, places: list[str] | None) -> bool:
+    head = subject.strip(" ,;:")
+    if not head:
+        return False
+    pieces = [part.strip(" ,;:") for part in head.split(",") if part.strip(" ,;:")]
+    if pieces:
+        head = pieces[-1]
+    head = re.sub(r"^(?:the|a|an)\s+", "", head, flags=re.IGNORECASE).strip()
+    if not head:
+        return False
+    if _PLACE_HEAD.search(head):
+        return True
+    folded = head.casefold()
+    for place in places or []:
+        if place and folded == place.casefold():
+            return True
+    return False
+
+
+def _place_born_in(text: str, match: re.Match, places: list[str] | None) -> bool:
+    """``born in YEAR`` names a place, not a person, so it is not a birth year."""
+    if match.group("cue").casefold() != "born":
+        return False
+    if not re.fullmatch(r"\s+in\s+", match.group("gap")):
+        return False
+    before = text[: match.start("cue")]
+    clause = re.split(r"[.!?\n]", before)[-1]
+    clause = re.sub(r"\s+\b(?:was|were)\s*$", "", clause.strip(), flags=re.IGNORECASE)
+    return _subject_is_place(clause, places)
+
+
+def _birth_years_rendered(text: str, places: list[str] | None = None) -> tuple[bool, set[int]]:
+    """Years published as a person's birth, plus whether a birth label appears.
+
+    A search list may name ``date of birth`` without stating the year. ``born in
+    YEAR`` counts only when the subject is a person.
     """
     raw = text or ""
+    years: set[int] = set()
+    label = False
+    for match in _BIRTH_LABEL.finditer(raw):
+        if not _in_gap_note(raw, match.start(), match.end()):
+            label = True
+            break
+    for matcher in (_CUE_THEN_YEAR, _YEAR_THEN_CUE):
+        for match in matcher.finditer(raw):
+            if _in_gap_note(raw, match.start("cue"), match.end("cue")):
+                continue
+            if matcher is _CUE_THEN_YEAR and _place_born_in(raw, match, places):
+                continue
+            years.add(int(match.group("year")))
+    return label or bool(years), years
+
+
+def rendered_birth_errors(
+    text: str,
+    birth_years: list[int] | None = None,
+    places: list[str] | None = None,
+) -> list[str]:
+    """Phrases that would publish a person's birth year or date of birth.
+
+    Whitespace, including line breaks, is part of the match: ``born`` and the year
+    may sit on different lines. An unrelated year, such as a budget year, is left
+    alone. A ``Not found (searched: ...)`` list may name the record that was
+    opened. ``Cedar Hollow was born in 1990`` is a place, not a person.
+    """
+    label, years = _birth_years_rendered(text, places)
     errors = []
-    if _BIRTH_LABEL.search(raw) or _CUE_THEN_YEAR.search(raw) or _YEAR_THEN_CUE.search(raw):
+    if label:
         errors.append("birth year or date of birth is internal and must not be rendered")
     for year in birth_years or []:
-        if re.search(
-            rf"(?:{_BIRTH_CUE}).{{0,40}}\b{year}\b|\b{year}\b.{{0,40}}(?:{_BIRTH_CUE})",
-            raw,
-            re.IGNORECASE | re.DOTALL,
-        ):
+        if year in years:
             message = f"birth year {year} must not be rendered"
             if message not in errors:
                 errors.append(message)
     return errors
 
 
-def redact_rendered_birth(text: str, birth_years: list[int] | None = None) -> str:
-    """Replace a year that sits next to a birth cue. Other years stay."""
+def redact_rendered_birth(
+    text: str,
+    birth_years: list[int] | None = None,
+    places: list[str] | None = None,
+) -> str:
+    """Replace a year that sits next to a person's birth cue. Other years stay."""
+    raw = text or ""
 
     def _cue_year(match: re.Match) -> str:
+        if _in_gap_note(raw, match.start("cue"), match.end("cue")) or _place_born_in(raw, match, places):
+            return match.group(0)
         return match.group("cue") + match.group("gap") + "[year withheld]"
 
     def _year_cue(match: re.Match) -> str:
+        if _in_gap_note(raw, match.start("cue"), match.end("cue")):
+            return match.group(0)
         return "[year withheld]" + match.group("gap") + match.group("cue")
 
-    redacted = _CUE_THEN_YEAR.sub(_cue_year, text or "")
-    redacted = _YEAR_THEN_CUE.sub(_year_cue, redacted)
-    return redacted
+    redacted = _CUE_THEN_YEAR.sub(_cue_year, raw)
+    return _YEAR_THEN_CUE.sub(_year_cue, redacted)
 
 
 def street_address_errors(label: str, text: str) -> list[str]:
@@ -611,6 +706,7 @@ def claim_record_errors(
     claim: dict,
     identity: dict,
     blocked_name_keys: set[str] | None = None,
+    places: list[str] | None = None,
 ) -> list[str]:
     if not isinstance(claim, dict) or claim.get("removed"):
         return []
@@ -636,7 +732,7 @@ def claim_record_errors(
     errors.extend(search_form_source_errors(claim))
     if claim.get("record_kind") == "donation" or claim.get("section") == "donations made":
         errors.extend(donation_alignment_errors(str(claim.get("text") or "")))
-    for message in rendered_birth_errors(_claim_blob(claim), [birth_year] if birth_year else []):
+    for message in rendered_birth_errors(_claim_blob(claim), [birth_year] if birth_year else [], places):
         errors.append(message)
     return errors
 
@@ -647,11 +743,16 @@ def item_record_errors(
     draft: str,
     profile: dict | None,
     other_name_keys: set[str] | None = None,
+    places: list[str] | None = None,
 ) -> list[str]:
     identity = identity if isinstance(identity, dict) else {}
     claims = [claim for claim in claims if isinstance(claim, dict)]
     profile = profile if isinstance(profile, dict) else {}
     blocked = other_name_keys or set()
+    known_places = list(places or [])
+    for name in place_names(identity):
+        if name not in known_places:
+            known_places.append(name)
     errors: list[str] = []
     birth = identity.get("birth_year")
     years = [birth] if isinstance(birth, int) else []
@@ -661,13 +762,13 @@ def item_record_errors(
     searched = [str(item) for item in (raw_sweep.get("aliases_searched") or [])] if isinstance(raw_sweep, dict) else []
     errors.extend(alias_record_errors(identity, blocked))
     for claim in claims:
-        errors.extend(claim_record_errors(claim, identity, blocked))
+        errors.extend(claim_record_errors(claim, identity, blocked, known_places))
     errors.extend(alias_gap_errors(draft, aliases, searched))
     errors.extend(legal_sweep_errors(sweep, claims, aliases))
     errors.extend(rhetoric_draft_errors(draft, claims))
     errors.extend(profile_position_errors(profile))
-    errors.extend(rendered_birth_errors(draft, years))
-    errors.extend(rendered_birth_errors("\n".join(_strings(profile)), years))
+    errors.extend(rendered_birth_errors(draft, years, known_places))
+    errors.extend(rendered_birth_errors("\n".join(_strings(profile)), years, known_places))
     errors.extend(absence_overclaim_errors(draft))
     money = profile.get("money") if isinstance(profile.get("money"), dict) else {}
     for row in (money.get("donations_made") or []) if isinstance(money, dict) else []:

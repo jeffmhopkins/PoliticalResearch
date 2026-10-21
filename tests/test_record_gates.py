@@ -143,9 +143,11 @@ def test_party_and_era_gates_use_aliases_and_drop_pre_adult_cases():
     assert surname("O'Brien") == "o'brien"
     names = ["Avery Quinn", "Avery Hale"]
     assert names_party("State v. Hale", surnames_for(names))
+    assert names_party("STATE V. HALE", surnames_for(names))
     assert not names_party("State v. Okonkwo", surnames_for(names))
     assert not names_party("Hale's appeal", surnames_for(names))
     assert not names_party("State v. Smith, in the circuit court", {"in", "In"})
+    assert court_gate("STATE V. HALE", "2010-04-01", names, 1990) == []
     assert surnames_for(["Mary In"]) == set()
     assert adult_year(1990) == 2008
     assert court_gate("State v. Hale", "1983-04-01", names, 1990)
@@ -208,6 +210,16 @@ def test_birth_year_is_not_rendered_and_aliases_are_searched(tmp_path: Path):
         assert any("must not be rendered" in error for error in identity_gate_errors(tmp_path))
     _write_item(tmp_path, "# Avery\n\nThe 1990 budget was adopted.\n", [], _identity())
     assert not any("must not be rendered" in error for error in identity_gate_errors(tmp_path))
+    searched = (
+        "# Avery\n\nNot found (searched: date of birth on the biography).\n\n"
+        "Not found (searched: birth year).\n\nCedar Hollow was born in 1990.\n"
+    )
+    _write_item(tmp_path, searched, [_claim(text="Not found (searched: date of birth on the biography).")], _identity())
+    assert not any("must not be rendered" in error for error in identity_gate_errors(tmp_path))
+    from lib.records import rendered_birth_errors
+
+    assert rendered_birth_errors("Westland was born in 1990.", [1990], ["Westland"]) == []
+    assert rendered_birth_errors("Avery Quinn was born in 1990.", [1990])
     _write_item(
         tmp_path,
         "# Avery\n\n## Legal issues\n\nNot found (searched: fictional docket under Avery Quinn and Avery Hale).\n",
@@ -227,9 +239,13 @@ def test_birth_year_is_not_rendered_and_aliases_are_searched(tmp_path: Path):
     assert any("guide.md" in error and "must not be rendered" in error for error in identity_gate_errors(tmp_path))
     from lib.records import redact_rendered_birth
 
-    redacted = redact_rendered_birth("year of birth 1990. Avery Quinn, b. 1990.\nborn\n1990\nThe 1990 budget was adopted.")
+    redacted = redact_rendered_birth(
+        "year of birth 1990. Avery Quinn, b. 1990.\nborn\n1990\n"
+        "Cedar Hollow was born in 1990.\nThe 1990 budget was adopted."
+    )
     assert "year of birth [year withheld]" in redacted
     assert "b. [year withheld]" in redacted
+    assert "Cedar Hollow was born in 1990." in redacted
     assert "The 1990 budget was adopted." in redacted
 
 
@@ -548,8 +564,19 @@ def test_sunbiz_distinguishes_hits_empty_form_and_outage():
     assert blocked_page.counts_as_searched_empty() is False
 
     form_and_empty = "<h1>Corporation Search Results</h1><form></form><p>No records found.</p>"
-    not_run = portal.search(_FakePortal({url: form_and_empty}), "Hale Example")
-    assert not_run.status == "search-form-only" and not_run.executed is False
+    empty_with_form = portal.search(_FakePortal({url: form_and_empty}), "Hale Example")
+    assert empty_with_form.status == "searched-none" and empty_with_form.executed is True
+    assert empty_with_form.counts_as_searched_empty() is True
+
+    captcha_hit = (
+        "<table><tr><td><a href=\"/Inquiry/CorporationSearch/SearchResultDetail?aggregateId=domp-1\">"
+        "HALE EXAMPLE LLC</a></td><td>L100</td><td>Active</td></tr></table>"
+        "<script src=\"https://www.google.com/recaptcha/api.js\"></script>"
+    )
+    kept = portal.search(_FakePortal({url: captcha_hit}), "Hale Example")
+    assert kept.status == "hits" and kept.executed is True
+    assert kept.counts_as_searched_empty() is False
+    assert kept.citations
     bare_phrase = "<p>No records found.</p>"
     bare = portal.search(_FakePortal({url: bare_phrase}), "Hale Example")
     assert bare.status == "portal-down" and bare.counts_as_searched_empty() is False

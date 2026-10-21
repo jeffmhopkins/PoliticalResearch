@@ -16,6 +16,7 @@ from lib.records import (
     identity_name_keys,
     item_record_errors,
     person_name_key,
+    place_names,
     rendered_birth_errors,
     street_address_errors,
 )
@@ -91,18 +92,23 @@ def identity_gate_errors(workspace: Path) -> list[str]:
         loaded.append((item.name, identity, claims, draft, profile, claims_text))
     ballot_keys = _ballot_name_keys(workspace)
     identities = [(name, identity) for name, identity, _claims, _draft, _profile, _text in loaded]
+    places: list[str] = []
+    for _name, identity in identities:
+        for place in place_names(identity):
+            if place not in places:
+                places.append(place)
     for name, identity, claims, draft, profile, claims_text in loaded:
         others = _other_name_keys(name, identities, ballot_keys)
-        for message in item_record_errors(identity, claims, draft, profile, others):
+        for message in item_record_errors(identity, claims, draft, profile, others, places):
             _extend(errors, [f"{name}: {message}"])
         _extend(errors, street_address_errors(f"{name}/draft.md", draft))
         _extend(errors, street_address_errors(f"{name}/claims.yaml", claims_text))
-        _extend(errors, [f"{name}: {message}" for message in rendered_birth_errors(claims_text, years)])
+        _extend(errors, [f"{name}: {message}" for message in rendered_birth_errors(claims_text, years, places)])
     final = workspace / "final"
     if final.is_dir():
         for guide in sorted(final.glob("guide*.md")):
             text = guide.read_text(encoding="utf-8")
-            _extend(errors, [f"{guide.name}: {message}" for message in rendered_birth_errors(text, years)])
+            _extend(errors, [f"{guide.name}: {message}" for message in rendered_birth_errors(text, years, places)])
             _extend(errors, street_address_errors(guide.name, text))
     return errors
 
