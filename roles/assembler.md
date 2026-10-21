@@ -13,8 +13,8 @@ Works cited, source quotes, claim text, cell detail, and the search log are in t
 Both editions include:
 
 - The not-an-official-ballot notice, and a fiction banner when `ballot.yaml` says `fiction: true`
-- Official election office links from `logistics.md`, or from `ballot.yaml` logistics when that file is absent. A logistics URL is shown even when it has no marker.
-- A precinct line from `ballot.yaml` when a precinct code or district list is stored there. That line restates the confirmed ballot. It is not a street address.
+- Official election office links from `logistics.md`, or from `ballot.yaml` logistics when that file is absent. A logistics URL is shown even when it has no marker. The citation gate exempts only that exact line, generated from the ballot label and URL.
+- A precinct line from `ballot.yaml` when a precinct code or district list is stored there. That line restates the confirmed ballot. It is not a street address. The citation gate exempts only that exact generated sentence.
 - The statement that the guide does not recommend a vote
 - Methodology, disputed claims, and corrections in the body
 

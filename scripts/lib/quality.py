@@ -18,10 +18,6 @@ WORK_RE = re.compile(r"^\[(\d+)\] ", re.MULTILINE)
 FOOTNOTE_DEF_RE = re.compile(r"^\[\^\d+\]:")
 # Hard cap for one contest in the reader edition. The full edition is not capped.
 READER_CONTEST_WORD_BUDGET = 900
-_OFFICE_LINK_LINE_RE = re.compile(r"^[^:\n\[\]]{1,160}:\s+https?://\S+$")
-_PRECINCT_LINE_RE = re.compile(
-    r"^(?:Precinct \S+, )?(?:districts .+?, )?restates the confirmed ballot$"
-)
 _NAV_LINK_RE = re.compile(
     r"^(?:\[Back to ballot\]\(#[A-Za-z0-9_-]+\)"
     r"|\[Sources, quotes, and the search log\]\([^)]+\)"
@@ -614,13 +610,44 @@ def _foreign_name(sentence: str, record: dict) -> bool:
         if len(words) < 2:
             continue
         lowered_words = [word.lower() for word in words]
-        if any(word in _FOREIGN_NAME_MONTHS or word in _FOREIGN_NAME_ORG_WORDS for word in lowered_words):
+        phrase = " ".join(lowered_words)
+        if phrase in _registered_organizations(record):
             continue
-        lowered = " ".join(lowered_words)
+        # A month or an organization word is not itself a person. The words
+        # beside it still are: "the John Smith Committee" names John Smith
+        # unless that full organization is listed on this identity record.
+        person_words = [
+            word
+            for word in lowered_words
+            if word not in _FOREIGN_NAME_MONTHS and word not in _FOREIGN_NAME_ORG_WORDS
+        ]
+        if len(person_words) < 2:
+            continue
+        lowered = " ".join(person_words)
         if any(lowered in anchor or anchor in lowered for anchor in anchors if len(anchor) >= 3):
+            continue
+        if any(phrase in anchor or anchor in phrase for anchor in anchors if len(anchor) >= 3):
             continue
         return True
     return False
+
+
+def _registered_organizations(record: dict) -> set[str]:
+    """Organization names this identity record lists. They are not a second person."""
+    raw = record.get("organizations")
+    if isinstance(raw, str):
+        raw = [raw]
+    if not isinstance(raw, list):
+        return set()
+    names: set[str] = set()
+    for item in raw:
+        text = re.sub(r"\s+", " ", str(item or "")).strip().lower()
+        if not text:
+            continue
+        names.add(text)
+        if text.startswith("the "):
+            names.add(text[4:].strip())
+    return names
 
 
 def identities_for_item(workspace, item, doc: dict) -> list[dict]:
@@ -922,7 +949,51 @@ def _is_banner_sentence(sentence: str) -> bool:
     return _banner_key(sentence) in BANNER_KEYS
 
 
-def prose_marker_errors(text: str, label: str) -> list[str]:
+def unmarked_logistics_lines(ballot: dict | None) -> list[str]:
+    """Office lines the guide may print without a marker. Values come from the ballot."""
+    if not isinstance(ballot, dict):
+        return []
+    lines = []
+    for entry in ballot.get("logistics") or []:
+        if not isinstance(entry, dict) or entry.get("marker"):
+            continue
+        label = re.sub(r"\s+", " ", str(entry.get("label") or "Election office")).strip()
+        url = str(entry.get("url") or "").strip()
+        if label and url:
+            lines.append(f"{label}: {url}")
+    return lines
+
+
+def precinct_restatement(ballot: dict | None) -> str:
+    """The one precinct sentence generated from ballot.yaml. Empty when neither field is set."""
+    if not isinstance(ballot, dict):
+        return ""
+    precinct = str(ballot.get("precinct") or "").strip()
+    districts = [str(item).strip() for item in (ballot.get("districts") or []) if str(item).strip()]
+    if not precinct and not districts:
+        return ""
+    bits = []
+    if precinct:
+        bits.append(f"Precinct {precinct}")
+    if districts:
+        bits.append("districts " + ", ".join(districts))
+    return ", ".join(bits) + ", restates the confirmed ballot."
+
+
+def _restatement_key(text: str) -> str:
+    return re.sub(r"\s+", " ", text or "").strip().rstrip(".")
+
+
+def official_restatement_sentences(ballot: dict | None) -> set[str]:
+    """Exact uncited sentences the renderer may emit from this ballot. Nothing else."""
+    found = {_restatement_key(line) for line in unmarked_logistics_lines(ballot)}
+    precinct = precinct_restatement(ballot)
+    if precinct:
+        found.add(_restatement_key(precinct))
+    return found
+
+
+def prose_marker_errors(text: str, label: str, exempt: set[str] | None = None) -> list[str]:
     errors: list[str] = []
     for block in factual_blocks(text):
         if block.startswith("|"):
@@ -944,7 +1015,7 @@ def prose_marker_errors(text: str, label: str) -> list[str]:
         bullet_lines = [line for line in lines if line.strip().startswith(("- ", "* "))]
         if bullet_lines and len(bullet_lines) == len([line for line in lines if line.strip()]):
             for line in bullet_lines:
-                errors.extend(_sentence_marker_errors(line.strip()[2:].strip(), label, "list item"))
+                errors.extend(_sentence_marker_errors(line.strip()[2:].strip(), label, "list item", exempt=exempt))
             continue
         errors.extend(
             _sentence_marker_errors(
@@ -952,6 +1023,7 @@ def prose_marker_errors(text: str, label: str) -> list[str]:
                 label,
                 "sentence",
                 banner_ok=block.lstrip().startswith(">"),
+                exempt=exempt,
             )
         )
     return errors
@@ -966,20 +1038,26 @@ def _mask_markers(text: str) -> str:
     return MARKER_RE.sub(" [M] ", masked)
 
 
-def _is_navigation_sentence(plain: str) -> bool:
+def _is_navigation_sentence(plain: str, exempt: set[str] | None = None) -> bool:
     text = re.sub(r"\s+", " ", plain or "").strip().rstrip(".")
     if re.fullmatch(r":{3}(?:\s+[A-Za-z0-9_-]+)?", text):
         return True
     if _NAV_LINK_RE.match(text):
         return True
-    if _OFFICE_LINK_LINE_RE.match(text):
-        return True
-    if _PRECINCT_LINE_RE.match(text):
+    # Only the exact office line or precinct sentence generated from ballot.yaml.
+    # A similar allegation is still a sentence and still needs a marker.
+    if exempt and text in exempt:
         return True
     return False
 
 
-def _sentence_marker_errors(block: str, label: str, kind: str, banner_ok: bool = False) -> list[str]:
+def _sentence_marker_errors(
+    block: str,
+    label: str,
+    kind: str,
+    banner_ok: bool = False,
+    exempt: set[str] | None = None,
+) -> list[str]:
     if _is_gap_text(block) and not _has_citation_marker(block):
         return []
     # Mask citation links before emphasis characters are removed. The link text
@@ -994,7 +1072,7 @@ def _sentence_marker_errors(block: str, label: str, kind: str, banner_ok: bool =
         plain = text.replace("[M]", "").strip()
         if not plain or _is_gap_text(plain):
             continue
-        if _is_navigation_sentence(plain):
+        if _is_navigation_sentence(plain, exempt):
             continue
         if banner_ok and _is_banner_sentence(plain):
             continue
@@ -1052,20 +1130,42 @@ def marker_collision_errors(workspace) -> list[str]:
     return errors
 
 
+_HTML_ID_RE = re.compile(r"""\bid\s*=\s*["']([^"']+)["']""")
+_HEADING_ANCHOR_RE = re.compile(r"\{#([^}\s]+)\}")
+_FRAGMENT_RE = re.compile(r"#([A-Za-z0-9_-]+)")
+
+
+def anchor_ids(text: str) -> set[str]:
+    """Whole anchor ids from HTML id attributes and markdown `{#id}`. `source-1` is not `source-10`."""
+    found = set(_HTML_ID_RE.findall(text or ""))
+    found.update(_HEADING_ANCHOR_RE.findall(text or ""))
+    return found
+
+
+def href_fragments(text: str) -> set[str]:
+    """Whole URL fragments. `#cite-1` does not match `#cite-10`."""
+    return set(_FRAGMENT_RE.findall(text or ""))
+
+
 def assembled_guide_errors(
     text: str,
     index: dict[int, tuple[str, dict, dict]],
     addendum: str = "",
     *,
     reader: bool = False,
+    ballot: dict | None = None,
 ) -> list[str]:
     """Check a rendered edition. Works cited may live in the sources addendum."""
-    errors = prose_marker_errors(text, "final/guide.md")
+    exempt = official_restatement_sentences(ballot)
+    errors = prose_marker_errors(text, "final/guide.md", exempt)
     errors.extend(summary_errors(text, "final/guide.md", index))
     if reader:
         errors.extend(reader_contest_budget_errors(text))
     cited_text = addendum or text
     cited = works_cited_numbers(cited_text)
+    addendum_anchors = anchor_ids(addendum) if addendum else set()
+    body_anchors = anchor_ids(text)
+    addendum_fragments = href_fragments(addendum) if addendum else set()
     for number in sorted(marker_numbers(text)):
         if number not in index:
             errors.append(f"final/guide.md: marker {number} does not resolve to a claim source")
@@ -1078,11 +1178,11 @@ def assembled_guide_errors(
         if number not in cited:
             errors.append(f"final/guide.md: marker {number} has no works-cited entry")
         if addendum:
-            if f"#source-{number}" not in addendum:
+            if f"source-{number}" not in addendum_anchors:
                 errors.append(f"final/guide.md: marker {number} does not link to an addendum entry")
-            if f'id="cite-{number}"' not in text and f"#cite-{number}" not in text:
+            if f"cite-{number}" not in body_anchors:
                 errors.append(f"final/guide.md: marker {number} has no back-link target")
-            if f"#cite-{number}" not in addendum:
+            if f"cite-{number}" not in addendum_fragments:
                 errors.append(f"final/guide.md: marker {number} addendum entry does not link back")
     for number in sorted(cited):
         if number not in index:
@@ -1149,13 +1249,17 @@ def citation_errors(workspace, guide: bool = False) -> list[str]:
     errors: list[str] = []
     errors.extend(marker_collision_errors(workspace))
     index = claim_index(workspace)
+    ballot = load_yaml(workspace / "ballot.yaml") if (workspace / "ballot.yaml").exists() else {}
+    if not isinstance(ballot, dict):
+        ballot = {}
+    exempt = official_restatement_sentences(ballot)
     for item in iter_items(workspace):
         draft_path = item / "draft.md"
         if not draft_path.exists():
             continue
         text = draft_path.read_text(encoding="utf-8")
         label = f"items/{item.name}/draft.md"
-        errors.extend(prose_marker_errors(text, label))
+        errors.extend(prose_marker_errors(text, label, exempt))
         doc = load_yaml(item / "claims.yaml") or {}
         item_type = doc.get("item_type") if isinstance(doc, dict) else None
         if item_type in SUMMARY_TYPES:
@@ -1187,6 +1291,7 @@ def citation_errors(workspace, guide: bool = False) -> list[str]:
                     index,
                     addendum,
                     reader=True,
+                    ballot=ballot,
                 )
             )
         full_path = workspace / "final" / "guide-full.md"
@@ -1198,7 +1303,13 @@ def citation_errors(workspace, guide: bool = False) -> list[str]:
             if not full_addendum_path.exists():
                 errors.append("final/guide-full-sources.md is missing")
             errors.extend(
-                assembled_guide_errors(full_path.read_text(encoding="utf-8"), index, full_addendum, reader=False)
+                assembled_guide_errors(
+                    full_path.read_text(encoding="utf-8"),
+                    index,
+                    full_addendum,
+                    reader=False,
+                    ballot=ballot,
+                )
             )
     return errors
 
@@ -1714,13 +1825,35 @@ def number_quote_errors(workspace) -> list[str]:
     return errors
 
 
-def quote_verbatim_errors(workspace) -> list[str]:
-    """A saved quote must appear verbatim in the archived local copy.
+def _explicit_archive_failure(source: dict) -> bool:
+    return source.get("archive_failed") is True and bool(str(source.get("archive_failed_reason") or "").strip())
 
-    Whitespace is collapsed. Extra tokens appended to the quote fail. A source
-    with no local copy is not checked here. The filename is not the copy.
+
+def _unarchived_verified_figure_needs_second_source(claim: dict) -> bool:
+    """The existing rule for a verified dollar or vote total whose filing was not archived."""
+    if claim.get("confidence") != "verified":
+        return False
+    if not _FIGURE_RE.search(str(claim.get("text") or "")):
+        return False
+    sources = [source for source in (claim.get("sources") or []) if isinstance(source, dict)]
+    if not sources:
+        return False
+    publishers = _independent_publishers(sources)
+    has_t1 = "T1" in [source.get("tier") for source in sources]
+    archived = any(source.get("archive_url") for source in sources)
+    failed = all(source.get("archive_failed") is True and not source.get("archive_url") for source in sources)
+    return bool(has_t1 and len(publishers) < 2 and failed and not archived)
+
+
+def quote_verbatim_errors(workspace) -> list[str]:
+    """A quote must be verbatim in a readable local copy.
+
+    A source with no local copy is not skipped. It must be explicitly
+    archive_failed. An unarchived verified dollar or vote total still needs a
+    second independent source. Whitespace is collapsed. The filename is not the copy.
     """
     errors = []
+    reported_figures: set[tuple[str, str]] = set()
     for item in iter_items(workspace):
         doc = load_yaml(item / "claims.yaml") or {}
         if not isinstance(doc, dict):
@@ -1729,10 +1862,21 @@ def quote_verbatim_errors(workspace) -> list[str]:
             if claim.get("removed"):
                 continue
             quote = str(source.get("quote") or "").strip()
-            if not quote or not str(source.get("local_copy") or "").strip():
+            if not quote:
+                continue
+            cid = str(claim.get("id"))
+            if not str(source.get("local_copy") or "").strip():
+                if not _explicit_archive_failure(source):
+                    errors.append(f"{item.name}: {cid} quote has no readable local copy")
+                elif _unarchived_verified_figure_needs_second_source(claim):
+                    key = (item.name, cid)
+                    if key not in reported_figures:
+                        reported_figures.add(key)
+                        errors.append(
+                            f"{item.name}: {cid} quote was not archived and the verified figure needs a second independent source"
+                        )
                 continue
             page, problem = _local_archive_text(workspace, source)
-            cid = claim.get("id")
             if problem:
                 errors.append(f"{item.name}: {cid} {problem}")
                 continue

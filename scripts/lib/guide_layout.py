@@ -21,6 +21,9 @@ from lib.quality import (
     environment_rating_sentence,
     marker_numbers,
     reader_visible_word_count,
+    official_restatement_sentences,
+    precinct_restatement,
+    unmarked_logistics_lines,
     word_count,
     _is_navigation_sentence,
 )
@@ -308,17 +311,15 @@ class _GuideModel:
         rows = []
         ballot = self.ballot if isinstance(self.ballot, dict) else {}
         for entry in ballot.get("logistics") or []:
-            if not isinstance(entry, dict):
+            if not isinstance(entry, dict) or not entry.get("marker"):
                 continue
             label = str(entry.get("label") or "Election office")
             url = str(entry.get("url") or "")
             marker = entry.get("marker")
-            if not url:
-                continue
-            if marker:
+            if url:
                 rows.append(f"- {label}: {url}[^{marker}]")
-            else:
-                rows.append(f"- {label}: {url}")
+        for line in unmarked_logistics_lines(ballot):
+            rows.append(f"- {line}")
         if not rows:
             return [
                 "# Official election office links",
@@ -331,17 +332,12 @@ class _GuideModel:
     def _precinct_line(self) -> list[str]:
         ballot = self.ballot if isinstance(self.ballot, dict) else {}
         precinct = str(ballot.get("precinct") or "").strip()
-        districts = [str(item).strip() for item in (ballot.get("districts") or []) if str(item).strip()]
         cited = _sentence_mentioning(self.workspace, precinct) if precinct else None
         if precinct and cited:
             return [cited, ""]
-        if precinct or districts:
-            bits = []
-            if precinct:
-                bits.append(f"Precinct {precinct}")
-            if districts:
-                bits.append("districts " + ", ".join(districts))
-            return [", ".join(bits) + ", restates the confirmed ballot.", ""]
+        restatement = precinct_restatement(ballot)
+        if restatement:
+            return [restatement, ""]
         return ["Not found (searched: precinct code and district list on the confirmed ballot).", ""]
 
     def _at_a_glance(self) -> list[str]:
@@ -814,7 +810,7 @@ class _GuideModel:
             text = "\n".join(block).strip()
             if not text or text.startswith(("#", "|", ":", ">", "<", "Not found")):
                 return False
-            if _is_navigation_sentence(text):
+            if _is_navigation_sentence(text, official_restatement_sentences(self.ballot if isinstance(self.ballot, dict) else None)):
                 return False
             return reader_visible_word_count(text) > 40
 

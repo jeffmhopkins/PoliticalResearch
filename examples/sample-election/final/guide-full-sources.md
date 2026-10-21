@@ -69,7 +69,7 @@ Claim cand-quinn.education.001: Avery Quinn received a bachelor of arts degree f
 
 ### Source 5 {#source-5}
 
-[5] Westland campaign finance office (fictional). "Quinn for Cedar committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/quinn-2026-q3 — Archived: https://fictional.example/archive/quinn-2026-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary page, lines 1 through 4.
+[5] Westland campaign finance office (fictional). "Quinn for Cedar committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/quinn-2026-q3 — Archived: https://fictional.example/archive/quinn-2026-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary page, lines 1 through 4. Local copy: saved/quinn-q3.html.
 
 Quote:
 
@@ -177,7 +177,7 @@ Claim cand-okonkwo.record.001: A 2025 Cedar Hollow parks report names Blake Okon
 
 ### Source 14 {#source-14}
 
-[14] Westland campaign finance office (fictional). "Okonkwo for Cedar committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/okonkwo-2026-q3 — Archived: https://fictional.example/archive/okonkwo-2026-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary page, lines 1 through 4.
+[14] Westland campaign finance office (fictional). "Okonkwo for Cedar committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/okonkwo-2026-q3 — Archived: https://fictional.example/archive/okonkwo-2026-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary page, lines 1 through 4. Local copy: saved/okonkwo-q3.html.
 
 Quote:
 
@@ -497,7 +497,7 @@ Claim measure-h.fiscal.001: The official note estimates 1.2 million dollars a ye
 
 ### Source 26 {#source-26}
 
-[26] Westland Elections Code (fictional). "Local levy approval rule." Statute, published 2019-01-01. https://fictional.example/westland-code/levy-threshold — Archived: https://fictional.example/archive/levy-threshold. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 4.
+[26] Westland Elections Code (fictional). "Local levy approval rule." Statute, published 2019-01-01. https://fictional.example/westland-code/levy-threshold — Archived: https://fictional.example/archive/levy-threshold. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 4. Local copy: saved/levy-threshold.html.
 
 Quote:
 
@@ -509,7 +509,7 @@ Claim measure-h.threshold.001: Under the 2019 levy rule, the measure needs more 
 
 ### Source 27 {#source-27}
 
-[27] Westland campaign finance office (fictional). "Yes on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/yes-on-h-q3 — Archived: https://fictional.example/archive/yes-on-h-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line.
+[27] Westland campaign finance office (fictional). "Yes on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/yes-on-h-q3 — Archived: https://fictional.example/archive/yes-on-h-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line. Local copy: saved/yes-on-h-q3.html.
 
 Quote:
 
@@ -521,7 +521,7 @@ Claim measure-h.funding.001: Yes on H reported 20000 dollars in receipts for the
 
 ### Source 28 {#source-28}
 
-[28] Westland campaign finance office (fictional). "No on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/no-on-h-q3 — Archived: https://fictional.example/archive/no-on-h-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line.
+[28] Westland campaign finance office (fictional). "No on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/no-on-h-q3 — Archived: https://fictional.example/archive/no-on-h-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line. Local copy: saved/no-on-h-q3.html.
 
 Quote:
 

@@ -813,8 +813,11 @@ def assemble_guide(workspace: Path, today: str) -> list[str]:
 
     reader, reader_sources, full, full_sources = build_editions(workspace, today)
     index = claim_index(workspace)
-    guide_problems = assembled_guide_errors(reader, index, reader_sources, reader=True)
-    guide_problems.extend(assembled_guide_errors(full, index, full_sources, reader=False))
+    ballot = load_yaml(workspace / "ballot.yaml") if (workspace / "ballot.yaml").exists() else {}
+    if not isinstance(ballot, dict):
+        ballot = {}
+    guide_problems = assembled_guide_errors(reader, index, reader_sources, reader=True, ballot=ballot)
+    guide_problems.extend(assembled_guide_errors(full, index, full_sources, reader=False, ballot=ballot))
     if guide_problems:
         return guide_problems
     final = workspace / "final"

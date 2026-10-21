@@ -17,7 +17,9 @@ from lib.guide_layout import (
     comparison_tables,
 )
 from lib.quality import (
+    assembled_guide_errors,
     number_quote_errors,
+    official_restatement_sentences,
     prose_marker_errors,
     quote_verbatim_errors,
     reader_contest_budget_errors,
@@ -192,7 +194,15 @@ def test_office_links_and_precinct_render_from_the_ballot(tmp_path: Path):
     assert "Not found (searched: election office" not in text
     assert "Precinct 122, districts State House 8, restates the confirmed ballot." in text
     assert "Not found (searched: precinct" not in text
-    assert prose_marker_errors(text, "ballot") == []
+    exempt = official_restatement_sentences(ballot)
+    assert prose_marker_errors(text, "ballot", exempt) == []
+    allegation = "The candidate was convicted of fraud in 2019: https://fictional.example/doc"
+    districts = "districts John Smith was convicted of fraud, restates the confirmed ballot."
+    bare = "John Smith was convicted of fraud, restates the confirmed ballot."
+    assert prose_marker_errors(allegation, "ballot", exempt)
+    assert prose_marker_errors(districts, "ballot", exempt)
+    assert prose_marker_errors(bare, "ballot", exempt)
+    assert prose_marker_errors(text, "ballot")
 
 
 def test_quote_must_be_verbatim_and_a_number_can_live_on_the_archived_page(tmp_path: Path):
@@ -278,3 +288,117 @@ def test_reader_budget_flags_a_long_contest():
     short = f"## Mayor {{#contest-race-1 .contest-title}}\n\n{words}[^1].\n"
     assert reader_contest_budget_errors(short, 40)
     assert reader_contest_budget_errors(short, 80) == []
+
+
+def _marker_index(*numbers: int) -> dict:
+    return {
+        number: ("cand", {"id": f"c{number}", "confidence": "verified", "drives_summary": False}, {})
+        for number in numbers
+    }
+
+
+def test_addendum_ids_do_not_treat_marker_10_as_marker_1():
+    body = (
+        "The ballot lists Avery Quinn"
+        '<a id="cite-1"></a>[<sup>1</sup>](guide-sources.md#source-1). '
+        "The ballot lists Blake Okonkwo"
+        '<a id="cite-10"></a>[<sup>10</sup>](guide-sources.md#source-10).\n'
+    )
+    missing_one = (
+        "[1] Elections. https://fictional.example/one.\n\n"
+        "[10] Elections. https://fictional.example/ten.\n\n"
+        "### Source 10 {#source-10}\n\n"
+        "[Back to the guide](guide.md#cite-10)\n"
+    )
+    errors = assembled_guide_errors(body, _marker_index(1, 10), missing_one)
+    assert any("marker 1 does not link to an addendum entry" in error for error in errors)
+    assert any("marker 1 addendum entry does not link back" in error for error in errors)
+    present = (
+        "[1] Elections. https://fictional.example/one.\n\n"
+        "[10] Elections. https://fictional.example/ten.\n\n"
+        "### Source 1 {#source-1}\n\n"
+        "[Back to the guide](guide.md#cite-1)\n\n"
+        "### Source 10 {#source-10}\n\n"
+        "[Back to the guide](guide.md#cite-10)\n"
+    )
+    ok = assembled_guide_errors(body, _marker_index(1, 10), present)
+    assert not any("marker 1" in error and "addendum" in error for error in ok)
+    assert not any("marker 10" in error and "addendum" in error for error in ok)
+
+
+def test_organization_word_does_not_hide_another_persons_name():
+    record = {"ballot_name": "Avery Quinn", "city": "Cedar Hollow", "office": "Mayor"}
+    draft = (
+        "# Avery\n\n## Legal issues\n\n"
+        "Avery Quinn of Cedar Hollow said the John Smith Committee was convicted in 2019[^1].\n"
+    )
+    errors = semantic_claim_errors(_person_doc(), "claims", [record], draft)
+    assert any("different person" in error for error in errors)
+    registered = {**record, "organizations": ["the John Smith Committee"]}
+    cleared = semantic_claim_errors(_person_doc(), "claims", [registered], draft)
+    assert not any("different person" in error for error in cleared)
+    alone = draft.replace("the John Smith Committee", "John Smith")
+    alone_errors = semantic_claim_errors(_person_doc(), "claims", [registered], alone)
+    assert any("different person" in error for error in alone_errors)
+
+
+def test_a_quote_without_a_local_copy_is_not_skipped(tmp_path: Path):
+    init_workspace(tmp_path, "quote-gap", "household", "2026-10-20 12:00 ET")
+    item = tmp_path / "items" / "cand-a"
+    item.mkdir(parents=True)
+    (item / "draft.md").write_text("# Avery\n\n## Funding\n\nReported 48200 dollars[^1].\n", encoding="utf-8")
+
+    def write(sources: list, text: str = "The committee reported 48200 dollars in receipts.") -> None:
+        dump_yaml(
+            item / "claims.yaml",
+            {
+                "item_id": "cand-a",
+                "item_type": "candidate",
+                "claims": [
+                    {
+                        "id": "cand-a.funding.001",
+                        "text": text,
+                        "confidence": "verified",
+                        "sources": sources,
+                    }
+                ],
+            },
+        )
+
+    bare = {
+        "marker": 1,
+        "url": "https://fictional.example/filing",
+        "tier": "T1",
+        "archive_failed": False,
+        "retrieved": "2026-10-20 09:00 ET",
+        "publisher": "Elections",
+        "quote": "Receipts 48200.",
+    }
+    write([bare])
+    assert any("no readable local copy" in error for error in quote_verbatim_errors(tmp_path))
+    failed = {**bare, "archive_failed": True, "archive_failed_reason": "fixture"}
+    write([failed])
+    assert any("second independent source" in error for error in quote_verbatim_errors(tmp_path))
+    second = {
+        **failed,
+        "marker": 2,
+        "publisher": "Ledger",
+        "url": "https://fictional.example/ledger",
+        "quote": "Receipts 48200.",
+    }
+    write([failed, second])
+    assert quote_verbatim_errors(tmp_path) == []
+    write(
+        [failed],
+        text="The precinct list names the candidate.",
+    )
+    assert quote_verbatim_errors(tmp_path) == []
+
+
+def test_sample_saved_page_is_checked_verbatim():
+    from lib.util import repo_root
+
+    example = repo_root() / "examples" / "sample-election"
+    page = (example / "saved" / "quinn-q3.html").read_text(encoding="utf-8")
+    assert "Receipts 48200, disbursements 31000, cash on hand 17200, debt 0." in page
+    assert quote_verbatim_errors(example) == []

@@ -172,6 +172,7 @@ claims:
     tier: T1
     locator: Section 4
     quote: A local levy passes with more than half the votes cast on the measure.
+    local_copy: saved/levy-threshold.html
     confidence: verified
   confidence: verified
   drives_summary: true
@@ -195,6 +196,7 @@ claims:
     tier: T1
     locator: Receipts line
     quote: The Yes on H committee reported 20000 dollars in receipts.
+    local_copy: saved/yes-on-h-q3.html
     confidence: verified
   confidence: verified
   drives_summary: true
@@ -220,6 +222,7 @@ claims:
     tier: T1
     locator: Receipts line
     quote: The No on H committee reported 18000 dollars in receipts.
+    local_copy: saved/no-on-h-q3.html
     confidence: verified
   confidence: verified
   drives_summary: true
