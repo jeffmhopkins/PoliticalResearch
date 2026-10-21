@@ -22,15 +22,205 @@ _GAP_CLAUSE_RE = re.compile(
     r"convicted|guilty|sentenced|alleged|accused|indicted|arrested|admitted|pleaded|pled)\b",
     re.IGNORECASE,
 )
-# A comma-separated place list is allowed. An allegation noun is not, even without a verb.
-_GAP_ALLEGATION_RE = re.compile(
-    r"\b(?:convictions?|convicted|frauds?|indictments?|indicted|felon(?:y|ies)|misdemeanors?|"
-    r"bribery|bribes?|scandals?|misconduct|allegations?|accused|defendants?|"
-    r"crimes?|criminals?|lawsuits?)\b",
+# A bare year may date a source or place ("the 2026 ballot filing"). It may not
+# introduce an event ("the 2019 arrest", "the 2019 plea", "conviction of 2019").
+# The words are source and place names, not a list of allegation nouns.
+_GAP_FUNCTION_WORDS = {
+    "a",
+    "an",
+    "and",
+    "at",
+    "by",
+    "for",
+    "from",
+    "in",
+    "of",
+    "on",
+    "or",
+    "the",
+    "to",
+    "with",
+}
+_DATED_SOURCE_WORDS = {
+    "agenda",
+    "agendas",
+    "archive",
+    "archives",
+    "ballot",
+    "ballots",
+    "book",
+    "books",
+    "borough",
+    "budget",
+    "budgets",
+    "canvass",
+    "certificate",
+    "certificates",
+    "charter",
+    "charters",
+    "city",
+    "clerk",
+    "clerks",
+    "code",
+    "codes",
+    "commission",
+    "committee",
+    "congress",
+    "council",
+    "county",
+    "court",
+    "courts",
+    "database",
+    "databases",
+    "directory",
+    "directories",
+    "district",
+    "districts",
+    "docket",
+    "dockets",
+    "election",
+    "elections",
+    "federal",
+    "filing",
+    "filings",
+    "gazette",
+    "general",
+    "handbook",
+    "handbooks",
+    "house",
+    "index",
+    "indexes",
+    "indices",
+    "ledger",
+    "legislature",
+    "map",
+    "maps",
+    "minutes",
+    "municipal",
+    "note",
+    "notes",
+    "office",
+    "offices",
+    "ordinance",
+    "ordinances",
+    "page",
+    "pages",
+    "pamphlet",
+    "pamphlets",
+    "parish",
+    "poll",
+    "portal",
+    "precinct",
+    "precincts",
+    "primary",
+    "record",
+    "records",
+    "register",
+    "registry",
+    "report",
+    "reports",
+    "resolution",
+    "resolutions",
+    "return",
+    "returns",
+    "roll",
+    "rolls",
+    "roster",
+    "rosters",
+    "sample",
+    "senate",
+    "site",
+    "statute",
+    "statutes",
+    "supervisor",
+    "town",
+    "township",
+    "village",
+    "website",
+}
+_GAP_MONTH_RE = re.compile(
+    r"\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\b",
     re.IGNORECASE,
 )
+_GAP_BARE_YEAR_RE = re.compile(r"\b(\d{4})\b(?!-\d{2}-\d{2})")
+_GAP_WORD_RE = re.compile(r"[a-z]+(?:-[a-z]+)*", re.IGNORECASE)
 NEAR_COPY_RATIO = 0.85
 _FOREIGN_NAME_RE = re.compile(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b")
+_FOREIGN_NAME_SKIP = {
+    "a",
+    "an",
+    "and",
+    "at",
+    "by",
+    "for",
+    "from",
+    "in",
+    "of",
+    "on",
+    "or",
+    "the",
+    "to",
+    "with",
+}
+_FOREIGN_NAME_MONTHS = {
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+}
+# Organization and place words are not a second person. "John Smith" has none of these.
+_FOREIGN_NAME_ORG_WORDS = {
+    "agency",
+    "association",
+    "authority",
+    "bank",
+    "board",
+    "bureau",
+    "campaign",
+    "center",
+    "centre",
+    "church",
+    "city",
+    "club",
+    "college",
+    "commission",
+    "committee",
+    "council",
+    "county",
+    "court",
+    "department",
+    "district",
+    "foundation",
+    "fund",
+    "group",
+    "guild",
+    "hall",
+    "hospital",
+    "institute",
+    "league",
+    "office",
+    "park",
+    "parks",
+    "party",
+    "path",
+    "river",
+    "school",
+    "service",
+    "services",
+    "society",
+    "state",
+    "temple",
+    "union",
+    "university",
+}
 _FIGURE_RE = re.compile(
     r"\b(?:dollars?|receipts?|disbursements?|\$|votes?\s+cast|vote\s+total|cash\s+on\s+hand)\b",
     re.IGNORECASE,
@@ -287,13 +477,28 @@ def _bind_trailing_markers(text: str) -> str:
     return re.sub(r"([.!?])(\s*\[\^\d+\])", _move, text)
 
 
+def _marker_lines(draft: str) -> list[str]:
+    """Lines, with each markdown table cell on its own so a neighbor is not this sentence."""
+    lines: list[str] = []
+    cleaned = HTML_COMMENT_RE.sub("", draft or "")
+    for line in cleaned.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("|"):
+            for cell in stripped.strip("|").split("|"):
+                cell = cell.strip()
+                if cell and not re.fullmatch(r":?-{3,}:?", cell):
+                    lines.append(cell)
+            continue
+        lines.append(line)
+    return lines
+
+
 def _marker_sentences(draft: str, markers: list[int]) -> list[str]:
     tokens = [f"[^{marker}]" for marker in markers]
     if not tokens:
         return []
     sentences: list[str] = []
-    cleaned = HTML_COMMENT_RE.sub("", draft or "")
-    for line in _bind_trailing_markers(cleaned).splitlines():
+    for line in _bind_trailing_markers("\n".join(_marker_lines(draft))).splitlines():
         for part in split_sentences(line):
             text = part.strip()
             if text and any(token in text for token in tokens):
@@ -313,12 +518,23 @@ def _sentence_identifies(sentence: str, record: dict) -> bool:
 
 
 def _foreign_name(sentence: str, record: dict) -> bool:
-    """A two-word capital name in the sentence that is not this identity record."""
+    """A person's name in the sentence that is not this identity record.
+
+    A leading "The" or "On", a month, and an organization word are not a person.
+    "John Smith" still is. The check runs even when the sentence also names this record.
+    """
     anchors = {value.lower() for value, _distinguishing in anchor_entries(record)}
     plain = MARKER_RE.sub("", sentence)
     for match in _FOREIGN_NAME_RE.finditer(plain):
-        phrase = match.group(0)
-        lowered = phrase.lower()
+        words = match.group(0).split()
+        if words and words[0].lower() in _FOREIGN_NAME_SKIP:
+            words = words[1:]
+        if len(words) < 2:
+            continue
+        lowered_words = [word.lower() for word in words]
+        if any(word in _FOREIGN_NAME_MONTHS or word in _FOREIGN_NAME_ORG_WORDS for word in lowered_words):
+            continue
+        lowered = " ".join(lowered_words)
         if any(lowered in anchor or anchor in lowered for anchor in anchors if len(anchor) >= 3):
             continue
         return True
@@ -399,19 +615,20 @@ def semantic_claim_errors(doc: dict, label: str, identities: list | None = None,
                         f"{label}: {cid} draft sentence carrying the marker does not contain two anchor values from one identity.yaml record, including a name or filing id"
                     )
                 else:
-                    # Every marker sentence has to name this record. A later unnamed
-                    # sentence in an anchored section still fails.
+                    # Every marker sentence has to name this record. Naming this
+                    # record does not waive a second person's name in that sentence.
+                    # A claim about that other person is a separate claim.
                     for sentence in sentences:
-                        if any(_sentence_identifies(sentence, record) for record in eligible):
-                            continue
-                        if any(_foreign_name(sentence, record) for record in eligible):
+                        identified = [record for record in eligible if _sentence_identifies(sentence, record)]
+                        compared = identified or eligible
+                        if any(_foreign_name(sentence, record) for record in compared):
                             errors.append(
                                 f"{label}: {cid} draft sentence carrying the marker names a different person than identity.yaml"
                             )
-                            continue
-                        errors.append(
-                            f"{label}: {cid} draft sentence carrying the marker does not identify the person in identity.yaml"
-                        )
+                        if not identified:
+                            errors.append(
+                                f"{label}: {cid} draft sentence carrying the marker does not identify the person in identity.yaml"
+                            )
         tiers = []
         publishers = []
         markers = []
@@ -538,6 +755,30 @@ def _sentences(block: str) -> list[str]:
     return [part.strip(" -*") for part in split_sentences(cleaned) if part.strip(" -*")]
 
 
+def _gap_content_words(text: str) -> list[str]:
+    return [word.lower() for word in _GAP_WORD_RE.findall(text) if word.lower() not in _GAP_FUNCTION_WORDS]
+
+
+def _gap_items_name_an_event(inner: str) -> bool:
+    """True when a searched item is an event rather than a source, place, or field label.
+
+    A bare year is allowed only as the date on a source or place ("the 2026 ballot
+    filing"). "the 2019 arrest", "the 2019 plea", and "conviction of 2019" are events.
+    A month name is an event date. Field labels with no year stay allowed.
+    """
+    items = [part.strip(" .") for part in re.split(r",|\band\b", inner) if part.strip(" .")]
+    for item in items:
+        if _GAP_MONTH_RE.search(item):
+            return True
+        for match in _GAP_BARE_YEAR_RE.finditer(item):
+            after = _gap_content_words(item[match.end() :])
+            before = _gap_content_words(item[: match.start()])
+            dated = after or before
+            if not dated or any(word not in _DATED_SOURCE_WORDS for word in dated):
+                return True
+    return False
+
+
 def _gap_sentence(sentence: str) -> bool:
     original = re.sub(r"\s+", " ", sentence).strip().strip("*").strip()
     text = original.lower()
@@ -551,7 +792,7 @@ def _gap_sentence(sentence: str) -> bool:
         return False
     if _GAP_CLAUSE_RE.search(inner):
         return False
-    if _GAP_ALLEGATION_RE.search(inner):
+    if _gap_items_name_an_event(inner):
         return False
     # A space after a dot is a second sentence. A capital glued to the dot is too.
     # A lowercase letter after the dot is a hostname, such as congress.gov.

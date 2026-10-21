@@ -43,6 +43,13 @@ def test_gap_notes_cannot_smuggle_a_second_clause():
     assert prose_marker_errors("None.", "draft") == []
     assert prose_marker_errors("Not found (searched: county index, the 2019 conviction).", "draft")
     assert prose_marker_errors("Not found (searched: the 2019 conviction).", "draft")
+    for event in ("arrest", "plea", "embezzlement", "kickback"):
+        assert prose_marker_errors(f"Not found (searched: the 2019 {event}).", "draft")
+        assert prose_marker_errors(f"Not found (searched: county index, the 2019 {event}).", "draft")
+    assert prose_marker_errors("Not found (searched: the June arrest).", "draft")
+    assert prose_marker_errors("Not found (searched: conviction of 2019).", "draft")
+    assert prose_marker_errors("Not found (searched: the 2026 ballot filing).", "draft") == []
+    assert prose_marker_errors("Not found (searched: years in elected office).", "draft") == []
     assert (
         prose_marker_errors(
             "Not found (searched: fictional Oak County court index, fictional Westland court index, and the candidate filing on 2026-10-20).",
@@ -319,9 +326,16 @@ def test_section_anchor_allows_a_later_sentence_and_rejects_a_second_person():
     unnamed_errors = semantic_claim_errors(doc, "claims", [record], unnamed)
     assert any("draft sentence" in error for error in unnamed_errors)
     assert any("does not identify" in error for error in unnamed_errors)
+    mixed = (
+        "# Avery\n\n## Legal issues\n\n"
+        "Avery Quinn of Cedar Hollow said John Smith was convicted of fraud in 2019[^1].\n"
+    )
+    mixed_errors = semantic_claim_errors(doc, "claims", [record], mixed)
+    assert any("different person" in error for error in mixed_errors)
     bad = "# Avery\n\n## Identity\n\nAvery Quinn of Cedar Hollow is the incumbent[^1]. Blake Okonkwo also filed[^1].\n"
     errors = semantic_claim_errors(doc, "claims", [record], bad)
     assert any("draft sentence" in error for error in errors)
+    assert any("different person" in error for error in errors)
 
 
 def test_structured_symmetry_requires_the_same_issue_rows(tmp_path: Path):
