@@ -29,6 +29,10 @@ properties:
     type: string
   occupation:
     type: string
+  organizations:
+    type: array
+    items:
+      type: string
   description:
     type: string
   photo_included:

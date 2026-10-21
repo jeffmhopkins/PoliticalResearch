@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 from pathlib import Path
 
 import yaml
@@ -377,11 +378,18 @@ def test_navigation_link_is_not_an_uncited_sentence():
 
 def test_reader_and_full_editions_follow_the_layout_rules():
     guide = (EXAMPLE / "final" / "guide.md").read_text(encoding="utf-8")
+    sources = (EXAMPLE / "final" / "guide-sources.md").read_text(encoding="utf-8")
     full = (EXAMPLE / "final" / "guide-full.md").read_text(encoding="utf-8")
+    full_sources = (EXAMPLE / "final" / "guide-full-sources.md").read_text(encoding="utf-8")
     assert "# Your ballot at a glance" in guide
     assert "# Compare across the ballot" in guide
     assert "# Official election office links" in guide
-    assert "# Search log" in guide
+    assert "# Search log" not in guide
+    assert "# Works cited" not in guide
+    assert "# Search log" in sources or "### Search log" in sources
+    assert "# Works cited" in sources
+    anchors = re.findall(r"\{#([^}]+)\}", sources)
+    assert len(anchors) == len(set(anchors))
     assert "draft.md" not in guide
     assert "## Uncontested" not in guide
     assert "## Write-in candidates" not in guide
@@ -389,7 +397,13 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "# Marker index" not in guide
     assert "# Changelog" not in guide
     assert "- cand-quinn:" not in guide
-    assert "{#profile-cand-quinn}" in guide
+    assert "{#profile-cand-quinn}" not in guide
+    assert "{#profile-cand-quinn}" in full
+    assert "guide-full.md#profile-cand-quinn" in guide
+    assert "guide-sources.md#source-" in guide
+    assert "#source-1" in sources
+    assert "#cite-1" in sources
+    assert 'id="cite-1"' in guide or "#cite-1" in guide
     assert "[Back to ballot](#your-ballot-at-a-glance)" in guide
     assert "Not found (searched: self-funding or loans, share from small donors, outside spending)." in guide
     assert "Not found (searched: years in elected office)." in guide
@@ -407,6 +421,7 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "four-year term" in table["Current or most recent office"][1]
     assert "2018 certificate" in table["Prior offices"][1]
     assert table["Current or most recent office"][1] != table["Prior offices"][1]
+    assert len(table["Receipts"][1]) < 180
     quinn_money = next(line for line in guide.splitlines() if line.startswith("| Mayor of Cedar Hollow | Avery Quinn |"))
     quinn_cells = [cell.strip() for cell in quinn_money.strip().strip("|").split("|")]
     assert "48200" in quinn_cells[2]
@@ -415,8 +430,13 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "# Marker index" in full
     assert "# Changelog" in full
     assert "- cand-quinn:" in full
+    assert "# Works cited" not in full
+    assert "# Works cited" in full_sources
     assert "Not an official ballot" in guide
     assert "disputed" in guide
+    from lib.quality import READER_CONTEST_WORD_BUDGET, reader_contest_budget_errors
+
+    assert reader_contest_budget_errors(guide, READER_CONTEST_WORD_BUDGET) == []
 
 
 def test_archive_fetches_each_url_once_and_skips_the_chrome_wrapper(tmp_path: Path):
