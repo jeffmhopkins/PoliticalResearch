@@ -811,16 +811,21 @@ def assemble_guide(workspace: Path, today: str) -> list[str]:
         return blocked
     from lib.guide_layout import build_editions
 
-    reader, full = build_editions(workspace, today)
+    reader, reader_sources, full, full_sources = build_editions(workspace, today)
     index = claim_index(workspace)
-    guide_problems = assembled_guide_errors(reader, index)
-    guide_problems.extend(assembled_guide_errors(full, index))
+    guide_problems = assembled_guide_errors(reader, index, reader_sources, reader=True)
+    guide_problems.extend(assembled_guide_errors(full, index, full_sources, reader=False))
     if guide_problems:
         return guide_problems
     final = workspace / "final"
     final.mkdir(parents=True, exist_ok=True)
     versions = workspace / "versions"
-    for name, text in (("guide.md", reader), ("guide-full.md", full)):
+    for name, text in (
+        ("guide.md", reader),
+        ("guide-sources.md", reader_sources),
+        ("guide-full.md", full),
+        ("guide-full-sources.md", full_sources),
+    ):
         guide = final / name
         if guide.exists():
             previous = guide.read_text(encoding="utf-8")

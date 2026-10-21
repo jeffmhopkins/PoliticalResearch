@@ -19,10 +19,12 @@ def main(argv: list[str] | None = None) -> int:
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
-    print(f"Wrote {workspace / 'final' / 'guide.md'}")
-    full = workspace / "final" / "guide-full.md"
-    if full.exists():
-        print(f"Wrote {full}")
+    final = workspace / "final"
+    print(f"Wrote {final / 'guide.md'}")
+    for name in ("guide-sources.md", "guide-full.md", "guide-full-sources.md"):
+        path = final / name
+        if path.exists():
+            print(f"Wrote {path}")
     return 0
 
 

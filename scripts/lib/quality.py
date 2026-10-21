@@ -5,14 +5,33 @@ from __future__ import annotations
 import difflib
 import re
 from datetime import date
+from pathlib import Path
 from urllib.parse import quote
 
 from lib.sentences import split_sentences
 from lib.util import RETRIEVED_RE, dump_json, iter_items, load_config, load_yaml, norm_heading, repo_root, unsafe_fetch_target
 
 MARKER_RE = re.compile(r"\[\^(\d+)\]")
+# Rendered guides replace [^n] with a small link into the sources addendum.
+LINK_MARKER_RE = re.compile(r"\[(?:<sup>)?(\d+)(?:</sup>)?\]\(([^)\s]*)#source-\1\)")
 WORK_RE = re.compile(r"^\[(\d+)\] ", re.MULTILINE)
 FOOTNOTE_DEF_RE = re.compile(r"^\[\^\d+\]:")
+# Hard cap for one contest in the reader edition. The full edition is not capped.
+READER_CONTEST_WORD_BUDGET = 900
+_OFFICE_LINK_LINE_RE = re.compile(r"^[^:\n\[\]]{1,160}:\s+https?://\S+$")
+_PRECINCT_LINE_RE = re.compile(
+    r"^(?:Precinct \S+, )?(?:districts .+?, )?restates the confirmed ballot$"
+)
+_NAV_LINK_RE = re.compile(
+    r"^(?:\[Back to ballot\]\(#[A-Za-z0-9_-]+\)"
+    r"|\[Sources, quotes, and the search log\]\([^)]+\)"
+    r"|\[Further detail is in the full edition and the sources addendum\.\]\([^)]+\)"
+    r"|\[[^\]]+\]\([^)]*#(?:profile|contest|addendum|source|cite)-[^)]+\))$"
+)
+_PERSON_PRONOUN_RE = re.compile(
+    r"\b(?:he|she|they|his|her|their|him|hers|himself|herself|themselves)\b",
+    re.IGNORECASE,
+)
 HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 # Kept for callers that still import the pattern. Splitting goes through split_sentences.
 SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
@@ -494,16 +513,79 @@ def _marker_lines(draft: str) -> list[str]:
 
 
 def _marker_sentences(draft: str, markers: list[int]) -> list[str]:
+    return [unit.text for unit in _cited_units(draft, markers)]
+
+
+class _CitedUnit:
+    """One marker sentence, with the context that may already name the person."""
+
+    def __init__(self, text: str, kind: str, context: str, previous: str) -> None:
+        self.text = text
+        self.kind = kind
+        self.context = context
+        self.previous = previous
+
+
+def _cited_units(draft: str, markers: list[int]) -> list[_CitedUnit]:
+    """Prose sentences and table cells that carry one of these markers.
+
+    A table cell is separate from the header. The header and the row label are
+    context, not part of the cell sentence. Prose keeps the previous cited
+    sentence in the same section so a pronoun can continue that name.
+    """
     tokens = [f"[^{marker}]" for marker in markers]
     if not tokens:
         return []
-    sentences: list[str] = []
-    for line in _bind_trailing_markers("\n".join(_marker_lines(draft))).splitlines():
-        for part in split_sentences(line):
+    units: list[_CitedUnit] = []
+    previous = ""
+    lines = HTML_COMMENT_RE.sub("", draft or "").splitlines()
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if line.startswith("#"):
+            previous = ""
+            index += 1
+            continue
+        if line.strip().startswith("|"):
+            table_lines: list[str] = []
+            while index < len(lines) and lines[index].strip().startswith("|"):
+                table_lines.append(lines[index].strip())
+                index += 1
+            rows: list[list[str]] = []
+            for raw in table_lines:
+                cells = [cell.strip() for cell in raw.strip("|").split("|")]
+                compact = "".join(cells).replace(":", "").replace("-", "").replace(" ", "")
+                if not compact:
+                    continue
+                rows.append(cells)
+            if not rows:
+                continue
+            headers = rows[0]
+            for cell in headers:
+                for part in split_sentences(_bind_trailing_markers(cell)):
+                    text = part.strip()
+                    if text and any(token in text for token in tokens):
+                        units.append(_CitedUnit(text, "cell", "", previous))
+            for row in rows[1:]:
+                row_label = row[0] if row else ""
+                for cell_index, cell in enumerate(row):
+                    header = headers[cell_index] if cell_index < len(headers) else ""
+                    context = f"{header} {row_label}".strip()
+                    for part in split_sentences(_bind_trailing_markers(cell)):
+                        text = part.strip()
+                        if text and any(token in text for token in tokens):
+                            units.append(_CitedUnit(text, "cell", context, ""))
+            continue
+        for part in split_sentences(_bind_trailing_markers(line)):
             text = part.strip()
-            if text and any(token in text for token in tokens):
-                sentences.append(text)
-    return sentences
+            if not text:
+                continue
+            if any(token in text for token in tokens):
+                units.append(_CitedUnit(text, "prose", "", previous))
+            if MARKER_RE.search(text) or LINK_MARKER_RE.search(text):
+                previous = text
+        index += 1
+    return units
 
 
 def _sentence_identifies(sentence: str, record: dict) -> bool:
@@ -609,17 +691,33 @@ def semantic_claim_errors(doc: dict, label: str, identities: list | None = None,
                         marker = source_marker(claim, source)
                         if marker is not None:
                             markers.append(marker)
-                sentences = _marker_sentences(draft, markers)
-                if not sentences:
+                units = _cited_units(draft, markers)
+                if not units:
                     errors.append(
                         f"{label}: {cid} draft sentence carrying the marker does not contain two anchor values from one identity.yaml record, including a name or filing id"
                     )
                 else:
-                    # Every marker sentence has to name this record. Naming this
-                    # record does not waive a second person's name in that sentence.
-                    # A claim about that other person is a separate claim.
-                    for sentence in sentences:
+                    # Prose names this record, or a pronoun continues the previous
+                    # cited sentence in the same section. A table cell may rely on
+                    # the header or row label that already names this record.
+                    # Claim text above still needs two anchors. A second person's
+                    # name in the sentence is still a separate claim.
+                    for unit in units:
+                        sentence = unit.text
                         identified = [record for record in eligible if _sentence_identifies(sentence, record)]
+                        if not identified and unit.kind == "cell" and unit.context:
+                            identified = [
+                                record for record in eligible if _sentence_identifies(unit.context, record)
+                            ]
+                        if (
+                            not identified
+                            and unit.kind == "prose"
+                            and unit.previous
+                            and _PERSON_PRONOUN_RE.search(MARKER_RE.sub("", sentence))
+                        ):
+                            identified = [
+                                record for record in eligible if _sentence_identifies(unit.previous, record)
+                            ]
                         compared = identified or eligible
                         if any(_foreign_name(sentence, record) for record in compared):
                             errors.append(
@@ -839,7 +937,7 @@ def prose_marker_errors(text: str, label: str) -> list[str]:
                     continue
                 if _is_gap_text(row):
                     continue
-                if "[^" not in row:
+                if not _has_citation_marker(row):
                     errors.append(f"{label}: table row has no citation marker: {row.strip()[:120]}")
             continue
         lines = block.splitlines()
@@ -859,13 +957,35 @@ def prose_marker_errors(text: str, label: str) -> list[str]:
     return errors
 
 
+def _has_citation_marker(text: str) -> bool:
+    return MARKER_RE.search(text or "") is not None or LINK_MARKER_RE.search(text or "") is not None
+
+
+def _mask_markers(text: str) -> str:
+    masked = LINK_MARKER_RE.sub(" [M] ", text or "")
+    return MARKER_RE.sub(" [M] ", masked)
+
+
+def _is_navigation_sentence(plain: str) -> bool:
+    text = re.sub(r"\s+", " ", plain or "").strip().rstrip(".")
+    if re.fullmatch(r":{3}(?:\s+[A-Za-z0-9_-]+)?", text):
+        return True
+    if _NAV_LINK_RE.match(text):
+        return True
+    if _OFFICE_LINK_LINE_RE.match(text):
+        return True
+    if _PRECINCT_LINE_RE.match(text):
+        return True
+    return False
+
+
 def _sentence_marker_errors(block: str, label: str, kind: str, banner_ok: bool = False) -> list[str]:
-    if _is_gap_text(block) and "[^" not in block:
+    if _is_gap_text(block) and not _has_citation_marker(block):
         return []
-    # Drop emphasis markers so "**EXAMPLE.** Next sentence" still splits on the period.
-    plain_block = re.sub(r"[*_>`]", "", block)
-    plain_block = _bind_trailing_markers(plain_block)
-    protected = MARKER_RE.sub(" [M] ", plain_block)
+    # Mask citation links before emphasis characters are removed. The link text
+    # uses <sup>, and stripping ">" would hide the marker.
+    protected = _mask_markers(_bind_trailing_markers(block))
+    protected = re.sub(r"[*_>`]", "", protected)
     errors = []
     for part in split_sentences(protected.strip()):
         text = part.strip()
@@ -874,7 +994,7 @@ def _sentence_marker_errors(block: str, label: str, kind: str, banner_ok: bool =
         plain = text.replace("[M]", "").strip()
         if not plain or _is_gap_text(plain):
             continue
-        if re.fullmatch(r"\[Back to ballot\]\(#[A-Za-z0-9_-]+\)", plain):
+        if _is_navigation_sentence(plain):
             continue
         if banner_ok and _is_banner_sentence(plain):
             continue
@@ -889,7 +1009,10 @@ def marker_numbers(text: str) -> set[int]:
         if FOOTNOTE_DEF_RE.match(line.strip()):
             continue
         body_lines.append(line)
-    return {int(value) for value in MARKER_RE.findall("\n".join(body_lines))}
+    blob = "\n".join(body_lines)
+    found = {int(value) for value in MARKER_RE.findall(blob)}
+    found.update(int(match.group(1)) for match in LINK_MARKER_RE.finditer(blob))
+    return found
 
 
 def works_cited_numbers(text: str) -> set[int]:
@@ -929,10 +1052,20 @@ def marker_collision_errors(workspace) -> list[str]:
     return errors
 
 
-def assembled_guide_errors(text: str, index: dict[int, tuple[str, dict, dict]]) -> list[str]:
+def assembled_guide_errors(
+    text: str,
+    index: dict[int, tuple[str, dict, dict]],
+    addendum: str = "",
+    *,
+    reader: bool = False,
+) -> list[str]:
+    """Check a rendered edition. Works cited may live in the sources addendum."""
     errors = prose_marker_errors(text, "final/guide.md")
     errors.extend(summary_errors(text, "final/guide.md", index))
-    cited = works_cited_numbers(text)
+    if reader:
+        errors.extend(reader_contest_budget_errors(text))
+    cited_text = addendum or text
+    cited = works_cited_numbers(cited_text)
     for number in sorted(marker_numbers(text)):
         if number not in index:
             errors.append(f"final/guide.md: marker {number} does not resolve to a claim source")
@@ -944,9 +1077,36 @@ def assembled_guide_errors(text: str, index: dict[int, tuple[str, dict, dict]]) 
                 errors.append(f"final/guide.md: marker {number} is identity-unconfirmed and must not be published")
         if number not in cited:
             errors.append(f"final/guide.md: marker {number} has no works-cited entry")
+        if addendum:
+            if f"#source-{number}" not in addendum:
+                errors.append(f"final/guide.md: marker {number} does not link to an addendum entry")
+            if f'id="cite-{number}"' not in text and f"#cite-{number}" not in text:
+                errors.append(f"final/guide.md: marker {number} has no back-link target")
+            if f"#cite-{number}" not in addendum:
+                errors.append(f"final/guide.md: marker {number} addendum entry does not link back")
     for number in sorted(cited):
         if number not in index:
             errors.append(f"final/guide.md: works-cited [{number}] has no claim source")
+    return errors
+
+
+def reader_contest_budget_errors(text: str, budget: int | None = None) -> list[str]:
+    """Each reader contest stays inside the word budget. The full edition does not."""
+    limit = READER_CONTEST_WORD_BUDGET if budget is None else budget
+    errors = []
+    matches = list(re.finditer(r"(?m)^## .+\{#contest-([^}\s]+)", text or ""))
+    for index, match in enumerate(matches):
+        start = match.start()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        chunk = text[start:end]
+        later_heading = re.search(r"(?m)^# (?!#)", chunk)
+        if later_heading:
+            chunk = chunk[: later_heading.start()]
+        words = reader_visible_word_count(chunk)
+        if words > limit:
+            errors.append(
+                f"final/guide.md: contest {match.group(1)} is {words} words, over the {limit}-word reader budget"
+            )
     return errors
 
 
@@ -1017,7 +1177,29 @@ def citation_errors(workspace, guide: bool = False) -> list[str]:
         if not guide_path.exists():
             errors.append("final/guide.md is missing")
         else:
-            errors.extend(assembled_guide_errors(guide_path.read_text(encoding="utf-8"), index))
+            addendum_path = workspace / "final" / "guide-sources.md"
+            addendum = addendum_path.read_text(encoding="utf-8") if addendum_path.exists() else ""
+            if not addendum_path.exists():
+                errors.append("final/guide-sources.md is missing")
+            errors.extend(
+                assembled_guide_errors(
+                    guide_path.read_text(encoding="utf-8"),
+                    index,
+                    addendum,
+                    reader=True,
+                )
+            )
+        full_path = workspace / "final" / "guide-full.md"
+        if full_path.exists():
+            full_addendum_path = workspace / "final" / "guide-full-sources.md"
+            full_addendum = (
+                full_addendum_path.read_text(encoding="utf-8") if full_addendum_path.exists() else ""
+            )
+            if not full_addendum_path.exists():
+                errors.append("final/guide-full-sources.md is missing")
+            errors.extend(
+                assembled_guide_errors(full_path.read_text(encoding="utf-8"), index, full_addendum, reader=False)
+            )
     return errors
 
 
@@ -1040,6 +1222,17 @@ def section_map(text: str) -> dict[str, str]:
 
 def word_count(text: str) -> int:
     return len(re.findall(r"[A-Za-z0-9']+", text or ""))
+
+
+_MD_LINK_RE = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def reader_visible_word_count(text: str) -> int:
+    """Words a reader sees. Link targets and HTML anchors are not printed."""
+    visible = _HTML_TAG_RE.sub(" ", text or "")
+    visible = _MD_LINK_RE.sub(r"\1", visible)
+    return word_count(visible)
 
 
 def _cited_word_count(text: str) -> int:
@@ -1423,8 +1616,63 @@ def _significant_numbers(text: str) -> set[str]:
     return found
 
 
+def _flat_text(text: str) -> str:
+    cleaned = (text or "").replace("\u00a0", " ").replace("\u200b", "")
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
+def _local_archive_text(workspace, source: dict) -> tuple[str | None, str | None]:
+    """Text of a saved local copy, ignoring the filename.
+
+    Returns (text, error). No local_copy is (None, None). A declared copy that
+    cannot be read is an error so a quote cannot skip the verbatim check.
+    """
+    local = str(source.get("local_copy") or "").strip()
+    if not local:
+        return None, None
+    path = Path(local)
+    if not path.is_absolute():
+        path = Path(workspace) / local
+    if not path.is_file():
+        return None, f"local copy not found: {local}"
+    suffix = path.suffix.lower()
+    if suffix in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".zip"}:
+        return None, f"local copy is not extractable text: {local}"
+    if suffix == ".pdf":
+        import subprocess
+
+        try:
+            result = subprocess.run(
+                ["pdftotext", "-q", str(path), "-"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return None, f"could not read local copy {local}: {exc}"
+        if result.returncode != 0 and not result.stdout:
+            detail = (result.stderr or "pdftotext failed").strip()
+            return None, f"could not read local copy {local}: {detail[:200]}"
+        return result.stdout, None
+    if suffix in {".html", ".htm"}:
+        raw = path.read_text(encoding="utf-8", errors="replace")
+        raw = re.sub(r"(?is)<script\b[^>]*>.*?</script>", " ", raw)
+        raw = re.sub(r"(?is)<style\b[^>]*>.*?</style>", " ", raw)
+        raw = re.sub(r"(?is)<[^>]+>", " ", raw)
+        return raw, None
+    data = path.read_bytes()
+    if b"\0" in data[:1024]:
+        return None, f"local copy is not extractable text: {local}"
+    return data.decode("utf-8", errors="replace"), None
+
+
 def number_quote_errors(workspace) -> list[str]:
-    """A figure in a draft sentence must appear in a quote for a marker on that sentence."""
+    """A figure in a draft sentence must appear in a quote or the archived page.
+
+    The filename does not count. A number elsewhere on the saved page does.
+    Two markers on one sentence may cover the figure with two quotes.
+    """
     errors = []
     for item in iter_items(workspace):
         draft_path = item / "draft.md"
@@ -1434,6 +1682,7 @@ def number_quote_errors(workspace) -> list[str]:
         if not isinstance(doc, dict):
             continue
         quotes: dict[int, str] = {}
+        archives: dict[int, str] = {}
         for claim, source in iter_claim_sources(doc):
             if claim.get("removed"):
                 continue
@@ -1441,6 +1690,9 @@ def number_quote_errors(workspace) -> list[str]:
             if marker is None:
                 continue
             quotes[marker] = quotes.get(marker, "") + " " + str(source.get("quote") or "")
+            page, _problem = _local_archive_text(workspace, source)
+            if page:
+                archives[marker] = archives.get(marker, "") + " " + page
         draft = draft_path.read_text(encoding="utf-8")
         for sentence in _marker_sentences(draft, list(quotes)):
             numbers = _significant_numbers(MARKER_RE.sub("", sentence))
@@ -1449,11 +1701,43 @@ def number_quote_errors(workspace) -> list[str]:
             cited = [int(value) for value in MARKER_RE.findall(sentence)]
             quote_blob = " ".join(quotes.get(marker, "") for marker in cited)
             quote_numbers = _significant_numbers(quote_blob)
-            missing = sorted(numbers - quote_numbers)
-            if missing:
+            missing = numbers - quote_numbers
+            if not missing:
+                continue
+            page_blob = " ".join(archives.get(marker, "") for marker in cited)
+            page_numbers = _significant_numbers(page_blob)
+            still = sorted(missing - page_numbers)
+            if still:
                 errors.append(
-                    f"items/{item.name}/draft.md: {missing[0]} is in a cited sentence but not in the cited quote"
+                    f"items/{item.name}/draft.md: {still[0]} is in a cited sentence but not in the cited quote"
                 )
+    return errors
+
+
+def quote_verbatim_errors(workspace) -> list[str]:
+    """A saved quote must appear verbatim in the archived local copy.
+
+    Whitespace is collapsed. Extra tokens appended to the quote fail. A source
+    with no local copy is not checked here. The filename is not the copy.
+    """
+    errors = []
+    for item in iter_items(workspace):
+        doc = load_yaml(item / "claims.yaml") or {}
+        if not isinstance(doc, dict):
+            continue
+        for claim, source in iter_claim_sources(doc):
+            if claim.get("removed"):
+                continue
+            quote = str(source.get("quote") or "").strip()
+            if not quote or not str(source.get("local_copy") or "").strip():
+                continue
+            page, problem = _local_archive_text(workspace, source)
+            cid = claim.get("id")
+            if problem:
+                errors.append(f"{item.name}: {cid} {problem}")
+                continue
+            if page is None or _flat_text(quote) not in _flat_text(page):
+                errors.append(f"{item.name}: {cid} quote is not verbatim in the archived local copy")
     return errors
 
 
@@ -1514,6 +1798,19 @@ def figure_source_errors(workspace) -> list[str]:
     return errors
 
 
+_HEAVY_RECORD_RE = re.compile(
+    r"\b(?:division of elections|supervisor of elections|sample ballot|"
+    r"paid qualifying fee|qualifying fee|qualified|qualifying)\b",
+    re.IGNORECASE,
+)
+_OFFICIAL_RECORD_BOILERPLATE_RE = re.compile(
+    r"\b(?:division of elections|supervisor of elections|sample ballot|"
+    r"paid qualifying fee|qualifying fee|qualified|qualifying|nonpartisan|"
+    r"ballot line|appears on the ballot|on the ballot)\b",
+    re.IGNORECASE,
+)
+
+
 def _normalized_prose(text: str, names: list[str]) -> str:
     cleaned = MARKER_RE.sub("", text or "").lower()
     for name in sorted(names, key=len, reverse=True):
@@ -1521,6 +1818,21 @@ def _normalized_prose(text: str, names: list[str]) -> str:
             cleaned = re.sub(rf"\b{re.escape(name.lower())}\b", "candidate", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned
+
+
+def _residual_prose(text: str) -> str:
+    """Drop shared official-record boilerplate before a near-copy comparison.
+
+    Narrative that does not use that boilerplate is compared as written, so a
+    near-copy of a biography still fails. A filing-line skeleton loses the
+    shared office words and the name placeholder, then the short remainder is
+    not called a template. An identical paragraph is rejected before this step.
+    """
+    if not _HEAVY_RECORD_RE.search(text or ""):
+        return text or ""
+    cleaned = _OFFICIAL_RECORD_BOILERPLATE_RE.sub(" ", text or "")
+    cleaned = re.sub(r"\bcandidate\b", " ", cleaned)
+    return re.sub(r"\s+", " ", cleaned).strip()
 
 
 def templated_prose_errors(workspace) -> list[str]:
@@ -1551,14 +1863,63 @@ def templated_prose_errors(workspace) -> list[str]:
                 for previous_id, previous_text in bodies[:index]:
                     if not text or not previous_text:
                         continue
-                    ratio = difflib.SequenceMatcher(None, previous_text, text).ratio()
+                    if text == previous_text:
+                        errors.append(
+                            f"{contest.get('id')}: section '{name}' for {item_id} repeats the templated text used for {previous_id}"
+                        )
+                        continue
+                    # Parallel filing lines share office boilerplate. Compare what
+                    # is left, and skip a skeleton that is only that boilerplate.
+                    # An identical paragraph already failed above.
+                    left = _residual_prose(previous_text)
+                    right = _residual_prose(text)
+                    if word_count(left) < 12 or word_count(right) < 12:
+                        continue
+                    ratio = difflib.SequenceMatcher(None, left, right).ratio()
                     if ratio < NEAR_COPY_RATIO:
                         continue
-                    relation = "repeats" if text == previous_text else "is a near-copy of"
                     errors.append(
-                        f"{contest.get('id')}: section '{name}' for {item_id} {relation} the templated text used for {previous_id}"
+                        f"{contest.get('id')}: section '{name}' for {item_id} is a near-copy of the templated text used for {previous_id}"
                     )
     return errors
+
+
+_REPORT_DAY_RE = re.compile(r"(20\d{2})[-/](\d{1,2})[-/](\d{1,2})")
+_REPORT_MONTHS = {
+    "january": 1,
+    "february": 2,
+    "march": 3,
+    "april": 4,
+    "may": 5,
+    "june": 6,
+    "july": 7,
+    "august": 8,
+    "september": 9,
+    "october": 10,
+    "november": 11,
+    "december": 12,
+}
+_REPORT_LONG_RE = re.compile(
+    r"\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2}),\s+(20\d{2})\b",
+    re.IGNORECASE,
+)
+
+
+def _parse_report_day(value: str):
+    """The calendar day named in a report_date string, if the string has one."""
+    match = _REPORT_DAY_RE.search(value or "")
+    if match:
+        try:
+            return date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+        except ValueError:
+            return None
+    long_match = _REPORT_LONG_RE.search(value or "")
+    if not long_match:
+        return None
+    try:
+        return date(int(long_match.group(3)), _REPORT_MONTHS[long_match.group(1).lower()], int(long_match.group(2)))
+    except ValueError:
+        return None
 
 
 def heading_errors(workspace) -> list[str]:
@@ -1614,10 +1975,15 @@ def structured_symmetry_errors(workspace) -> list[str]:
         for item_id, data in profiles:
             money = data.get("money") or {}
             if isinstance(money, dict) and money.get("report_date"):
-                dates.append((item_id, str(money.get("report_date"))))
-        unique_dates = {value for _item, value in dates}
-        if len(unique_dates) > 1:
-            shown = ", ".join(f"{item_id} {value}" for item_id, value in dates)
+                raw_date = str(money.get("report_date"))
+                dates.append((item_id, raw_date, _parse_report_day(raw_date)))
+        parsed_days = {day for _item, _raw, day in dates if day is not None}
+        raw_values = {raw for _item, raw, _day in dates}
+        if len(parsed_days) > 1 or (not parsed_days and len(raw_values) > 1):
+            shown = ", ".join(f"{item_id} {raw}" for item_id, raw, _day in dates)
+            errors.append(f"{contest.get('id')}: money report_date differs across candidates ({shown})")
+        elif parsed_days and any(day is None for _item, _raw, day in dates):
+            shown = ", ".join(f"{item_id} {raw}" for item_id, raw, _day in dates)
             errors.append(f"{contest.get('id')}: money report_date differs across candidates ({shown})")
         gap_sets = []
         for item_id, data in profiles:
@@ -1668,6 +2034,7 @@ def content_gate_errors(workspace, today: date, *, include_guide: bool = True) -
     errors.extend(year_label_errors(workspace))
     errors.extend(offline_link_errors(workspace))
     errors.extend(number_quote_errors(workspace))
+    errors.extend(quote_verbatim_errors(workspace))
     errors.extend(figure_source_errors(workspace))
     errors.extend(templated_prose_errors(workspace))
     errors.extend(heading_errors(workspace))
