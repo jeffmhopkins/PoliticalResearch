@@ -31,7 +31,7 @@ A no vote lets the current parks levy expire after the 2026 tax year[^24]. The c
 
 ## Fiscal impact
 
-The Westland fiscal office note, dated August 1, 2026, estimates 1.2 million dollars a year for parks if the levy passes[^25].
+The Westland fiscal office note, dated August 1, 2026, estimates 1.2 million dollars a year for parks if the levy passes[^25][^31].
 
 Not found (searched: fictional university budget notes and fictional news budget notes).
 

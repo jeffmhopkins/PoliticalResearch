@@ -44,8 +44,8 @@ One source means one record supports the sentence. An allegation stays labeled a
 
 | Office | Candidate | Receipts | Cash on hand | Report date | Source tier |
 | --- | --- | --- | --- | --- | --- |
-| Mayor of Cedar Hollow | Avery Quinn | The summary for Avery Quinn of Cedar Hollow shows 48200 dollars in receipts, 31000 dollars spent, 17200 dollars in cash on hand, and no debt[^5]. | The summary for Avery Quinn of Cedar Hollow shows 48200 dollars in receipts, 31000 dollars spent, 17200 dollars in cash on hand, and no debt[^5]. | Avery Quinn of Cedar Hollow filed on October 15, 2026 for the quarter that ended September 30, 2026[^5]. | T1[^5] |
-| Mayor of Cedar Hollow | Blake Okonkwo | The summary for Blake Okonkwo of Cedar Hollow shows 30100 dollars in receipts, 18400 dollars spent, 11700 dollars in cash on hand, and no debt[^14]. | The summary for Blake Okonkwo of Cedar Hollow shows 30100 dollars in receipts, 18400 dollars spent, 11700 dollars in cash on hand, and no debt[^14]. | Blake Okonkwo of Cedar Hollow filed on October 15, 2026 for the quarter that ended September 30, 2026[^14]. | T1[^14] |
+| Mayor of Cedar Hollow | Avery Quinn | The summary for Avery Quinn of Cedar Hollow shows 48200 dollars in receipts, 31000 dollars spent, 17200 dollars in cash on hand, and no debt[^5]. | Cash on hand for Avery Quinn of Cedar Hollow means money the report still showed at the end of that filing period[^5]. | Avery Quinn of Cedar Hollow filed on October 15, 2026 for the quarter that ended September 30, 2026[^5]. | T1[^5] |
+| Mayor of Cedar Hollow | Blake Okonkwo | The summary for Blake Okonkwo of Cedar Hollow shows 30100 dollars in receipts, 18400 dollars spent, 11700 dollars in cash on hand, and no debt[^14]. | Not found | Blake Okonkwo of Cedar Hollow filed on October 15, 2026 for the quarter that ended September 30, 2026[^14]. | T1[^14] |
 
 ## Issues addressed in a candidate's own words
 
@@ -55,7 +55,7 @@ Not found (searched: shared issue rows recorded for at least two candidates in p
 
 | Measure | Type | Threshold | What a yes vote does | What a no vote does | Fiscal impact | Sunset or renewal | Funding by side |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Measure H, Cedar Hollow parks levy | Measure H is a referral[^21]. | Westland's 2019 levy rule says the measure passes with more than half the votes cast on it[^26]. | A yes vote replaces the expiring parks levy at the same rate[^23]. | A no vote lets the current parks levy expire after the 2026 tax year[^24]. | The Westland fiscal office note, dated August 1, 2026, estimates 1.2 million dollars a year for parks if the levy passes[^25]. | Not found | Yes on H reported 20000 dollars in receipts for the quarter that ended September 30, 2026[^27]. |
+| Measure H, Cedar Hollow parks levy | Measure H is a referral[^21]. | Westland's 2019 levy rule says the measure passes with more than half the votes cast on it[^26]. | A yes vote replaces the expiring parks levy at the same rate[^23]. | A no vote lets the current parks levy expire after the 2026 tax year[^24]. | The Westland fiscal office note, dated August 1, 2026, estimates 1.2 million dollars a year for parks if the levy passes[^25][^31]. | Not found | Yes on H reported 20000 dollars in receipts for the quarter that ended September 30, 2026[^27]. |
 
 ## Judicial retentions side by side
 
@@ -88,14 +88,15 @@ The fictional sample ballot lists the office of mayor of Cedar Hollow[^32]. The 
 | --- | --- | --- |
 | Ballot status | The ballot lists Avery Quinn of Cedar Hollow as the nonpartisan incumbent[^1]. | The ballot lists Blake Okonkwo of Cedar Hollow as a nonpartisan challenger and does not mark the candidate as the incumbent[^10]. |
 | Current or most recent office | Avery Quinn of Cedar Hollow was elected to the city council for a four-year term that began after the 2018 election[^2]. | Not found |
-| Years in elected office | Avery Quinn of Cedar Hollow was elected to the city council for a four-year term that began after the 2018 election[^2]. | Not found |
+
+Not found (searched: years in elected office).
 
 ### Money
 
 | | Avery Quinn | Blake Okonkwo |
 | --- | --- | --- |
 | Receipts | The summary for Avery Quinn of Cedar Hollow shows 48200 dollars in receipts, 31000 dollars spent, 17200 dollars in cash on hand, and no debt[^5]. | The summary for Blake Okonkwo of Cedar Hollow shows 30100 dollars in receipts, 18400 dollars spent, 11700 dollars in cash on hand, and no debt[^14]. |
-| Cash on hand | The summary for Avery Quinn of Cedar Hollow shows 48200 dollars in receipts, 31000 dollars spent, 17200 dollars in cash on hand, and no debt[^5]. | The summary for Blake Okonkwo of Cedar Hollow shows 30100 dollars in receipts, 18400 dollars spent, 11700 dollars in cash on hand, and no debt[^14]. |
+| Cash on hand | Cash on hand for Avery Quinn of Cedar Hollow means money the report still showed at the end of that filing period[^5]. | Not found |
 | Report date | Avery Quinn of Cedar Hollow filed on October 15, 2026 for the quarter that ended September 30, 2026[^5]. | Blake Okonkwo of Cedar Hollow filed on October 15, 2026 for the quarter that ended September 30, 2026[^14]. |
 
 Not found (searched: self-funding or loans, share from small donors, outside spending).
@@ -104,7 +105,7 @@ Not found (searched: self-funding or loans, share from small donors, outside spe
 
 | | Avery Quinn | Blake Okonkwo |
 | --- | --- | --- |
-| Prior offices | Avery Quinn of Cedar Hollow was elected to the city council for a four-year term that began after the 2018 election[^2]. | Not found |
+| Prior offices | The 2018 certificate says the voters elected Avery Quinn of Cedar Hollow, rather than an appointment[^2]. | Not found |
 | Occupation | Before that council term, Avery Quinn of Cedar Hollow worked as a classroom teacher from 2004 through 2018[^3]. | A city personnel notice says the parks director appointed Blake Okonkwo of Cedar Hollow as a parks planner in 2016[^11]. |
 | Education | The State University of Westland registrar says Avery Quinn of Cedar Hollow received a bachelor of arts degree in 2004[^4]. | Westland State College says Blake Okonkwo of Cedar Hollow received a master of public administration degree in 2015[^12]. |
 
@@ -255,7 +256,7 @@ A no vote lets the current parks levy expire after the 2026 tax year[^24]. The c
 
 ### Fiscal impact
 
-The Westland fiscal office note, dated August 1, 2026, estimates 1.2 million dollars a year for parks if the levy passes[^25] (not found: see the search log).
+The Westland fiscal office note, dated August 1, 2026, estimates 1.2 million dollars a year for parks if the levy passes[^25][^31] (not found: see the search log).
 
 ### Vote threshold
 
@@ -362,7 +363,7 @@ No corrections have been issued.
 
 [4] State University of Westland (fictional). "Registrar confirmation letter." Education record, published 2004-05-20. https://fictional.example/suw/registrar/quinn-2004 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Degree line.
 
-[5] Westland campaign finance office (fictional). "Quinn for Cedar committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/quinn-2026-q3 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary page, lines 1 through 4.
+[5] Westland campaign finance office (fictional). "Quinn for Cedar committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/quinn-2026-q3 — Archived: https://fictional.example/archive/quinn-2026-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary page, lines 1 through 4.
 
 [6] Cedar Hollow Clerk (fictional). "Council minutes, June 4, 2024." Meeting minutes, published 2024-06-04. https://fictional.example/cedar-hollow/minutes/2024-06-04 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Vote table, parks budget.
 
@@ -380,7 +381,7 @@ No corrections have been issued.
 
 [13] Cedar Hollow Parks (fictional). "River path project closeout, 2025." Department report, published 2025-12-01. https://fictional.example/cedar-hollow/parks/river-path-2025 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Project lead line.
 
-[14] Westland campaign finance office (fictional). "Okonkwo for Cedar committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/okonkwo-2026-q3 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary page, lines 1 through 4.
+[14] Westland campaign finance office (fictional). "Okonkwo for Cedar committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/okonkwo-2026-q3 — Archived: https://fictional.example/archive/okonkwo-2026-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary page, lines 1 through 4.
 
 [15] Cedar Hollow League of Voters (fictional). "Mayoral questionnaire 2026." Questionnaire, published 2026-09-01. https://fictional.example/ch-league/questionnaire-2026 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Okonkwo answer, parks question.
 
@@ -416,15 +417,17 @@ No corrections have been issued.
 
 [25] Westland fiscal office (fictional). "Measure H fiscal note." Official fiscal note, published 2026-08-01. https://fictional.example/westland-fiscal/measure-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Estimate table.
 
-[26] Westland Elections Code (fictional). "Local levy approval rule." Statute, published 2019-01-01. https://fictional.example/westland-code/levy-threshold — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 4.
+[26] Westland Elections Code (fictional). "Local levy approval rule." Statute, published 2019-01-01. https://fictional.example/westland-code/levy-threshold — Archived: https://fictional.example/archive/levy-threshold. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 4.
 
-[27] Westland campaign finance office (fictional). "Yes on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/yes-on-h-q3 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line.
+[27] Westland campaign finance office (fictional). "Yes on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/yes-on-h-q3 — Archived: https://fictional.example/archive/yes-on-h-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line.
 
-[28] Westland campaign finance office (fictional). "No on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/no-on-h-q3 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line.
+[28] Westland campaign finance office (fictional). "No on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/no-on-h-q3 — Archived: https://fictional.example/archive/no-on-h-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line.
 
 [29] Cedar Hollow pamphlet (fictional). "Official arguments, Measure H." Voter pamphlet, published 2026-09-20. https://fictional.example/oak-county/2026/pamphlet-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Argument for, signature block.
 
 [30] Cedar Hollow pamphlet (fictional). "Official arguments, Measure H." Voter pamphlet, published 2026-09-20. https://fictional.example/oak-county/2026/pamphlet-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Argument against, signature block.
+
+[31] Westland Civic Ledger (fictional). "Parks levy estimate, Measure H." News report, published 2026-08-03. https://fictional.example/westland-ledger/measure-h-estimate — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T2. Locator: Estimate paragraph.
 
 # Marker index
 
@@ -460,6 +463,7 @@ No corrections have been issued.
 | 28 | measure-h.funding.002 |
 | 29 | measure-h.supporters.001 |
 | 30 | measure-h.opponents.001 |
+| 31 | measure-h.fiscal.001 |
 | 32 | race-mayor.contest.001 |
 | 33 | race-mayor.contest.002 |
 | 34 | race-mayor.contest.003 |
@@ -498,7 +502,7 @@ Format: `CL-id | round | finding id | claim id | before -> after | reason | time
 
 [^4]: State University of Westland (fictional). "Registrar confirmation letter." Education record, published 2004-05-20. https://fictional.example/suw/registrar/quinn-2004 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Degree line.
 
-[^5]: Westland campaign finance office (fictional). "Quinn for Cedar committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/quinn-2026-q3 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary page, lines 1 through 4.
+[^5]: Westland campaign finance office (fictional). "Quinn for Cedar committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/quinn-2026-q3 — Archived: https://fictional.example/archive/quinn-2026-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary page, lines 1 through 4.
 
 [^6]: Cedar Hollow Clerk (fictional). "Council minutes, June 4, 2024." Meeting minutes, published 2024-06-04. https://fictional.example/cedar-hollow/minutes/2024-06-04 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Vote table, parks budget.
 
@@ -516,7 +520,7 @@ Format: `CL-id | round | finding id | claim id | before -> after | reason | time
 
 [^13]: Cedar Hollow Parks (fictional). "River path project closeout, 2025." Department report, published 2025-12-01. https://fictional.example/cedar-hollow/parks/river-path-2025 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Project lead line.
 
-[^14]: Westland campaign finance office (fictional). "Okonkwo for Cedar committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/okonkwo-2026-q3 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary page, lines 1 through 4.
+[^14]: Westland campaign finance office (fictional). "Okonkwo for Cedar committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/okonkwo-2026-q3 — Archived: https://fictional.example/archive/okonkwo-2026-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary page, lines 1 through 4.
 
 [^15]: Cedar Hollow League of Voters (fictional). "Mayoral questionnaire 2026." Questionnaire, published 2026-09-01. https://fictional.example/ch-league/questionnaire-2026 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Okonkwo answer, parks question.
 
@@ -540,15 +544,17 @@ Format: `CL-id | round | finding id | claim id | before -> after | reason | time
 
 [^25]: Westland fiscal office (fictional). "Measure H fiscal note." Official fiscal note, published 2026-08-01. https://fictional.example/westland-fiscal/measure-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Estimate table.
 
-[^26]: Westland Elections Code (fictional). "Local levy approval rule." Statute, published 2019-01-01. https://fictional.example/westland-code/levy-threshold — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 4.
+[^26]: Westland Elections Code (fictional). "Local levy approval rule." Statute, published 2019-01-01. https://fictional.example/westland-code/levy-threshold — Archived: https://fictional.example/archive/levy-threshold. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 4.
 
-[^27]: Westland campaign finance office (fictional). "Yes on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/yes-on-h-q3 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line.
+[^27]: Westland campaign finance office (fictional). "Yes on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/yes-on-h-q3 — Archived: https://fictional.example/archive/yes-on-h-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line.
 
-[^28]: Westland campaign finance office (fictional). "No on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/no-on-h-q3 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line.
+[^28]: Westland campaign finance office (fictional). "No on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/no-on-h-q3 — Archived: https://fictional.example/archive/no-on-h-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line.
 
 [^29]: Cedar Hollow pamphlet (fictional). "Official arguments, Measure H." Voter pamphlet, published 2026-09-20. https://fictional.example/oak-county/2026/pamphlet-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Argument for, signature block.
 
 [^30]: Cedar Hollow pamphlet (fictional). "Official arguments, Measure H." Voter pamphlet, published 2026-09-20. https://fictional.example/oak-county/2026/pamphlet-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Argument against, signature block.
+
+[^31]: Westland Civic Ledger (fictional). "Parks levy estimate, Measure H." News report, published 2026-08-03. https://fictional.example/westland-ledger/measure-h-estimate — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T2. Locator: Estimate paragraph.
 
 [^32]: Oak County Elections (fictional). "Sample ballot, Cedar Hollow, November 3, 2026." Official sample ballot, published 2026-09-15. https://fictional.example/oak-county/2026/sample-ballot — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Mayor contest header.
 

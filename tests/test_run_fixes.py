@@ -40,6 +40,16 @@ def test_gap_notes_cannot_smuggle_a_second_clause():
     assert prose_marker_errors("Not found (searched: the clerk; the docket shows a plea).", "draft")
     assert prose_marker_errors("Not found (searched: pages that are official).", "draft")
     assert prose_marker_errors("Not found (searched: congress.gov and the county clerk).", "draft") == []
+    assert prose_marker_errors("None.", "draft") == []
+    assert prose_marker_errors("Not found (searched: county index, the 2019 conviction).", "draft")
+    assert prose_marker_errors("Not found (searched: the 2019 conviction).", "draft")
+    assert (
+        prose_marker_errors(
+            "Not found (searched: fictional Oak County court index, fictional Westland court index, and the candidate filing on 2026-10-20).",
+            "draft",
+        )
+        == []
+    )
 
 
 def test_year_tokens_do_not_count_as_the_year():
@@ -53,7 +63,7 @@ def test_multicast_is_not_a_public_fetch_target():
     assert unsafe_fetch_target("http://[ff02::1]/ballot")
 
 
-def test_confirm_keeps_sample_ballot_pdfs_and_deletes_ballot_photos(tmp_path: Path):
+def test_confirm_deletes_every_private_image_and_pdf(tmp_path: Path):
     init_workspace(tmp_path, "confirm-demo", "household", "2026-10-20 12:00 ET")
     ballot = yaml.safe_load((tmp_path / "ballot.yaml").read_text(encoding="utf-8"))
     ballot["contests"] = [
@@ -67,13 +77,48 @@ def test_confirm_keeps_sample_ballot_pdfs_and_deletes_ballot_photos(tmp_path: Pa
     dump_yaml(tmp_path / "ballot.yaml", ballot)
     private = tmp_path / "private"
     private.mkdir(exist_ok=True)
-    photo = private / "ballot-photo.png"
-    sample = private / "sample-ballot-precinct-122.pdf"
-    photo.write_bytes(b"png")
-    sample.write_bytes(b"%PDF")
+    media = [
+        private / "ballot-photo.png",
+        private / "sample-ballot-precinct-122.pdf",
+        private / "photo.jpg",
+        private / "IMG_2044.jpg",
+    ]
+    for path in media:
+        path.write_bytes(b"img")
+    (private / "address.txt").write_text("PO Box 12\n", encoding="utf-8")
+    (private / "notes.txt").write_text("keep\n", encoding="utf-8")
     assert confirm_ballot(tmp_path, "2026-10-20 12:00 ET") == []
-    assert not photo.exists()
-    assert sample.read_bytes() == b"%PDF"
+    for path in media:
+        assert not path.exists()
+    assert (private / "address.txt").read_text(encoding="utf-8") == "PO Box 12\n"
+    assert (private / "notes.txt").read_text(encoding="utf-8") == "keep\n"
+    intake = yaml.safe_load((tmp_path / "intake.yaml").read_text(encoding="utf-8"))
+    assert intake["ballot_photo_deleted"] is True
+
+    leftover = tmp_path / "leftover"
+    init_workspace(leftover, "confirm-leftover", "household", "2026-10-20 12:00 ET")
+    second = yaml.safe_load((leftover / "ballot.yaml").read_text(encoding="utf-8"))
+    second["contests"] = ballot["contests"]
+    dump_yaml(leftover / "ballot.yaml", second)
+    held = leftover / "private" / "IMG_2044.jpg"
+    held.write_bytes(b"phone")
+    (leftover / "private" / "photo.jpg").write_bytes(b"phone")
+    real_unlink = Path.unlink
+
+    def refuse(self, *args, **kwargs):
+        if self.name == "IMG_2044.jpg":
+            raise OSError("refusing to delete")
+        return real_unlink(self, *args, **kwargs)
+
+    Path.unlink = refuse
+    try:
+        assert confirm_ballot(leftover, "2026-10-20 12:00 ET") == []
+    finally:
+        Path.unlink = real_unlink
+    kept = yaml.safe_load((leftover / "intake.yaml").read_text(encoding="utf-8"))
+    assert kept["ballot_photo_deleted"] is not True
+    assert held.exists()
+    assert not (leftover / "private" / "photo.jpg").exists()
 
 
 def test_pending_archive_is_valid_and_not_a_yes(tmp_path: Path):
@@ -179,6 +224,17 @@ def test_templated_prose_and_headings_are_rejected(tmp_path: Path):
         )
     errors = templated_prose_errors(tmp_path)
     assert any("templated" in error for error in errors)
+    for item_id, name, extra in (
+        ("cand-a", "Avery Quinn", ""),
+        ("cand-b", "Blake Okonkwo", " plus one extra word"),
+    ):
+        (tmp_path / "items" / item_id / "draft.md").write_text(
+            f"# {name}\n\n## Identity\n\n{name} of Cedar Hollow filed a long report on the parks levy and the budget{extra}[^1].\n",
+            encoding="utf-8",
+        )
+    near = templated_prose_errors(tmp_path)
+    assert any("near-copy" in error or "templated" in error for error in near)
+    assert any("cand-b" in error for error in near)
     bare = tmp_path / "items" / "cand-a" / "draft.md"
     bare.write_text("No title here.\n", encoding="utf-8")
     assert any("level-1" in error for error in heading_errors(tmp_path))
@@ -223,7 +279,13 @@ def test_figure_and_number_rules(tmp_path: Path):
     assert any("48200" in error for error in number_quote_errors(tmp_path))
     ballot["fiction"] = True
     dump_yaml(tmp_path / "ballot.yaml", ballot)
-    assert figure_source_errors(tmp_path) == []
+    assert any("second independent" in error for error in figure_source_errors(tmp_path))
+    fiscal = yaml.safe_load((EXAMPLE / "items" / "measure-h" / "claims.yaml").read_text(encoding="utf-8"))
+    figure = next(claim for claim in fiscal["claims"] if claim["id"] == "measure-h.fiscal.001")
+    publishers = {source["publisher"] for source in figure["sources"]}
+    assert len(publishers) >= 2
+    assert any(source.get("archive_failed") is True and not source.get("archive_url") for source in figure["sources"])
+    assert figure_source_errors(EXAMPLE) == []
 
 
 def test_section_anchor_allows_a_later_sentence_and_rejects_a_second_person():
@@ -253,8 +315,10 @@ def test_section_anchor_allows_a_later_sentence_and_rejects_a_second_person():
             }
         ],
     }
-    ok = "# Avery\n\n## Identity\n\nAvery Quinn of Cedar Hollow is the incumbent[^1]. The quarter ended in September[^1].\n"
-    assert semantic_claim_errors(doc, "claims", [record], ok) == []
+    unnamed = "# Avery\n\n## Legal issues\n\nAvery Quinn of Cedar Hollow is the incumbent[^1]. The defendant was convicted of fraud in 2019[^1].\n"
+    unnamed_errors = semantic_claim_errors(doc, "claims", [record], unnamed)
+    assert any("draft sentence" in error for error in unnamed_errors)
+    assert any("does not identify" in error for error in unnamed_errors)
     bad = "# Avery\n\n## Identity\n\nAvery Quinn of Cedar Hollow is the incumbent[^1]. Blake Okonkwo also filed[^1].\n"
     errors = semantic_claim_errors(doc, "claims", [record], bad)
     assert any("draft sentence" in error for error in errors)
@@ -314,6 +378,26 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "{#profile-cand-quinn}" in guide
     assert "[Back to ballot](#your-ballot-at-a-glance)" in guide
     assert "Not found (searched: self-funding or loans, share from small donors, outside spending)." in guide
+    assert "Not found (searched: years in elected office)." in guide
+    assert not any(line.startswith("| Years in elected office |") for line in guide.splitlines())
+    table = {}
+    for line in guide.splitlines():
+        if line.startswith("| ") and line.count("|") >= 4:
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            table[cells[0]] = cells
+    assert "48200 dollars in receipts" in table["Receipts"][1]
+    assert "Cash on hand for Avery Quinn" in table["Cash on hand"][1]
+    assert table["Receipts"][1] != table["Cash on hand"][1]
+    assert "30100 dollars in receipts" in table["Receipts"][2]
+    assert table["Cash on hand"][2] == "Not found"
+    assert "four-year term" in table["Current or most recent office"][1]
+    assert "2018 certificate" in table["Prior offices"][1]
+    assert table["Current or most recent office"][1] != table["Prior offices"][1]
+    quinn_money = next(line for line in guide.splitlines() if line.startswith("| Mayor of Cedar Hollow | Avery Quinn |"))
+    quinn_cells = [cell.strip() for cell in quinn_money.strip().strip("|").split("|")]
+    assert "48200" in quinn_cells[2]
+    assert "Cash on hand for Avery Quinn" in quinn_cells[3]
+    assert quinn_cells[2] != quinn_cells[3]
     assert "# Marker index" in full
     assert "# Changelog" in full
     assert "- cand-quinn:" in full
@@ -347,15 +431,16 @@ def test_archive_fetches_each_url_once_and_skips_the_chrome_wrapper(tmp_path: Pa
             ],
         },
     )
-    calls = []
+    log = tmp_path / "fetch-log.txt"
 
     def fetch(url):
-        calls.append(url)
+        with log.open("a", encoding="utf-8") as handle:
+            handle.write(url + "\n")
         return 200, url, b"<html><body>Fixture</body></html>", "text/html"
 
     code, message = archive_workspace(tmp_path, fetch, "2026-10-20 12:00 ET")
     assert code == 0, message
-    assert calls == ["https://fictional.example/doc"]
+    assert log.read_text(encoding="utf-8").splitlines() == ["https://fictional.example/doc"]
     assert _is_chrome_wrapper("/usr/local/bin/google-chrome") is True
     assert "html-pdf" in estimate_archive_size(2, "html-pdf")
     assert PDF_TIMEOUT_SECONDS == 45
@@ -365,6 +450,114 @@ def test_archive_fetches_each_url_once_and_skips_the_chrome_wrapper(tmp_path: Pa
         assert "timed out" in str(exc).lower() or type(exc).__name__ == "TimeoutExpired"
     else:
         raise AssertionError("sleep was not killed at the timeout")
+
+
+def test_comparison_cell_picks_the_specific_sentence_or_structured_field():
+    from lib.guide_layout import NOT_FOUND_CELL, _COMPARISON_GROUPS, _MONEY_ROWS, _YEARS_IN_OFFICE_RE, _assign_cells
+
+    assert _YEARS_IN_OFFICE_RE.search("a four-year term that began after the election") is None
+    assert _YEARS_IN_OFFICE_RE.search("served 8 years in office")
+    prior = (
+        "Avery Quinn of Cedar Hollow was elected for a four-year term that began after the 2018 election[^2]. "
+        "The 2018 certificate says the voters elected Avery Quinn of Cedar Hollow[^2]."
+    )
+    funding = (
+        "Avery Quinn of Cedar Hollow filed on October 15, 2026 for the quarter that ended September 30, 2026[^5]. "
+        "The summary shows 48200 dollars in receipts and 17200 dollars in cash on hand[^5]. "
+        "Cash on hand for Avery Quinn of Cedar Hollow means money the report still showed[^5]."
+    )
+    only_cash_and_receipts = (
+        "Blake Okonkwo of Cedar Hollow filed the quarter report[^14]. "
+        "The summary shows 30100 dollars in receipts and 11700 dollars in cash on hand[^14]."
+    )
+    rows = [row for _heading, group in _COMPARISON_GROUPS for row in group]
+    quinn = _assign_cells(
+        {
+            "prior offices and public service": ("Prior", prior),
+            "campaign funding": ("Funding", funding),
+        },
+        {},
+        rows,
+    )
+    assert quinn["Years in elected office"] == NOT_FOUND_CELL
+    assert "four-year term" in quinn["Current or most recent office"]
+    assert "certificate" in quinn["Prior offices"]
+    assert quinn["Current or most recent office"] != quinn["Prior offices"]
+    assert "48200" in quinn["Receipts"]
+    assert "means money the report still showed" in quinn["Cash on hand"]
+    assert quinn["Receipts"] != quinn["Cash on hand"]
+    okonkwo = _assign_cells({"campaign funding": ("Funding", only_cash_and_receipts)}, {}, _MONEY_ROWS)
+    assert "30100" in okonkwo["Receipts"]
+    assert okonkwo["Cash on hand"] == NOT_FOUND_CELL
+    structured = _assign_cells(
+        {"campaign funding": ("Funding", funding)},
+        {"money": {"receipts": "Structured receipts are 10 dollars[^9]."}},
+        _MONEY_ROWS,
+    )
+    assert structured["Receipts"].startswith("Structured receipts")
+    assert "means money the report still showed" in structured["Cash on hand"]
+
+
+def test_hung_fetch_worker_is_killed(tmp_path: Path, monkeypatch):
+    import os
+    import time
+
+    from lib import archive as archive_mod
+
+    monkeypatch.setattr(archive_mod, "PAGE_TIMEOUT_SECONDS", 1)
+    init_workspace(tmp_path, "hang-demo", "household", "2026-10-20 12:00 ET")
+    intake = yaml.safe_load((tmp_path / "intake.yaml").read_text(encoding="utf-8"))
+    intake["offline_archive"] = True
+    dump_yaml(tmp_path / "intake.yaml", intake)
+    item = tmp_path / "items" / "measure-h"
+    item.mkdir(parents=True)
+    dump_yaml(
+        item / "claims.yaml",
+        {
+            "item_id": "measure-h",
+            "item_type": "measure",
+            "claims": [
+                {
+                    "id": "measure-h.title.001",
+                    "text": "A measure title.",
+                    "sources": [{"marker": 1, "url": "https://fictional.example/slow", "tier": "T1"}],
+                }
+            ],
+        },
+    )
+
+    def fetch(url):
+        time.sleep(30)
+        return 200, url, b"late", "text/html"
+
+    started = time.monotonic()
+    code, message = archive_mod.archive_workspace(tmp_path, fetch, "2026-10-20 12:00 ET")
+    elapsed = time.monotonic() - started
+    assert elapsed < 8, elapsed
+    assert code == 0, message
+    manifest = (tmp_path / "archive" / "manifest.csv").read_text(encoding="utf-8")
+    assert "page deadline exceeded" in manifest
+    assert archive_mod.last_worker_pids
+    for pid in archive_mod.last_worker_pids:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            continue
+        raise AssertionError(f"fetch worker {pid} is still running")
+
+
+def test_build_sh_times_out_weasyprint():
+    import re
+    import subprocess
+    import time
+
+    script = (ROOT / "scripts" / "build.sh").read_text(encoding="utf-8")
+    assert re.search(r"timeout\s+-k\s+\d+\s+\d+\s+weasyprint", script)
+    assert re.search(r"timeout\s+-k\s+\d+\s+\d+\s+wkhtmltopdf", script)
+    started = time.monotonic()
+    result = subprocess.run(["timeout", "-k", "2", "1", "sleep", "30"], check=False)
+    assert result.returncode != 0
+    assert time.monotonic() - started < 8
 
 
 def test_link_check_fetches_a_url_once():

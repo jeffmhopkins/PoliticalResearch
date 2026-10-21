@@ -33,6 +33,75 @@ PROFILE_LINK_RE = re.compile(r"(?:\.\./|\bitems/)?([a-z0-9][a-z0-9-]*)/draft\.md
 BACK_LINK = "[Back to ballot](#your-ballot-at-a-glance)"
 NOT_FOUND_CELL = "Not found"
 CLAUSE = " (not found: see the search log)"
+# "four-year term" is a term length, not a count of years in office.
+_YEARS_IN_OFFICE_RE = re.compile(
+    r"(?<![\w-])(?:\d+\s+years?\b(?!\s+term)|years?\s+in\s+(?:elected\s+)?office)\b",
+    re.IGNORECASE,
+)
+_RECEIPTS_RE = re.compile(r"\breceipts\b", re.IGNORECASE)
+_CASH_RE = re.compile(r"cash on hand", re.IGNORECASE)
+_SELF_FUND_RE = re.compile(r"self-fund|self fund|loan", re.IGNORECASE)
+_SMALL_DONOR_RE = re.compile(r"small donor|under \$200|\$200", re.IGNORECASE)
+_OUTSIDE_RE = re.compile(r"outside spending|independent expenditure", re.IGNORECASE)
+_REPORT_DATE_RE = re.compile(r"quarter|filed on|report date|as of", re.IGNORECASE)
+_PARTY_RE = re.compile(r"incumbent|challenger|nonpartisan|party", re.IGNORECASE)
+
+
+class _Row:
+    """One comparison row. A patterned row takes the most specific unused sentence."""
+
+    def __init__(self, label: str, section: str, pattern: re.Pattern | None = None, money_key: str | None = None, fallback_first: bool = False):
+        self.label = label
+        self.section = section
+        self.pattern = pattern
+        self.money_key = money_key
+        self.fallback_first = fallback_first
+
+
+_COMPARISON_GROUPS = [
+    (
+        "At a glance",
+        [
+            _Row("Ballot status", "identity", _PARTY_RE, fallback_first=True),
+            _Row("Current or most recent office", "prior offices and public service"),
+            _Row("Years in elected office", "prior offices and public service", _YEARS_IN_OFFICE_RE),
+        ],
+    ),
+    (
+        "Money",
+        [
+            _Row("Receipts", "campaign funding", _RECEIPTS_RE, "receipts"),
+            _Row("Cash on hand", "campaign funding", _CASH_RE, "cash_on_hand"),
+            _Row("Self-funding or loans", "campaign funding", _SELF_FUND_RE, "self_funding"),
+            _Row("Share from small donors", "campaign funding", _SMALL_DONOR_RE, "small_donors"),
+            _Row("Outside spending", "campaign funding", _OUTSIDE_RE, "outside_spending"),
+            _Row("Report date", "campaign funding", _REPORT_DATE_RE, "report_date"),
+        ],
+    ),
+    (
+        "Experience and background",
+        [
+            _Row("Prior offices", "prior offices and public service"),
+            _Row("Occupation", "occupational history"),
+            _Row("Education", "education"),
+        ],
+    ),
+    (
+        "Positions",
+        [_Row("Positions in own words", "positions in own words")],
+    ),
+    (
+        "Record",
+        [
+            _Row("Record", "record vs rhetoric"),
+            _Row("Endorsements", "endorsements"),
+            _Row("Debates and forums", "debates and forums"),
+            _Row("Legal issues", "legal issues"),
+            _Row("Interest-group ratings", "interest-group ratings"),
+        ],
+    ),
+]
+_MONEY_ROWS = [row for heading, rows in _COMPARISON_GROUPS if heading == "Money" for row in rows]
 
 LEVEL_TITLES = {
     "federal": "Federal races",
@@ -298,23 +367,24 @@ class _GuideModel:
             for candidate in _people(contest):
                 item_id = str(candidate.get("item_id") or candidate.get("id"))
                 sections = _section_dict(self._draft(item_id))
-                funding = sections.get("campaign funding", ("", ""))[1]
-                receipts = _matching_cited(funding, re.compile(r"receipt", re.I))
-                cash = _matching_cited(funding, re.compile(r"cash on hand", re.I))
-                report = _matching_cited(funding, re.compile(r"quarter|filed on|report date|as of", re.I))
-                if not receipts and not cash:
+                profile = load_yaml(self.workspace / "items" / item_id / "profile.yaml") or {}
+                cells = _assign_cells(sections, profile if isinstance(profile, dict) else {}, _MONEY_ROWS)
+                receipts = cells["Receipts"]
+                cash = cells["Cash on hand"]
+                report = cells["Report date"]
+                if not _cell_found(receipts) and not _cell_found(cash):
                     missing.append(str(candidate.get("name") or item_id))
                     continue
-                marker_source = receipts or cash or report or ""
+                marker_source = next((cell for cell in (receipts, cash, report) if _cell_found(cell)), "")
                 lines.append(
                     "| "
                     + " | ".join(
                         [
                             _cell(office),
                             _cell(str(candidate.get("name") or item_id)),
-                            _cell(receipts or NOT_FOUND_CELL),
-                            _cell(cash or NOT_FOUND_CELL),
-                            _cell(report or NOT_FOUND_CELL),
+                            _cell(receipts),
+                            _cell(cash),
+                            _cell(report),
                             _cell(_tier_cell(self.index, marker_source)),
                         ]
                     )
@@ -605,57 +675,16 @@ class _GuideModel:
             profile = load_yaml(self.workspace / "items" / item_id / "profile.yaml") or {}
             bundles.append((candidate, sections, profile if isinstance(profile, dict) else {}))
         names = [str(candidate.get("name") or "") for candidate, _sections, _profile in bundles]
-        lines: list[str] = []
-        groups = [
-            (
-                "At a glance",
-                [
-                    ("Ballot status", lambda s, p: _party_sentence(s)),
-                    ("Current or most recent office", lambda s, p: _first_or_not_found(s, "prior offices and public service")),
-                    ("Years in elected office", lambda s, p: _matching_or_not_found(s, "prior offices and public service", re.compile(r"\b(?:year|years|term)\b", re.I))),
-                ],
-            ),
-            (
-                "Money",
-                [
-                    ("Receipts", lambda s, p: _matching_or_not_found(s, "campaign funding", re.compile(r"receipt", re.I))),
-                    ("Cash on hand", lambda s, p: _matching_or_not_found(s, "campaign funding", re.compile(r"cash on hand", re.I))),
-                    ("Self-funding or loans", lambda s, p: _matching_or_not_found(s, "campaign funding", re.compile(r"self-fund|self fund|loan", re.I))),
-                    ("Share from small donors", lambda s, p: _matching_or_not_found(s, "campaign funding", re.compile(r"small donor|under \$200|\$200", re.I))),
-                    ("Outside spending", lambda s, p: _matching_or_not_found(s, "campaign funding", re.compile(r"outside spending|independent expenditure", re.I))),
-                    ("Report date", lambda s, p: _matching_or_not_found(s, "campaign funding", re.compile(r"quarter|filed on|report date|as of", re.I))),
-                ],
-            ),
-            (
-                "Experience and background",
-                [
-                    ("Prior offices", lambda s, p: _first_or_not_found(s, "prior offices and public service")),
-                    ("Occupation", lambda s, p: _first_or_not_found(s, "occupational history")),
-                    ("Education", lambda s, p: _first_or_not_found(s, "education")),
-                ],
-            ),
-            (
-                "Positions",
-                [("Positions in own words", lambda s, p: _first_or_not_found(s, "positions in own words"))],
-            ),
-            (
-                "Record",
-                [
-                    ("Record", lambda s, p: _first_or_not_found(s, "record vs rhetoric")),
-                    ("Endorsements", lambda s, p: _first_or_not_found(s, "endorsements")),
-                    ("Debates and forums", lambda s, p: _first_or_not_found(s, "debates and forums")),
-                    ("Legal issues", lambda s, p: _first_or_not_found(s, "legal issues")),
-                    ("Interest-group ratings", lambda s, p: _first_or_not_found(s, "interest-group ratings")),
-                ],
-            ),
-        ]
+        all_rows = [row for _heading, rows in _COMPARISON_GROUPS for row in rows]
+        assigned = [_assign_cells(sections, profile, all_rows) for _candidate, sections, profile in bundles]
         extra_issues = _shared_issue_keys(bundles)
         lines_out: list[str] = []
-        for heading, specs in groups:
+        for heading, specs in _COMPARISON_GROUPS:
             rows = []
             dropped = []
-            for label, getter in specs:
-                cells = [getter(sections, profile) for _candidate, sections, profile in bundles]
+            for spec in specs:
+                label = spec.label
+                cells = [cells_for[label] for cells_for in assigned]
                 if cells and all(cell == NOT_FOUND_CELL for cell in cells):
                     dropped.append(label.lower())
                     continue
@@ -1227,6 +1256,99 @@ def _first_cited(body: str) -> str | None:
     return sentences[0] if sentences else None
 
 
+def _cell_found(cell: str) -> bool:
+    return bool(cell) and cell != NOT_FOUND_CELL
+
+
+def _sentence_key(sentence: str) -> str:
+    plain = MARKER_RE.sub("", sentence or "")
+    return re.sub(r"\s+", " ", plain).strip().lower()
+
+
+def _structured_cell(profile: dict, row: _Row) -> str | None:
+    """A cited profile.yaml value beats a prose sentence for this row."""
+    if not isinstance(profile, dict):
+        return None
+    candidates = []
+    money = profile.get("money") if isinstance(profile.get("money"), dict) else {}
+    if row.money_key and str(money.get(row.money_key) or "").strip():
+        candidates.append(str(money.get(row.money_key)))
+    fields = profile.get("fields") if isinstance(profile.get("fields"), dict) else {}
+    if str(fields.get(row.label) or "").strip():
+        candidates.append(str(fields.get(row.label)))
+    for text in candidates:
+        cleaned = re.sub(r"\s+", " ", text).strip()
+        if "[^" in cleaned:
+            return cleaned
+    return None
+
+
+def _row_options(row: _Row, sections: dict, used: set[str], *, ignore_pattern: bool = False) -> list[str]:
+    found = sections.get(row.section)
+    body = found[1] if found else ""
+    options = []
+    for sentence in _cited_sentences(body):
+        key = _sentence_key(sentence)
+        if not key or key in used:
+            continue
+        if row.pattern is not None and not ignore_pattern and not row.pattern.search(MARKER_RE.sub("", sentence)):
+            continue
+        options.append(sentence)
+    return options
+
+
+def _assign_cells(sections: dict, profile: dict, rows: list[_Row]) -> dict[str, str]:
+    """Give each row its own fact.
+
+    A cited structured field wins. Otherwise the row gets the unused cited
+    sentence that matches the fewest other row patterns, then the shortest.
+    The same sentence is not placed in two rows. Patterned rows are filled
+    first, in list order, so a shared receipts-and-cash sentence stays on
+    Receipts and Cash on hand becomes Not found.
+    """
+    used: set[str] = set()
+    assigned: dict[str, str] = {}
+
+    def take(label: str, sentence: str) -> None:
+        assigned[label] = sentence
+        key = _sentence_key(sentence)
+        if key:
+            used.add(key)
+
+    for row in rows:
+        structured = _structured_cell(profile, row)
+        if structured and _sentence_key(structured) not in used:
+            take(row.label, structured)
+
+    patterned = [row for row in rows if row.pattern is not None and row.label not in assigned]
+    plain = [row for row in rows if row.pattern is None and row.label not in assigned]
+
+    def specificity(sentence: str) -> tuple[int, int]:
+        plain_text = MARKER_RE.sub("", sentence)
+        overlap = sum(1 for other in rows if other.pattern is not None and other.pattern.search(plain_text))
+        return (overlap, len(sentence))
+
+    for row in patterned:
+        options = _row_options(row, sections, used)
+        if not options and row.fallback_first:
+            options = _row_options(row, sections, used, ignore_pattern=True)
+        if not options:
+            assigned[row.label] = NOT_FOUND_CELL
+            continue
+        # Fewest other row patterns, then the shortest sentence.
+        take(row.label, min(options, key=specificity))
+    for row in plain:
+        options = _row_options(row, sections, used)
+        if not options:
+            assigned[row.label] = NOT_FOUND_CELL
+            continue
+        # Document order: the first unused cited sentence in the section.
+        take(row.label, options[0])
+    for row in rows:
+        assigned.setdefault(row.label, NOT_FOUND_CELL)
+    return assigned
+
+
 def _matching_cited(body: str, pattern: re.Pattern) -> str | None:
     for sentence in _cited_sentences(body):
         if pattern.search(MARKER_RE.sub("", sentence)):
@@ -1240,21 +1362,6 @@ def _first_or_not_found(sections: dict, name: str) -> str:
         return NOT_FOUND_CELL
     sentence = _first_cited(found[1])
     return sentence or NOT_FOUND_CELL
-
-
-def _matching_or_not_found(sections: dict, name: str, pattern: re.Pattern) -> str:
-    found = sections.get(name)
-    if not found:
-        return NOT_FOUND_CELL
-    return _matching_cited(found[1], pattern) or NOT_FOUND_CELL
-
-
-def _party_sentence(sections: dict) -> str:
-    found = sections.get("identity")
-    if not found:
-        return NOT_FOUND_CELL
-    matched = _matching_cited(found[1], re.compile(r"incumbent|challenger|nonpartisan|party", re.I))
-    return matched or _first_cited(found[1]) or NOT_FOUND_CELL
 
 
 def _shared_issue_keys(bundles: list) -> list[str]:

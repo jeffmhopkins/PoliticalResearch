@@ -135,6 +135,20 @@ claims:
     locator: Estimate table
     quote: The note estimates 1.2 million dollars a year for parks if the levy passes.
     confidence: verified
+  - marker: 31
+    url: https://fictional.example/westland-ledger/measure-h-estimate
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland Civic Ledger (fictional)
+    title: Parks levy estimate, Measure H
+    doc_type: News report
+    published: '2026-08-03'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T2
+    locator: Estimate paragraph
+    quote: The note estimates 1.2 million dollars a year for parks if the levy passes.
+    confidence: verified
   confidence: verified
   drives_summary: true
   polarity: neutral
@@ -147,8 +161,8 @@ claims:
   sources:
   - marker: 26
     url: https://fictional.example/westland-code/levy-threshold
-    archive_url: null
-    archive_failed: true
+    archive_url: https://fictional.example/archive/levy-threshold
+    archive_failed: false
     archive_failed_reason: Fictional example; no live document exists.
     publisher: Westland Elections Code (fictional)
     title: Local levy approval rule
@@ -170,8 +184,8 @@ claims:
   sources:
   - marker: 27
     url: https://fictional.example/westland-finance/yes-on-h-q3
-    archive_url: null
-    archive_failed: true
+    archive_url: https://fictional.example/archive/yes-on-h-q3
+    archive_failed: false
     archive_failed_reason: Fictional example; no live document exists.
     publisher: Westland campaign finance office (fictional)
     title: Yes on H committee, quarter ending September 30, 2026
@@ -195,8 +209,8 @@ claims:
   sources:
   - marker: 28
     url: https://fictional.example/westland-finance/no-on-h-q3
-    archive_url: null
-    archive_failed: true
+    archive_url: https://fictional.example/archive/no-on-h-q3
+    archive_failed: false
     archive_failed_reason: Fictional example; no live document exists.
     publisher: Westland campaign finance office (fictional)
     title: No on H committee, quarter ending September 30, 2026

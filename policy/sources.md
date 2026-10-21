@@ -30,7 +30,7 @@ A claim about a person must match at least two anchor attributes (name plus fili
 
 The fact-check reviewer verifies identity on every negative claim. The anchor must appear in the claim text and in the draft section that carries the marker. It does not have to be repeated in every sentence of that section. A sentence that names a different person still fails.
 
-A verified dollar or vote total needs a T1 source or two independent publishers. If the only source is a T1 filing that could not be archived, add a second independent source. A `fiction: true` practice ballot is the exception to that archive rule. It is not an exception to the T1-or-two-publishers rule.
+A verified dollar or vote total needs a T1 source or two independent publishers. If the only source is a T1 filing that could not be archived, add a second independent source. A `fiction: true` practice ballot does not waive that archive rule, and it is not an exception to the T1-or-two-publishers rule.
 
 ## Florida and other source traps
 

@@ -6,7 +6,7 @@ The guide describes the ballot. It does not choose a side.
 
 - Every candidate in a race gets the same sections, the same questions, and a comparable search budget.
 - A missing fact is `Not found (searched: ...)`, not a blank and not a guess.
-- `scripts/symmetry_check.py` fails the item when a core section is missing, when effort is under 80 percent of the race maximum, or when cited words in a substantive section fall below half the race median. Gap text does not count toward that length. An explanation does not waive a miss. The same section text with only the name swapped fails even when the word count matches.
+- `scripts/symmetry_check.py` fails the item when a core section is missing, when effort is under 80 percent of the race maximum, or when cited words in a substantive section fall below half the race median. Gap text does not count toward that length. An explanation does not waive a miss. The same section text with only the name swapped fails even when the word count matches. A near-copy of that text fails too.
 - Measure and bill arguments are close in length. A side that is only a gap is not padded to match the other side. Each candidate gets one "strongest case" sentence of similar length, tied to the record, with no praise or attack wording.
 
 ## Reader layout
@@ -16,9 +16,9 @@ The draft keeps every core heading. The reader edition of the guide may collapse
 - **R1.** Omit always-empty template sections from the reader. That is the sources, changelog, and findings stubs, plus Write-in, Withdrawn, and Uncontested when the text is "None." or the race is contested. The drafts keep those headings.
 - **R2.** Collapse a profile's empty fields into one line, `Not found (searched: field, field).` Put each search path in the search log.
 - **R3.** When a comparison row is empty for every candidate, drop the row and add one race-level gap sentence. That is symmetric by construction.
-- **R4.** When a field is found for some candidates, keep the row. Empty cells say `Not found`. Do not hide the row.
+- **R4.** When a field is found for some candidates, keep the row. Empty cells say `Not found`. Do not hide the row. Each cell holds the fact for that row: a cited structured field when `profile.yaml` has one, otherwise the most specific unused cited sentence. The same sentence is not copied into a second row. A term length such as "four-year term" is not years in elected office.
 - **R5.** Fold a gap that follows real text into the last cited sentence as `(not found: see the search log)`. The path goes to the search log.
-- **R6.** A person-claim's identity anchor is required in the claim text and once in the draft section that carries the marker. A sentence that names a different person still fails.
+- **R6.** Every sentence that carries a claim marker about a person must itself be tied to that person's identity record. The checker accepts the sentence when it contains two anchor values from the record, including a name or filing id, or when the sentence itself contains a distinguishing name or filing id from that record. An unnamed sentence such as "The defendant was convicted" fails. A sentence that names a different person fails. The claim text still needs two anchor values from one identity record.
 - **R7.** When `profile.yaml` exists, symmetry also checks that file: the same issue keys, the same money `report_date`, and the same `fields` map. Rendered prose is not the only check.
 
 Issue rows come from issues at least two candidates addressed in their own words. Every candidate gets that row. Sort candidates and offices in ballot order. Do not sort by party, money, or any score.

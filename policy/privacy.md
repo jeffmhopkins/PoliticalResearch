@@ -4,7 +4,7 @@
 
 - A street address, ballot photo, email, and phone number go only in `output/<election-id>/private/`. That directory is `private/` inside the election workspace. `address_location: private/address.txt` is relative to the workspace. Do not put a voter's address in a `private/` folder at the repo root.
 - `intake.yaml` stores a label, jurisdiction words such as county and city, and `address_location: private/address.txt`. It does not store the address.
-- Delete ballot images after the contest list is extracted. `scripts/intake.py confirm` deletes files in the workspace `private/` whose names start with `ballot` and whose suffix is a photo or PDF. It leaves a file such as `sample-ballot-precinct-122.pdf` in place.
+- Delete ballot images after the contest list is extracted. `scripts/intake.py confirm` deletes every image and PDF under the workspace `private/`, whatever the file name. A phone photo such as `IMG_2044.jpg` and a sample-ballot PDF are both removed. `address.txt` and other non-image files stay. `ballot_photo_deleted` is set only when every image and PDF is gone. A symlink that points outside `private/` blocks confirmation and leaves that flag unset.
 - Do not commit `output/` or `private/`. Do not paste requester data into issues, commits, the guide, `versions/`, or the source archive.
 
 ## Candidates and other people

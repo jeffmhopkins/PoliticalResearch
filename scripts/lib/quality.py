@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 import re
 from datetime import date
 from urllib.parse import quote
@@ -21,6 +22,14 @@ _GAP_CLAUSE_RE = re.compile(
     r"convicted|guilty|sentenced|alleged|accused|indicted|arrested|admitted|pleaded|pled)\b",
     re.IGNORECASE,
 )
+# A comma-separated place list is allowed. An allegation noun is not, even without a verb.
+_GAP_ALLEGATION_RE = re.compile(
+    r"\b(?:convictions?|convicted|frauds?|indictments?|indicted|felon(?:y|ies)|misdemeanors?|"
+    r"bribery|bribes?|scandals?|misconduct|allegations?|accused|defendants?|"
+    r"crimes?|criminals?|lawsuits?)\b",
+    re.IGNORECASE,
+)
+NEAR_COPY_RATIO = 0.85
 _FOREIGN_NAME_RE = re.compile(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b")
 _FIGURE_RE = re.compile(
     r"\b(?:dollars?|receipts?|disbursements?|\$|votes?\s+cast|vote\s+total|cash\s+on\s+hand)\b",
@@ -292,15 +301,15 @@ def _marker_sentences(draft: str, markers: list[int]) -> list[str]:
     return sentences
 
 
-def _draft_sections(draft: str) -> list[str]:
-    """Bodies split on headings, including the preamble before the first heading."""
-    parts: list[list[str]] = [[]]
-    for line in HTML_COMMENT_RE.sub("", draft or "").splitlines():
-        if _heading(line):
-            parts.append([line])
-        else:
-            parts[-1].append(line)
-    return ["\n".join(lines) for lines in parts if any(line.strip() for line in lines)]
+def _sentence_identifies(sentence: str, record: dict) -> bool:
+    """The sentence itself names this record, not merely the section around it."""
+    if anchors_identify_person(record, sentence):
+        return True
+    plain = MARKER_RE.sub("", sentence)
+    for value, distinguishing in anchor_entries(record):
+        if distinguishing and _value_on_word_boundary(value, plain):
+            return True
+    return False
 
 
 def _foreign_name(sentence: str, record: dict) -> bool:
@@ -390,26 +399,19 @@ def semantic_claim_errors(doc: dict, label: str, identities: list | None = None,
                         f"{label}: {cid} draft sentence carrying the marker does not contain two anchor values from one identity.yaml record, including a name or filing id"
                     )
                 else:
-                    # The anchor is required once in the section that carries the marker.
-                    # A marker sentence that names a different person still fails.
-                    sections = [part for part in _draft_sections(draft) if any(f"[^{marker}]" in part for marker in markers)]
-                    if not sections:
-                        sections = sentences
-                    if not any(
-                        any(anchors_identify_person(record, section) for record in eligible) for section in sections
-                    ):
-                        shown = ", ".join(str(marker) for marker in markers)
-                        errors.append(
-                            f"{label}: {cid} draft sentence carrying the marker sits in a section that does not contain two anchor values from one identity.yaml record, including a name or filing id (markers {shown})"
-                        )
+                    # Every marker sentence has to name this record. A later unnamed
+                    # sentence in an anchored section still fails.
                     for sentence in sentences:
-                        if any(anchors_identify_person(record, sentence) for record in eligible):
+                        if any(_sentence_identifies(sentence, record) for record in eligible):
                             continue
                         if any(_foreign_name(sentence, record) for record in eligible):
                             errors.append(
                                 f"{label}: {cid} draft sentence carrying the marker names a different person than identity.yaml"
                             )
-                            break
+                            continue
+                        errors.append(
+                            f"{label}: {cid} draft sentence carrying the marker does not identify the person in identity.yaml"
+                        )
         tiers = []
         publishers = []
         markers = []
@@ -548,6 +550,8 @@ def _gap_sentence(sentence: str) -> bool:
     if any(char in inner for char in ";:!"):
         return False
     if _GAP_CLAUSE_RE.search(inner):
+        return False
+    if _GAP_ALLEGATION_RE.search(inner):
         return False
     # A space after a dot is a second sentence. A capital glued to the dot is too.
     # A lowercase letter after the dot is a hostname, such as congress.gov.
@@ -1229,11 +1233,9 @@ def figure_source_errors(workspace) -> list[str]:
     """Dollar and vote totals need a T1 filing or two independent sources.
 
     A verified figure whose only source could not be archived needs a second
-    independent source, except on a fiction: true practice ballot.
+    independent source. A fiction: true practice ballot does not waive that.
     """
     errors = []
-    ballot = load_yaml(workspace / "ballot.yaml") or {}
-    fiction = isinstance(ballot, dict) and ballot.get("fiction") is True
     for item in iter_items(workspace):
         doc = load_yaml(item / "claims.yaml") or {}
         if not isinstance(doc, dict):
@@ -1264,7 +1266,6 @@ def figure_source_errors(workspace) -> list[str]:
                 and len(publishers) < 2
                 and failed
                 and not archived
-                and not fiction
             ):
                 errors.append(
                     f"{item.name}: {claim.get('id')} is a verified figure whose filing was not archived and needs a second independent source"
@@ -1282,7 +1283,7 @@ def _normalized_prose(text: str, names: list[str]) -> str:
 
 
 def templated_prose_errors(workspace) -> list[str]:
-    """Identical section text with only the name swapped does not satisfy symmetry."""
+    """Name-swapped section text, including a near-copy, does not satisfy symmetry."""
     errors = []
     ballot = load_yaml(workspace / "ballot.yaml") or {}
     if not isinstance(ballot, dict):
@@ -1292,7 +1293,7 @@ def templated_prose_errors(workspace) -> list[str]:
             continue
         candidates = [c for c in contest.get("candidates") or [] if isinstance(c, dict) and not c.get("write_in")]
         names = [str(c.get("name") or "") for c in candidates]
-        seen: dict[tuple[str, str], str] = {}
+        by_section: dict[str, list[tuple[str, str]]] = {}
         for candidate in candidates:
             item_id = str(candidate.get("item_id") or candidate.get("id"))
             draft_path = workspace / "items" / item_id / "draft.md"
@@ -1303,14 +1304,19 @@ def templated_prose_errors(workspace) -> list[str]:
                 body = sections.get(name, "")
                 if _is_gap_text(body) or _cited_word_count(body) < 12:
                     continue
-                key = (name, _normalized_prose(body, names))
-                previous = seen.get(key)
-                if previous:
+                by_section.setdefault(name, []).append((item_id, _normalized_prose(body, names)))
+        for name, bodies in by_section.items():
+            for index, (item_id, text) in enumerate(bodies):
+                for previous_id, previous_text in bodies[:index]:
+                    if not text or not previous_text:
+                        continue
+                    ratio = difflib.SequenceMatcher(None, previous_text, text).ratio()
+                    if ratio < NEAR_COPY_RATIO:
+                        continue
+                    relation = "repeats" if text == previous_text else "is a near-copy of"
                     errors.append(
-                        f"{contest.get('id')}: section '{name}' for {item_id} repeats the templated text used for {previous}"
+                        f"{contest.get('id')}: section '{name}' for {item_id} {relation} the templated text used for {previous_id}"
                     )
-                else:
-                    seen[key] = item_id
     return errors
 
 

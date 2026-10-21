@@ -47,7 +47,7 @@ Policies in `policy/` are binding. If this file and a policy disagree, the stric
 
 # Do not game the gates
 
-Do not write the same sentences for every candidate, with only the name swapped, to pass a length check. `templated_prose_errors` rejects that. Do not pad a gap, and do not drop sources to make the archive smaller. A missing fact stays `Not found (searched: ...)`. A verified dollar or vote total needs a T1 filing or two independent sources. When that filing was not archived, a second independent source is required unless the ballot is marked `fiction: true`. Cutting a source to shrink the archive does not satisfy the gate.
+Do not write the same sentences for every candidate, with only the name swapped, to pass a length check. A near-copy fails the same check. `templated_prose_errors` rejects both. Do not pad a gap, and do not drop sources to make the archive smaller. A missing fact stays `Not found (searched: ...)`. A verified dollar or vote total needs a T1 filing or two independent sources. When that filing was not archived, a second independent source is required. A `fiction: true` practice ballot does not waive that. Cutting a source to shrink the archive does not satisfy the gate.
 
 A cloud VM snapshot can be an old commit. Before research, `git fetch origin main` and fast-forward. Do not treat the snapshot as the latest tree.
 

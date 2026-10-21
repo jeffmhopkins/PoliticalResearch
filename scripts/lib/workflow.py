@@ -224,9 +224,13 @@ def _resolves_inside(path: Path, root: Path) -> bool:
     return True
 
 
-def _is_ballot_photo_name(name: str) -> bool:
-    """Requester ballot photos use a ballot prefix. Official sample-ballot PDFs do not."""
-    return Path(name).name.lower().startswith("ballot")
+_PRIVATE_MEDIA_SUFFIXES = {".jpg", ".jpeg", ".png", ".heic", ".pdf", ".webp", ".gif", ".tif", ".tiff"}
+
+
+def _is_private_media(path: Path, target_suffix: str = "") -> bool:
+    """Every image and PDF under private/ is a ballot photo, whatever its file name."""
+    suffix = path.suffix.lower()
+    return suffix in _PRIVATE_MEDIA_SUFFIXES or target_suffix in _PRIVATE_MEDIA_SUFFIXES
 
 
 def _private_html_address_warning(private: Path) -> str | None:
@@ -250,13 +254,14 @@ def _private_html_address_warning(private: Path) -> str | None:
 
 
 def _delete_ballot_images(workspace: Path) -> str:
-    """Delete ballot photos under private/.
+    """Delete every image and PDF under private/.
 
-    Returns ``ok``, ``stuck`` when a ballot photo could not be removed, or
-    ``symlink`` when a link points outside private/. Only ``symlink`` blocks confirmation.
+    Returns ``ok`` when none remain, ``stuck`` when one could not be removed,
+    or ``symlink`` when a link points outside private/. Only ``symlink`` blocks
+    confirmation. The caller sets ``ballot_photo_deleted`` only after ``ok``.
+    ``address.txt`` and other non-image files stay.
     """
     private = workspace / "private"
-    suffixes = {".jpg", ".jpeg", ".png", ".heic", ".pdf", ".webp", ".gif", ".tif", ".tiff"}
     if private.is_symlink():
         return "symlink"
     if not private.is_dir():
@@ -274,21 +279,20 @@ def _delete_ballot_images(workspace: Path) -> str:
         for filename in filenames:
             entry = root_path / filename
             try:
-                is_link = entry.is_symlink()
                 target_suffix = ""
-                if is_link:
+                if entry.is_symlink():
                     try:
                         target_suffix = entry.resolve(strict=False).suffix.lower()
                     except (OSError, RuntimeError):
                         symlink_hit = True
                         continue
-                    if not _resolves_inside(entry, private) and target_suffix not in suffixes and entry.suffix.lower() not in suffixes:
+                    inside = _resolves_inside(entry, private)
+                    if not inside and not _is_private_media(entry, target_suffix):
                         continue
-                    if not _resolves_inside(entry, private):
+                    if not inside:
                         symlink_hit = True
                         continue
-                name_matches = _is_ballot_photo_name(entry.name)
-                if name_matches and (entry.suffix.lower() in suffixes or target_suffix in suffixes):
+                if _is_private_media(entry, target_suffix):
                     try:
                         entry.unlink()
                     except OSError:
@@ -305,16 +309,16 @@ def _delete_ballot_images(workspace: Path) -> str:
                 return "symlink"
         for filename in filenames:
             entry = root_path / filename
-            if not _is_ballot_photo_name(entry.name):
-                continue
-            if entry.suffix.lower() in suffixes:
-                return "stuck"
+            target_suffix = ""
             if entry.is_symlink():
                 try:
-                    if entry.resolve(strict=False).suffix.lower() in suffixes:
-                        return "stuck"
+                    if not _resolves_inside(entry, private):
+                        return "symlink"
+                    target_suffix = entry.resolve(strict=False).suffix.lower()
                 except (OSError, RuntimeError):
                     return "symlink"
+            if _is_private_media(entry, target_suffix):
+                return "stuck"
     return "ok"
 
 

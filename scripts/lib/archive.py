@@ -11,12 +11,14 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import multiprocessing
 import os
+import pickle
 import shutil
 import signal
 import subprocess
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
+import time
 from pathlib import Path
 
 from lib.quality import iter_claim_sources, source_marker, wayback_api_url
@@ -56,6 +58,11 @@ BROWSERS = (
 PDF_TIMEOUT_SECONDS = 45
 SCREENSHOT_TIMEOUT_SECONDS = 15
 PAGE_TIMEOUT_SECONDS = 60
+# Set in the parent before fork so a test closure does not have to be pickled.
+_ACTIVE_FETCH = None
+_ACTIVE_WAYBACK = None
+# Pids started by the most recent capture, so a test can see that a hung worker died.
+last_worker_pids: list[int] = []
 
 
 def estimate_archive_size(source_count: int, tier: str = "html-pdf") -> str:
@@ -184,31 +191,90 @@ def _collect_jobs(workspace: Path) -> list[tuple]:
     return jobs
 
 
+def _worker_main(url: str, dest: str) -> None:
+    """Run one fetch in a forked process the parent can kill."""
+    try:
+        payload = _fetch_one(url, _ACTIVE_FETCH, _ACTIVE_WAYBACK)
+    except Exception as exc:  # noqa: BLE001
+        payload = {"error": f"capture_failed: {exc}", "body": None, "status": None, "final_url": ""}
+    Path(dest).write_bytes(pickle.dumps(payload, protocol=pickle.HIGHEST_PROTOCOL))
+
+
+def _read_worker_payload(dest: str) -> dict:
+    try:
+        payload = pickle.loads(Path(dest).read_bytes())
+    except Exception as exc:  # noqa: BLE001
+        return {"error": f"capture_failed: {exc}", "body": None, "status": None}
+    if not isinstance(payload, dict):
+        return {"error": "capture_failed: bad capture payload", "body": None, "status": None}
+    return payload
+
+
 def _capture_urls(jobs, fetch, *, workers: int, wayback) -> dict[str, dict]:
+    """Fetch each URL in its own process and kill the process at the page deadline.
+
+    A thread pool's timeout only stops waiting. The worker keeps running, and
+    leaving the pool waits for it. Forked processes can be killed. The fetch
+    callable is stored on a module global before the fork so a test closure
+    does not have to be pickled.
+    """
+    global _ACTIVE_FETCH, _ACTIVE_WAYBACK, last_worker_pids
     urls = []
     for _item, _doc, _claim, _source, _marker, url in jobs:
         if url and url not in urls:
             urls.append(url)
     cache: dict[str, dict] = {}
-
-    def _one(url: str) -> tuple[str, dict]:
-        return url, _fetch_one(url, fetch, wayback)
-
+    last_worker_pids = []
     if not urls:
         return cache
+    _ACTIVE_FETCH = fetch
+    _ACTIVE_WAYBACK = wayback
+    ctx = multiprocessing.get_context("fork")
     pool = max(1, min(int(workers or 1), 8, len(urls)))
-    if pool == 1:
-        for url in urls:
-            cache[url] = _fetch_one(url, fetch, wayback)
-        return cache
-    with ThreadPoolExecutor(max_workers=pool) as executor:
-        futures = [executor.submit(_one, url) for url in urls]
-        for future in futures:
-            try:
-                url, payload = future.result(timeout=PAGE_TIMEOUT_SECONDS)
-            except Exception as exc:  # noqa: BLE001
+    pending = list(urls)
+    inflight: list[dict] = []
+
+    def launch(url: str) -> dict:
+        fd, dest = tempfile.mkstemp(prefix="pr-fetch-", suffix=".pkl")
+        os.close(fd)
+        proc = ctx.Process(target=_worker_main, args=(url, dest))
+        proc.start()
+        if proc.pid:
+            last_worker_pids.append(proc.pid)
+        return {"url": url, "proc": proc, "dest": dest, "started": time.monotonic()}
+
+    def finish(job: dict, payload: dict) -> None:
+        cache[job["url"]] = payload
+        try:
+            os.unlink(job["dest"])
+        except OSError:
+            pass
+
+    while pending and len(inflight) < pool:
+        inflight.append(launch(pending.pop(0)))
+    while inflight:
+        still = []
+        for job in inflight:
+            proc = job["proc"]
+            elapsed = time.monotonic() - job["started"]
+            if proc.is_alive() and elapsed < PAGE_TIMEOUT_SECONDS:
+                proc.join(timeout=min(0.2, PAGE_TIMEOUT_SECONDS - elapsed))
+                elapsed = time.monotonic() - job["started"]
+            if proc.is_alive() and elapsed >= PAGE_TIMEOUT_SECONDS:
+                proc.kill()
+                proc.join(timeout=5)
+                finish(
+                    job,
+                    {"error": "capture_failed: page deadline exceeded", "body": None, "status": None},
+                )
                 continue
-            cache[url] = payload
+            if proc.is_alive():
+                still.append(job)
+                continue
+            finish(job, _read_worker_payload(job["dest"]))
+        while pending and len(still) < pool:
+            still.append(launch(pending.pop(0)))
+        inflight = still
     for url in urls:
         cache.setdefault(url, {"error": "capture_failed: page deadline exceeded", "body": None, "status": None})
     return cache

@@ -86,9 +86,9 @@ build_one() {
   )
   "$PY" "$ROOT/scripts/a11y_check.py" "$html_out"
   if command -v weasyprint >/dev/null 2>&1; then
-    weasyprint "$html_out" "$pdf_out"
+    timeout -k 15 120 weasyprint "$html_out" "$pdf_out"
   elif command -v wkhtmltopdf >/dev/null 2>&1; then
-    wkhtmltopdf "$html_out" "$pdf_out"
+    timeout -k 15 120 wkhtmltopdf "$html_out" "$pdf_out"
   else
     echo "No PDF engine found. HTML is at $html_out" >&2
   fi

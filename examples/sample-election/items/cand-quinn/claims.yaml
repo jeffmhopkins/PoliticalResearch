@@ -113,8 +113,8 @@ claims:
   sources:
   - marker: 5
     url: https://fictional.example/westland-finance/quinn-2026-q3
-    archive_url: null
-    archive_failed: true
+    archive_url: https://fictional.example/archive/quinn-2026-q3
+    archive_failed: false
     archive_failed_reason: Fictional example; no live document exists.
     publisher: Westland campaign finance office (fictional)
     title: Quinn for Cedar committee, quarter ending September 30, 2026
