@@ -1394,7 +1394,7 @@ class _GuideModel:
             [
                 "> **Not an official ballot and not voting instructions:** confirm contests, deadlines, and polling places with the election office linked in the guide.",
                 "",
-                "# Works cited {.back-matter}",
+                "# Works cited {.back-matter .sources-title}",
                 "",
                 "Each marker in the guide links to an entry here. Each entry links back. "
                 "Quotes are the archived words. The search log lists places that were checked.",

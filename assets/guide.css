@@ -187,14 +187,31 @@ p { margin: 0.45rem 0 0.7rem; }
 
 #TOC a { color: var(--ink); }
 
-/* Section openers */
+/* Running header. The section is the first heading on the page.
+   The contest is the latest race or measure, so a continued page keeps its name. */
 
-h1.guide-title,
-h1.ballot-glance,
-h1.ballot-group,
-h1.back-matter,
-h2.contest-title {
-  string-set: running content();
+h1 { string-set: section content(), contest ""; }
+
+.cover h1 { string-set: none; }
+
+h1.guide-title { string-set: section "Voter guide", contest ""; }
+
+h1.ballot-glance { string-set: section "Ballot at a glance", contest ""; }
+
+h1.sources-title { string-set: section "Sources", contest ""; }
+
+#toc-title { string-set: section "Contents", contest ""; }
+
+h2.contest-title { string-set: contest content(); }
+
+h2.source-group { string-set: section "Sources", contest content(); }
+
+a.runhead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
 }
 
 h1.ballot-glance { break-before: page; page-break-before: always; }
@@ -207,6 +224,7 @@ h2.contest-title {
   font-size: 1.45rem;
   padding-top: 0.15rem;
   bookmark-level: 2;
+  string-set: contest content();
 }
 
 h1.ballot-group + h2.contest-title {
@@ -429,12 +447,31 @@ footer {
 
 @page {
   size: letter portrait;
-  margin: 0.68in 0.65in 0.7in 0.65in;
+  margin: 0.74in 0.65in 0.68in 0.65in;
+  @top-center {
+    content: element(runhead);
+    width: 100%;
+  }
   @top-left {
-    content: string(running);
+    content: string(section, first);
     font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
     font-size: 9pt;
-    color: #44403c;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: #5c564e;
+    width: 38%;
+    vertical-align: bottom;
+    padding-bottom: 1pt;
+  }
+  @top-right {
+    content: string(contest, last) "  " counter(page);
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-size: 9pt;
+    color: #5c564e;
+    width: 62%;
+    text-align: right;
+    vertical-align: bottom;
+    padding-bottom: 1pt;
   }
   @bottom-left {
     content: "Not an official ballot";
@@ -442,12 +479,7 @@ footer {
     font-size: 9pt;
     color: #44403c;
   }
-  @bottom-right {
-    content: counter(page);
-    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
-    font-size: 9pt;
-    color: #1c1917;
-  }
+  @bottom-right { content: none; }
 }
 
 @page cover {
@@ -464,52 +496,76 @@ footer {
 
 @page toc {
   size: letter portrait;
-  margin: 0.7in 0.7in 0.72in;
+  margin: 0.74in 0.7in 0.68in;
+  @top-center {
+    content: element(runhead);
+    width: 100%;
+  }
   @top-left {
-    content: "Contents";
+    content: string(section, first);
     font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
     font-size: 9pt;
-    color: #44403c;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: #5c564e;
+    width: 38%;
+    vertical-align: bottom;
+    padding-bottom: 1pt;
   }
-  @top-center { content: none; }
-  @top-right { content: none; }
+  @top-right {
+    content: string(contest, last) "  " counter(page);
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-size: 9pt;
+    color: #5c564e;
+    width: 62%;
+    text-align: right;
+    vertical-align: bottom;
+    padding-bottom: 1pt;
+  }
   @bottom-left {
     content: "Not an official ballot";
     font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
     font-size: 9pt;
     color: #44403c;
   }
-  @bottom-right {
-    content: counter(page);
-    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
-    font-size: 9pt;
-    color: #1c1917;
-  }
+  @bottom-right { content: none; }
 }
 
 @page landscape {
   size: letter landscape;
-  margin: 0.55in 0.5in 0.62in 0.5in;
+  margin: 0.68in 0.5in 0.58in 0.5in;
+  @top-center {
+    content: element(runhead);
+    width: 100%;
+  }
   @top-left {
-    content: string(running);
+    content: string(section, first);
     font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
     font-size: 9pt;
-    color: #44403c;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: #5c564e;
+    width: 34%;
+    vertical-align: bottom;
+    padding-bottom: 1pt;
   }
-  @top-center { content: none; }
-  @top-right { content: none; }
+  @top-right {
+    content: string(contest, last) "  " counter(page);
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-size: 9pt;
+    color: #5c564e;
+    width: 66%;
+    text-align: right;
+    vertical-align: bottom;
+    padding-bottom: 1pt;
+  }
   @bottom-left {
     content: "Not an official ballot";
     font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
     font-size: 9pt;
     color: #44403c;
   }
-  @bottom-right {
-    content: counter(page);
-    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
-    font-size: 9pt;
-    color: #1c1917;
-  }
+  @bottom-right { content: none; }
 }
 
 .landscape { page: landscape; }
@@ -523,6 +579,18 @@ h1 { bookmark-level: 1; }
 h2 { bookmark-level: 2; }
 
 @media print {
+  a.runhead {
+    position: running(runhead);
+    display: block;
+    width: 100%;
+    height: 13pt;
+    overflow: visible;
+    clip: auto;
+    border-bottom: 0.6pt solid #c8c2b8;
+    color: transparent;
+    font-size: 9pt;
+    text-decoration: none;
+  }
   main, footer { max-width: none; padding-left: 0; padding-right: 0; }
   .skip { display: none; }
   body {

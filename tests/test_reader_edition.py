@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import re
+import subprocess
+import zlib
 from pathlib import Path
 
 import yaml
@@ -345,6 +348,69 @@ def test_bbox_check_flags_overflow_and_tiny_type():
         "</tr></table></div>"
     )
     assert html_layout_errors(fits) == []
+
+
+def test_running_header_names_the_section_and_updates_per_contest(tmp_path: Path):
+    """The cover stays clear. Later pages name the section, the current contest, and the page."""
+    html = tmp_path / "header.html"
+    css = Path(__file__).resolve().parents[1] / "assets" / "guide.css"
+    html.write_text(
+        f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="{css}">
+</head><body>
+<section class="cover"><h1>Cover</h1><p>No running header on the cover.</p></section>
+<a class="runhead" href="#your-ballot-at-a-glance" aria-label="Back to the ballot at a glance">&#8203;</a>
+<main id="content">
+<h1 class="ballot-glance" id="your-ballot-at-a-glance">Your ballot at a glance</h1>
+<p>Glance body.</p>
+<h1 class="ballot-group">Races</h1>
+<h2 class="contest-title">Mayor of Cedar Hollow</h2>
+<p>Mayor body.</p>
+<p style="break-before: page">Mayor continued onto the next page.</p>
+<h2 class="contest-title">Measure H</h2>
+<p>Measure body.</p>
+</main></body></html>
+""",
+        encoding="utf-8",
+    )
+    pdf = tmp_path / "header.pdf"
+    result = subprocess.run(
+        ["weasyprint", str(html), str(pdf)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert pdf.stat().st_size > 1000, pdf.stat().st_size
+    text = subprocess.check_output(["pdftotext", "-layout", str(pdf), "-"], text=True)
+    pages = [page for page in text.split("\f") if page.strip()]
+    assert pages, text
+    cover = pages[0]
+    assert "No running header" in cover
+    assert not re.search(r"Mayor of Cedar Hollow\s+\d", cover)
+    contest = next(page for page in pages if "Mayor body" in page)
+    header = next(line for line in contest.splitlines() if line.strip())
+    assert "Races" in header
+    assert "Mayor of Cedar Hollow" in header
+    assert re.search(r"\d\s*$", header)
+    continued = next(page for page in pages if "Mayor continued" in page)
+    continued_header = next(line for line in continued.splitlines() if line.strip())
+    assert "Mayor of Cedar Hollow" in continued_header
+    measure = next(page for page in pages if "Measure body" in page)
+    measure_header = next(line for line in measure.splitlines() if line.strip())
+    assert "Measure H" in measure_header
+    assert "Mayor of Cedar Hollow" not in measure_header
+    raw = pdf.read_bytes()
+    streams = []
+    for chunk in re.findall(rb"stream\r?\n(.*?)\r?\nendstream", raw, re.S):
+        try:
+            streams.append(zlib.decompress(chunk))
+        except zlib.error:
+            streams.append(chunk)
+    blob = b"\n".join(streams)
+    assert b"your-ballot-at-a-glance" in blob
+    assert errors_from_bbox(subprocess.check_output(["pdftotext", "-bbox", str(pdf), "-"], text=True)) == []
 
 
 def test_reader_budget_flags_a_long_contest():
