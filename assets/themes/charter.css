@@ -1,0 +1,602 @@
+/* Charter. An official-pamphlet theme: California voter guide, League of Women Voters.
+   Load after assets/guide.css. Select with: scripts/build.sh --theme charter
+   The default guide is unchanged when --theme is omitted.
+
+   Type: Source Serif 4 for reading and titles, Public Sans for labels,
+   tables, and page furniture. Both are SIL Open Font License.
+   Grid: one measure. Cards and yes/no split it in half with a 12pt gutter.
+   Tables use the full measure. Vertical steps are 4pt, 8pt, 12pt, and 16pt.
+   Color: warm paper, near-black ink. No red or blue.
+
+   The running header is a book head: section on the left, contest and page
+   on the right, sitting on one rule. Contest titles carry their own rule.
+   A table caption is the heading directly above the table, and the column
+   heads are open type, not a filled bar. */
+
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("../fonts/SourceSerif4-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("../fonts/SourceSerif4-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("../fonts/SourceSerif4-Semibold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("../fonts/SourceSerif4-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Public Sans";
+  src: url("../fonts/PublicSans-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Public Sans";
+  src: url("../fonts/PublicSans-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: "Public Sans";
+  src: url("../fonts/PublicSans-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Public Sans";
+  src: url("../fonts/PublicSans-Semibold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Public Sans";
+  src: url("../fonts/PublicSans-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+:root {
+  --ink: #1c1917;
+  --paper: #f6f3ec;
+  --muted: #3c3832;
+  --rule: #5c564c;
+  --link: #1a3c32;
+  --focus: #1a3c32;
+  --serif: "Source Serif 4", "Liberation Serif", "DejaVu Serif", serif;
+  --sans: "Public Sans", "Liberation Sans", "DejaVu Sans", sans-serif;
+  --head-sans: "Public Sans", "Liberation Sans", sans-serif;
+  --head-serif: "Source Serif 4", "Liberation Serif", serif;
+}
+
+body {
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--serif);
+  font-size: 11.25pt;
+  line-height: 1.45;
+  hyphens: manual;
+}
+
+a { color: var(--link); }
+
+h1, h2, h3, h4 { color: var(--ink); }
+
+h2.contest-title::before,
+h1::before,
+h2::before {
+  content: none;
+  display: none;
+  height: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+}
+
+.option-label {
+  margin: 0 0 10pt;
+  font-family: var(--sans);
+  font-size: 9.5pt;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+h1 {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 20pt;
+  line-height: 1.15;
+  margin: 14pt 0 6pt;
+}
+
+h1.ballot-group,
+h1.ballot-glance,
+h1.guide-title,
+h1.sources-title,
+#toc-title {
+  font-family: var(--sans);
+  font-size: 10pt;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  margin: 0 0 3pt;
+}
+
+h2 {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 13pt;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 14pt 0 4pt;
+}
+
+h2.contest-title {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 24pt;
+  line-height: 1.12;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 0 0 10pt;
+  padding: 0 0 6pt;
+  border-bottom: 1.25pt solid var(--ink);
+}
+
+h3:not(.candidate-name):not(.source-entry) {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 11pt;
+  line-height: 1.2;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  margin: 26pt 0 7pt;
+}
+
+h3:not(.candidate-name):not(.source-entry):has(+ .comparison) {
+  margin-bottom: 0;
+}
+
+h3.source-entry {
+  font-family: var(--sans);
+  font-size: 11pt;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 10pt 0 2pt;
+}
+
+h4 {
+  font-family: var(--sans);
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 0 0 4pt;
+}
+
+p { margin: 0 0 8pt; }
+
+.fiction-flag {
+  display: block;
+  width: auto;
+  margin: 0 0 12pt;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--sans);
+  font-size: 9.5pt;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--ink);
+}
+
+.summary-box {
+  margin: 8pt 0 18pt;
+  padding: 1pt 0 1pt 10pt;
+  border: 0;
+  border-left: 2.5pt solid var(--ink);
+  background: transparent;
+}
+
+.summary-box p { margin: 0; }
+
+.candidate-index {
+  display: flex;
+  align-items: stretch;
+  gap: 12pt;
+  margin: 8pt 0 20pt;
+}
+
+.candidate-index > h3.candidate-name,
+.candidate-index > .nameplate {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  padding: 14pt 14pt 16pt;
+  border: 0.9pt solid var(--rule);
+  border-top: 3pt solid var(--ink);
+  background: transparent;
+}
+
+.candidate-index h3.candidate-name {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 15pt;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+
+.candidate-index > h3.candidate-name {
+  padding: 14pt 14pt 16pt;
+  border: 0.9pt solid var(--rule);
+  border-top: 3pt solid var(--ink);
+}
+
+.nameplate p {
+  margin: 3pt 0 0;
+  font-family: var(--sans);
+  font-size: 10.5pt;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.meta-item {
+  background: transparent;
+  border-top: 1.5pt solid var(--ink);
+  padding: 5pt 8pt 8pt 0;
+}
+
+.meta-item h4 { color: var(--ink); }
+
+h3:not(.candidate-name):not(.source-entry) + .comparison,
+.comparison table {
+  margin-top: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 8pt;
+  font-family: var(--serif);
+  font-size: 10.75pt;
+  line-height: 1.38;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+th, td {
+  border: 0;
+  border-bottom: 0.6pt solid var(--rule);
+  padding: 13pt 10pt 14pt 0;
+  background: transparent;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 10pt;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  background: transparent;
+  border-top: 1.5pt solid var(--ink);
+  border-bottom: 1pt solid var(--ink);
+  padding-top: 8pt;
+  padding-bottom: 6pt;
+}
+
+th:first-child,
+td:first-child {
+  width: 1.75in;
+  font-family: var(--sans);
+  font-weight: 600;
+}
+
+.comparison table th,
+.comparison table td {
+  padding: 12pt 10pt 13pt 0;
+  line-height: 1.4;
+}
+
+.comparison table th {
+  padding-top: 8pt;
+  padding-bottom: 7pt;
+}
+
+td:first-child { font-size: 10pt; }
+
+tbody tr:nth-child(even) td,
+tbody tr:nth-child(even) td.not-found {
+  background: transparent;
+}
+
+td.not-found,
+p.not-found {
+  color: var(--ink);
+  background: transparent;
+  font-style: italic;
+  font-family: var(--serif);
+}
+
+p.not-found {
+  margin: 6pt 0 16pt;
+  padding-top: 2pt;
+  font-size: 10.5pt;
+}
+
+.vote-pair {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 8pt 0 0;
+  border: 1.15pt solid var(--ink);
+}
+
+.vote-box {
+  flex: 1 1 0;
+  width: auto;
+  margin: 0;
+  padding: 16pt 16pt 18pt;
+  border: 0;
+  background: transparent;
+}
+
+.vote-box + .vote-box { border-left: 1.15pt solid var(--ink); }
+
+.vote-box h4 {
+  margin: 0 0 4pt;
+  padding-bottom: 3pt;
+  border-bottom: 0.6pt solid var(--rule);
+  color: var(--ink);
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.vote-box p {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 10.75pt;
+  line-height: 1.4;
+}
+
+blockquote {
+  margin: 8pt 0;
+  padding: 2pt 0 2pt 10pt;
+  border-left: 2pt solid var(--rule);
+  background: transparent;
+}
+
+.disputed,
+blockquote.disputed {
+  background: transparent;
+  border: 1.25pt solid var(--ink);
+  color: var(--ink);
+  padding: 8pt 10pt;
+}
+
+sup {
+  font-family: var(--sans);
+  font-size: 8pt;
+}
+
+footer {
+  color: var(--ink);
+  font-family: var(--sans);
+}
+
+@page {
+  size: letter portrait;
+  margin: 0.72in 0.66in 0.56in 0.66in;
+  background: #f6f3ec;
+  @top-left {
+    content: string(section, first);
+    font-family: "Public Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #1c1917;
+    width: 38%;
+    vertical-align: bottom;
+    padding-bottom: 5pt;
+    border-bottom: 1pt solid #1c1917;
+  }
+  @top-center {
+    content: none;
+    background: transparent;
+  }
+  @top-right {
+    content: string(contest, last) " · " counter(page);
+    font-family: "Source Serif 4", "Liberation Serif", serif;
+    font-size: 10pt;
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #1c1917;
+    width: 62%;
+    text-align: right;
+    vertical-align: bottom;
+    padding-bottom: 4pt;
+    border-bottom: 1pt solid #1c1917;
+  }
+  @bottom-left {
+    content: "Not an official ballot";
+    font-family: "Public Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: #1c1917;
+    width: 78%;
+    vertical-align: top;
+    padding-top: 5pt;
+    border-top: 0.7pt solid #5c564c;
+  }
+  @bottom-center { content: none; }
+  @bottom-right {
+    content: "";
+    width: 22%;
+    vertical-align: top;
+    padding-top: 5pt;
+    border-top: 0.7pt solid #5c564c;
+  }
+}
+
+@page cover {
+  size: letter portrait;
+  margin: 0.75in;
+  background: #f3efe6;
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+
+@page toc {
+  size: letter portrait;
+  margin: 0.72in 0.66in 0.56in 0.66in;
+  background: #f6f3ec;
+  @top-left {
+    content: string(section, first);
+    font-family: "Public Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #1c1917;
+    width: 38%;
+    vertical-align: bottom;
+    padding-bottom: 5pt;
+    border-bottom: 1pt solid #1c1917;
+  }
+  @top-center { content: none; }
+  @top-right {
+    content: string(contest, last) " · " counter(page);
+    font-family: "Source Serif 4", "Liberation Serif", serif;
+    font-size: 10pt;
+    font-style: italic;
+    color: #1c1917;
+    width: 62%;
+    text-align: right;
+    vertical-align: bottom;
+    padding-bottom: 4pt;
+    border-bottom: 1pt solid #1c1917;
+  }
+  @bottom-left {
+    content: "Not an official ballot";
+    font-family: "Public Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 500;
+    color: #1c1917;
+    width: 78%;
+    vertical-align: top;
+    padding-top: 5pt;
+    border-top: 0.7pt solid #5c564c;
+  }
+  @bottom-center { content: none; }
+  @bottom-right {
+    content: "";
+    width: 22%;
+    border-top: 0.7pt solid #5c564c;
+    padding-top: 5pt;
+  }
+}
+
+@page landscape {
+  size: letter landscape;
+  margin: 0.62in 0.5in 0.52in 0.5in;
+  background: #f6f3ec;
+  @top-left {
+    content: string(section, first);
+    font-family: "Public Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #1c1917;
+    width: 34%;
+    vertical-align: bottom;
+    padding-bottom: 5pt;
+    border-bottom: 1pt solid #1c1917;
+  }
+  @top-center { content: none; }
+  @top-right {
+    content: string(contest, last) " · " counter(page);
+    font-family: "Source Serif 4", "Liberation Serif", serif;
+    font-size: 10pt;
+    font-style: italic;
+    color: #1c1917;
+    width: 66%;
+    text-align: right;
+    vertical-align: bottom;
+    padding-bottom: 4pt;
+    border-bottom: 1pt solid #1c1917;
+  }
+  @bottom-left {
+    content: "Not an official ballot";
+    font-family: "Public Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    color: #1c1917;
+    width: 78%;
+    padding-top: 4pt;
+    border-top: 0.7pt solid #5c564c;
+  }
+  @bottom-center { content: none; }
+  @bottom-right {
+    content: "";
+    width: 22%;
+    border-top: 0.7pt solid #5c564c;
+    padding-top: 4pt;
+  }
+}
+
+@media print {
+  body {
+    font-size: 11.25pt;
+    line-height: 1.45;
+    background: #f6f3ec;
+  }
+  main, footer { max-width: none; padding-left: 0; padding-right: 0; }
+  h1 { font-size: 20pt; }
+  h1.ballot-group,
+  h1.ballot-glance,
+  h1.guide-title,
+  h1.sources-title,
+  #toc-title { font-size: 10pt; }
+  h2 { font-size: 13pt; }
+  h2.contest-title { font-size: 24pt; }
+  h3:not(.candidate-name):not(.source-entry) { font-size: 11pt; }
+  .candidate-index h3.candidate-name { font-size: 15pt; }
+  table, th, td { font-size: 10.75pt; }
+  th, td:first-child { font-size: 10pt; }
+  .cover h1 { font-size: 26pt; }
+}
