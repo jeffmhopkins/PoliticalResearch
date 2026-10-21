@@ -397,18 +397,21 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "# Marker index" not in guide
     assert "# Changelog" not in guide
     assert "- cand-quinn:" not in guide
-    assert "status signed-off, round 1, mode initial — Avery Quinn" in guide
+    assert "Reviews: 1 of 2 candidate profiles were checked by a separate reviewer." in guide
+    assert "| Avery Quinn | Separate / Separate / Separate / Separate |" in guide
+    assert "| Blake Okonkwo | Not signed / Not signed / Not signed / Not signed |" in guide
+    assert "fresh-context" not in guide
+    assert "process gap" not in guide.lower()
     assert "status signed-off, round 1, mode initial — cand-quinn" in full
     assert "Mayor of Cedar Hollow: status" not in guide
-    assert "{#profile-cand-quinn}" not in guide
-    assert "{#profile-cand-quinn}" in full
+    assert "{#profile-cand-quinn" not in guide
+    assert "{#profile-cand-quinn" in full
     assert "guide-full.md#profile-cand-quinn" in guide
     assert "guide-sources.md#source-" in guide
     assert "#source-1" in sources
     assert "#cite-1" in sources
     assert 'id="cite-1"' in guide or "#cite-1" in guide
     assert "[Back to ballot](#your-ballot-at-a-glance)" in guide
-    assert "Not found (searched: self-funding or loans, share from small donors, outside spending)." in guide
     assert "Not found (searched: years in elected office)." in guide
     assert not any(line.startswith("| Years in elected office |") for line in guide.splitlines())
     table = {}
@@ -417,10 +420,10 @@ def test_reader_and_full_editions_follow_the_layout_rules():
             cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
             table[cells[0]] = cells
     assert "48200 dollars in receipts" in table["Receipts"][1]
-    assert "Cash on hand for Avery Quinn" in table["Cash on hand"][1]
+    assert "17200 dollars in cash on hand" in table["Cash on hand"][1]
     assert table["Receipts"][1] != table["Cash on hand"][1]
     assert "30100 dollars in receipts" in table["Receipts"][2]
-    assert table["Cash on hand"][2] == "Not found"
+    assert "11700 dollars in cash on hand" in table["Cash on hand"][2]
     assert "four-year term" in table["Current or most recent office"][1]
     assert "2018 certificate" in table["Prior offices"][1]
     assert table["Current or most recent office"][1] != table["Prior offices"][1]
@@ -428,7 +431,7 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     quinn_money = next(line for line in guide.splitlines() if line.startswith("| Mayor of Cedar Hollow | Avery Quinn |"))
     quinn_cells = [cell.strip() for cell in quinn_money.strip().strip("|").split("|")]
     assert "48200" in quinn_cells[2]
-    assert "Cash on hand for Avery Quinn" in quinn_cells[3]
+    assert "17200" in quinn_cells[3]
     assert quinn_cells[2] != quinn_cells[3]
     assert "# Marker index" in full
     assert "# Changelog" in full
@@ -646,6 +649,9 @@ def test_same_context_signoff_is_a_process_gap(tmp_path: Path):
     assert state["signoffs"]["factcheck"]["signed"] is True
     assert state["process_gaps"]
     assert "process gap" in state["process_gaps"][0]
+    assert signoff(item, "factcheck", "2026-10-20 12:05 ET", same_context=True) == []
+    again = json.loads((item / "loop-state.json").read_text(encoding="utf-8"))
+    assert again["process_gaps"] == state["process_gaps"]
 
 
 def test_finished_draft_is_not_treated_as_the_scaffold(tmp_path: Path):

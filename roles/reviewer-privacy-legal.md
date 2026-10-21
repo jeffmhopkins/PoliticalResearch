@@ -8,6 +8,7 @@ File a `blocker` for:
 - A home address, personal phone, minor's name, medical detail, sexual orientation, or immigration status published without the candidate's own public, office-relevant statement
 - An allegation stated as fact, missing a status label, or missing the candidate's response (or an explicit not-found response)
 - A fabricated or unidentified source attached to a damaging claim
+- A voter-registration party that is not from a public record, or a registration file that prints a street address. The party label may be public. The address may not.
 - A rendered birth year, date of birth, or full birth date. `birth_year` stays internal
 - An alias whose source is not a URL or an evidence-record id, an alias that repeats another candidate's name, a single-token alias, or a court matter that does not name the candidate as a party
 - A street address in a draft, a claim, or the assembled guide

@@ -1,0 +1,678 @@
+item_id: bill-hb18
+item_type: legislation
+claims:
+- id: bill-hb18.identity.001
+  section: identity
+  text: House Bill 18 is titled parks repair reporting.
+  marker: 80
+  sources:
+  - marker: 80
+    url: https://fictional.example/westland-house/2026/hb18
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18, bill page
+    doc_type: Bill page
+    published: '2026-03-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Title line
+    quote: House Bill 18, parks repair reporting.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.sponsors.001
+  section: sponsors
+  text: Morgan Hale, a Democrat from House district 4, is the primary sponsor, and Riley Chen, a Republican
+    from House district 9, is the cosponsor.
+  marker: 81
+  sources:
+  - marker: 81
+    url: https://fictional.example/westland-house/2026/hb18
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 sponsors
+    doc_type: Bill page
+    published: '2026-03-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Sponsor line
+    quote: Morgan Hale (D-4) and Riley Chen (R-9).
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.drafting.001
+  section: drafting
+  text: Legislative counsel drafted the posted text of House Bill 18.
+  marker: 82
+  sources:
+  - marker: 82
+    url: https://fictional.example/westland-house/2026/hb18/analysis
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 staff analysis
+    doc_type: Staff analysis
+    published: '2026-03-10'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Drafting note
+    quote: Legislative counsel drafted the posted text.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.model.001
+  section: model
+  text: A Westland Ledger article said the posting lines resemble a union model bill.
+  marker: 83
+  sources:
+  - marker: 83
+    url: https://fictional.example/westland-ledger/hb18-model
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland Civic Ledger (fictional)
+    title: Parks posting language
+    doc_type: News report
+    published: '2026-03-20'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T3
+    locator: Comparison paragraph
+    quote: The posting lines resemble a union model bill.
+    confidence: single-source
+  confidence: single-source
+  drives_summary: false
+  polarity: neutral
+  about_person: false
+  attribution_only: true
+- id: bill-hb18.history.001
+  section: history
+  text: House Bill 7 of 2024 required a parks inventory and did not require a public posting.
+  marker: 84
+  sources:
+  - marker: 84
+    url: https://fictional.example/westland-house/2024/hb7
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 7 of 2024
+    doc_type: Bill page
+    published: '2024-02-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Summary line
+    quote: House Bill 7 of 2024 required a parks inventory.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.history.002
+  section: history
+  text: The 2026 text adds a yearly public posting.
+  marker: 85
+  sources:
+  - marker: 85
+    url: https://fictional.example/westland-house/2026/hb18/analysis
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 staff analysis
+    doc_type: Staff analysis
+    published: '2026-03-10'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Change note
+    quote: The 2026 text adds a yearly public posting.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.committee.001
+  section: committee
+  text: The Local Government Committee heard House Bill 18 on March 12, 2026.
+  marker: 86
+  sources:
+  - marker: 86
+    url: https://fictional.example/westland-house/2026/hb18
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 history
+    doc_type: Bill history
+    published: '2026-03-12'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: History row
+    quote: The Local Government Committee heard the bill on March 12, 2026.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.committee.002
+  section: committee
+  text: The committee adopted an amendment that sets the posting date as June 1.
+  marker: 87
+  sources:
+  - marker: 87
+    url: https://fictional.example/westland-house/2026/hb18
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 amendment
+    doc_type: Amendment
+    published: '2026-03-12'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Amendment text
+    quote: The committee set the posting date as June 1.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.companion.001
+  section: companion
+  text: Senate Bill 22 is the companion bill.
+  marker: 88
+  sources:
+  - marker: 88
+    url: https://fictional.example/westland-senate/2026/sb22
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland Senate (fictional)
+    title: Senate Bill 22
+    doc_type: Bill page
+    published: '2026-03-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Companion line
+    quote: Senate Bill 22 is the companion bill.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.status.001
+  section: status
+  text: The House passed House Bill 18 on April 2, 2026, and the bill is in the Senate.
+  marker: 89
+  sources:
+  - marker: 89
+    url: https://fictional.example/westland-house/2026/hb18
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 history
+    doc_type: Bill history
+    published: '2026-04-02'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Passage row
+    quote: The House passed House Bill 18 on April 2, 2026.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.summary.001
+  section: summary
+  text: House Bill 18 would require a city to post its parks repair list each year.
+  marker: 90
+  sources:
+  - marker: 90
+    url: https://fictional.example/westland-house/2026/hb18/analysis
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 digest
+    doc_type: Staff analysis
+    published: '2026-03-10'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Digest
+    quote: The bill would require a city to post its parks repair list each year.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.law.001
+  section: law
+  text: City code requires a parks inventory and does not require a public posting.
+  marker: 91
+  sources:
+  - marker: 91
+    url: https://fictional.example/westland-code/parks
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland Code (fictional)
+    title: Parks inventory section
+    doc_type: Statute
+    published: '2020-01-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Section 12
+    quote: City code requires a parks inventory and does not require a public posting.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.affected.001
+  section: affected
+  text: The staff analysis says the bill applies to cities that run a parks department.
+  marker: 92
+  sources:
+  - marker: 92
+    url: https://fictional.example/westland-house/2026/hb18/analysis
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 staff analysis
+    doc_type: Staff analysis
+    published: '2026-03-10'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Effect paragraph
+    quote: The bill applies to cities that run a parks department.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.fiscal.001
+  section: fiscal
+  text: The fiscal note estimates 40000 dollars for the posting website.
+  marker: 93
+  sources:
+  - marker: 93
+    url: https://fictional.example/westland-fiscal/hb18
+    archive_url: https://fictional.example/archive/hb18
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland fiscal office (fictional)
+    title: House Bill 18 fiscal note
+    doc_type: Official fiscal note
+    published: '2026-03-08'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Estimate line
+    quote: The note estimates 40000 dollars for the posting website.
+    confidence: verified
+    local_copy: saved/bill-hb18.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+  as_of: '2026-03-08'
+- id: bill-hb18.staff.001
+  section: staff
+  text: The House staff analysis says House Bill 18 adds a public posting and does not change the tax
+    rate.
+  marker: 94
+  sources:
+  - marker: 94
+    url: https://fictional.example/westland-house/2026/hb18/analysis
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 staff analysis
+    doc_type: Staff analysis
+    published: '2026-03-10'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Present situation
+    quote: Staff analysis says the bill adds a public posting and does not change the tax rate.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.roll.001
+  section: roll
+  text: The House vote on April 2, 2026 was 28 yes and 12 no.
+  marker: 95
+  sources:
+  - marker: 95
+    url: https://fictional.example/westland-house/2026/hb18/votes
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 roll call
+    doc_type: Roll call
+    published: '2026-04-02'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Vote totals
+    quote: The House vote was 28 yes and 12 no.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.parties.001
+  section: parties
+  text: Democrats cast 18 yes and 2 no, and Republicans cast 10 yes and 10 no.
+  marker: 96
+  sources:
+  - marker: 96
+    url: https://fictional.example/westland-house/2026/hb18/votes
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 roll call by party
+    doc_type: Roll call
+    published: '2026-04-02'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Party lines
+    quote: Democrats 18 yes and 2 no. Republicans 10 yes and 10 no.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.lobby.001
+  section: lobby
+  text: The Parks Workers Guild registered to lobby for House Bill 18.
+  marker: 98
+  sources:
+  - marker: 98
+    url: https://fictional.example/westland-lobby/2026
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland lobbyist index (fictional)
+    title: Lobbyist registrations, 2026
+    doc_type: Lobbyist registration
+    published: '2026-03-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Guild row
+    quote: The Parks Workers Guild registered to lobby for House Bill 18.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.lobby.002
+  section: lobby
+  text: The City Managers Association registered to lobby against House Bill 18.
+  marker: 99
+  sources:
+  - marker: 99
+    url: https://fictional.example/westland-lobby/2026
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland lobbyist index (fictional)
+    title: Lobbyist registrations, 2026
+    doc_type: Lobbyist registration
+    published: '2026-03-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Managers row
+    quote: The City Managers Association registered to lobby against House Bill 18.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.testimony.001
+  section: testimony
+  text: A guild witness told the committee the posting would show delayed repairs.
+  marker: 100
+  sources:
+  - marker: 100
+    url: https://fictional.example/westland-house/2026/hb18/hearing
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: Local Government Committee hearing
+    doc_type: Hearing record
+    published: '2026-03-12'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Witness line
+    quote: A guild witness said the posting would show delayed repairs.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.gift.001
+  section: contributions
+  text: The Parks Workers Guild gave Morgan Hale 500 dollars in 2024.
+  marker: 101
+  sources:
+  - marker: 101
+    url: https://fictional.example/westland-finance/hale-2024
+    archive_url: https://fictional.example/archive/hb18
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Hale contributions, 2024
+    doc_type: Campaign filing
+    published: '2024-06-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Guild receipt
+    quote: The Parks Workers Guild gave 500 dollars on June 1, 2024.
+    confidence: verified
+    local_copy: saved/bill-hb18.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.for.001
+  section: arguments for
+  text: The guild said the public list would show which repairs are waiting.
+  marker: 102
+  sources:
+  - marker: 102
+    url: https://fictional.example/westland-house/2026/hb18/hearing
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Parks Workers Guild (fictional)
+    title: Hearing statement
+    doc_type: Hearing record
+    published: '2026-03-12'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T4
+    locator: Guild statement
+    quote: The public list would show which repairs are waiting.
+    confidence: single-source
+  confidence: single-source
+  drives_summary: false
+  polarity: neutral
+  about_person: false
+  attribution_only: true
+- id: bill-hb18.against.001
+  section: arguments against
+  text: The managers association said the posting repeats the inventory the city already keeps.
+  marker: 103
+  sources:
+  - marker: 103
+    url: https://fictional.example/westland-house/2026/hb18/hearing
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: City Managers Association (fictional)
+    title: Hearing statement
+    doc_type: Hearing record
+    published: '2026-03-12'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T4
+    locator: Managers statement
+    quote: The posting repeats the inventory the city already keeps.
+    confidence: single-source
+  confidence: single-source
+  drives_summary: false
+  polarity: neutral
+  about_person: false
+  attribution_only: true
+- id: bill-hb18.redline.001
+  section: redline
+  text: Section 12 would add a yearly public posting, effective July 1, 2027.
+  marker: 104
+  sources:
+  - marker: 104
+    url: https://fictional.example/westland-house/2026/hb18/text
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18, section 12
+    doc_type: Bill text
+    published: '2026-03-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Section 12
+    quote: Section 12 would add a yearly public posting effective July 1, 2027.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.effective.001
+  section: effective
+  text: House Bill 18 takes effect on July 1, 2027.
+  marker: 105
+  sources:
+  - marker: 105
+    url: https://fictional.example/westland-house/2026/hb18/text
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 effective date
+    doc_type: Bill text
+    published: '2026-03-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Effective date
+    quote: The bill takes effect on July 1, 2027.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.agency.001
+  section: agency
+  text: The bill names the Parks Division as the implementing agency.
+  marker: 106
+  sources:
+  - marker: 106
+    url: https://fictional.example/westland-house/2026/hb18/text
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 implementing agency
+    doc_type: Bill text
+    published: '2026-03-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Agency line
+    quote: The bill assigns implementation to the Parks Division.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.member.001
+  section: members
+  text: The member for Westland House district 4 voted yes on House Bill 18.
+  marker: 107
+  sources:
+  - marker: 107
+    url: https://fictional.example/westland-house/2026/hb18/votes
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Westland House (fictional)
+    title: House Bill 18 roll call
+    doc_type: Roll call
+    published: '2026-04-02'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: District 4
+    quote: The member for Westland House district 4 voted yes.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.similar.001
+  section: similar
+  text: NCSL lists a parks-posting law Easton passed in 2024.
+  marker: 108
+  sources:
+  - marker: 108
+    url: https://fictional.example/ncsl/parks-posting
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: NCSL (fictional extract)
+    title: Parks posting laws
+    doc_type: 50-state table
+    published: '2026-05-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T2
+    locator: Easton row
+    quote: Easton passed a parks-posting law in 2024.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+- id: bill-hb18.similar.002
+  section: similar
+  text: OPPAGA reported that Easton clerks used the posting site in its first year.
+  marker: 109
+  sources:
+  - marker: 109
+    url: https://fictional.example/oppaga/easton-posting
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: OPPAGA (fictional extract)
+    title: Easton posting site note
+    doc_type: Government evaluation
+    published: '2026-06-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T2
+    locator: Use finding
+    quote: Easton clerks used the posting site in its first year.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false

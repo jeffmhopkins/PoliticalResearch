@@ -68,6 +68,7 @@ properties:
     description: Precinct code from an official finder. Not a street address.
     type: string
   districts:
+    description: District labels for the requester's own legislators. Not a street address.
     type: array
     items:
       type: string
@@ -122,6 +123,9 @@ $defs:
       level:
         type: string
         enum: [federal, state-executive, state-house, county, judicial, amendment, referendum, local, other]
+      nonpartisan:
+        description: True when the office is officially nonpartisan. Judicial retention is treated as nonpartisan even when this is omitted.
+        type: boolean
       candidates:
         type: array
         items:

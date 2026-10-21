@@ -8,9 +8,27 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import quote
 
+from lib.party import (
+    MEASURE_SIDE_ROLES,
+    NONPARTISAN_RACE,
+    PARTY_SOURCE_KINDS,
+    REGISTERED_PARTY_LABEL,
+    is_nonpartisan_contest,
+)
 from lib.records import LEGAL_SWEEP_KEYS, alias_names
 from lib.sentences import split_sentences
-from lib.util import RETRIEVED_RE, dump_json, iter_items, load_config, load_yaml, norm_heading, repo_root, unsafe_fetch_target
+from lib.util import (
+    RETRIEVED_RE,
+    dump_json,
+    iter_items,
+    load_config,
+    load_json,
+    load_yaml,
+    looks_like_street_address,
+    norm_heading,
+    repo_root,
+    unsafe_fetch_target,
+)
 
 MARKER_RE = re.compile(r"\[\^(\d+)\]")
 # Rendered guides replace [^n] with a small link into the sources addendum.
@@ -320,6 +338,9 @@ _RUN_RECORD_SENTENCE_RE = re.compile(
     r"|Works cited, quotes, and the search log are in the sources addendum"
     r"|Per-candidate prose is in the full edition"
     r"|The full edition adds the marker index and the changelog"
+    r"|Reviews: \d+ of \d+ candidate profiles were checked by a separate reviewer"
+    r"(?:; (?:the rest|\d+) were checked in the same session, which is less independent)?"
+    r"|The review column is fact-check, sourcing, neutrality, and privacy, in that order"
     r")\.?$"
 )
 _REVIEW_STATUSES = r"researching|in-review|fixing|signed-off|capped-disputed"
@@ -332,12 +353,13 @@ _REVIEW_STATE_RE = re.compile(
 _EFFORT_ROW_RE = re.compile(
     r"^\|\s*(?P<label>[^|]*)\|\s*\d*\s*\|\s*\d*\s*\|\s*\d*\s*\|$"
 )
+# The label is optional so a grouped run record can put the candidate in the heading.
 _PROCESS_GAP_RE = re.compile(
-    r"^(?P<label>.+): (?:factcheck|sourcing|neutrality|privacy-legal) "
+    r"^(?:(?P<label>.+): )?(?:factcheck|sourcing|neutrality|privacy-legal) "
     r"signed off in the same context as the research\.?$"
 )
 _REMOVED_GAP_RE = re.compile(
-    r"^(?P<label>.+): Removed [A-Za-z0-9_.-]+ at the round cap\.?$"
+    r"^(?:(?P<label>.+): )?Removed [A-Za-z0-9_.-]+ at the round cap\.?$"
 )
 _KNOWN_GAP_SENTENCES = {
     "None recorded in loop state.",
@@ -345,6 +367,44 @@ _KNOWN_GAP_SENTENCES = {
     "This is a process gap, not a fresh-context review.",
     "This is a process gap, not a fresh-context review",
 }
+# Exact reader sentences. Raw tool notes stay in the full-edition run record.
+PLAIN_ACCESS_NOTES = (
+    "Florida business records could not be retrieved automatically; ownership was not verified.",
+    "Florida professional-license records could not be retrieved automatically; a license was not verified.",
+    "Florida campaign-finance records could not be retrieved automatically.",
+    "Florida lobbying records could not be retrieved automatically.",
+    "A public records site could not be retrieved automatically.",
+)
+_ACCESS_FAILURE_RE = re.compile(
+    r"blocked|unavailable|portal-down|cloudflare|captcha|recaptcha|could not|couldn.?t|failed|challenge|timed out|\b403\b|bot page",
+    re.IGNORECASE,
+)
+_ACCESS_RULES = (
+    (
+        re.compile(r"sunbiz|officer search|division of corporations|business records|corporation search", re.IGNORECASE),
+        PLAIN_ACCESS_NOTES[0],
+    ),
+    (
+        re.compile(r"\bdfs\b|licensee search|professional[- ]license", re.IGNORECASE),
+        PLAIN_ACCESS_NOTES[1],
+    ),
+    (re.compile(r"campaign[- ]finance", re.IGNORECASE), PLAIN_ACCESS_NOTES[2]),
+    (re.compile(r"lobbyist", re.IGNORECASE), PLAIN_ACCESS_NOTES[3]),
+    (re.compile(r"cloudflare|portal-down|captcha|recaptcha", re.IGNORECASE), PLAIN_ACCESS_NOTES[4]),
+)
+_ACCESS_ALLEGATION_RE = re.compile(
+    r"\b(?:convicted|fraud|indict\w*|arrest\w*|bribe\w*|scandal|alleged|allegation)\b",
+    re.IGNORECASE,
+)
+_READER_INTERNAL_PHRASES = (
+    "fresh-context",
+    "signed off in the same context",
+    "process gap",
+)
+_REVIEW_STATUS_CELL = r"Separate|Same session|Not signed"
+_REVIEW_ROW_RE = re.compile(
+    rf"^\|\s*(?P<label>[^|]*)\|\s*(?:{_REVIEW_STATUS_CELL})(?:\s*/\s*(?:{_REVIEW_STATUS_CELL})){{3}}\s*\|$"
+)
 
 
 def _run_record_label_ok(label: str) -> bool:
@@ -362,13 +422,46 @@ def _run_record_label_ok(label: str) -> bool:
     return True
 
 
+def plain_access_note(text: str) -> str | None:
+    """Map a tool or portal failure onto one fixed reader sentence.
+
+    A line that does not describe a failed retrieval stays untouched. The
+    returned sentence is one of PLAIN_ACCESS_NOTES and names no vendor.
+    """
+    raw = re.sub(r"\s+", " ", str(text or "")).strip()
+    if not raw or not _ACCESS_FAILURE_RE.search(raw):
+        return None
+    for pattern, note in _ACCESS_RULES:
+        if pattern.search(raw):
+            return note
+    return None
+
+
+def _is_plain_access_note(plain: str) -> bool:
+    text = re.sub(r"\s+", " ", plain or "").strip().rstrip(".")
+    return any(text == note.rstrip(".") for note in PLAIN_ACCESS_NOTES)
+
+
+def _is_access_log_sentence(text: str) -> bool:
+    """A portal-status line in the run record. An allegation still needs a citation."""
+    if _ACCESS_ALLEGATION_RE.search(text or ""):
+        return False
+    return plain_access_note(text) is not None
+
+
 def _is_known_gap_sentence(text: str) -> bool:
     if text in _KNOWN_GAP_SENTENCES:
         return True
+    if _is_access_log_sentence(text):
+        return True
     for pattern in (_PROCESS_GAP_RE, _REMOVED_GAP_RE):
         match = pattern.match(text)
-        if match and _run_record_label_ok(match.group("label")):
-            return True
+        if not match:
+            continue
+        label = match.group("label")
+        if label and not _run_record_label_ok(label):
+            return False
+        return True
     return False
 
 
@@ -394,19 +487,78 @@ def _is_effort_row(row: str, h1: str, h2: str) -> bool:
     return match is not None and _run_record_label_ok(match.group("label"))
 
 
+def _is_review_row(row: str, h1: str, h2: str) -> bool:
+    if h1 != "how we researched" or h2 != "reviews":
+        return False
+    match = _REVIEW_ROW_RE.match(row.strip())
+    return match is not None and _run_record_label_ok(match.group("label"))
+
+
+def reader_log_errors(text: str) -> list[str]:
+    """The reader edition keeps no duplicated bullets and no internal review log."""
+    errors = []
+    lowered = (text or "").lower()
+    for phrase in _READER_INTERNAL_PHRASES:
+        if phrase in lowered:
+            errors.append(f"final/guide.md: reader edition contains internal phrase {phrase!r}")
+    counts: dict[str, int] = {}
+    for line in (text or "").splitlines():
+        stripped = line.strip()
+        if not stripped.startswith(("- ", "* ")):
+            continue
+        key = re.sub(r"\s+", " ", stripped)
+        counts[key] = counts.get(key, 0) + 1
+    for key, count in counts.items():
+        if count > 1:
+            errors.append(f"final/guide.md: duplicate bullet line ({count} times): {key[:160]}")
+    return errors
+
+
 CANDIDATE_CORE = [
     "identity",
+    "party",
     "prior offices and public service",
     "occupational history",
     "education",
     "campaign funding",
+    "outside spending",
+    "attendance",
+    "financial disclosure",
+    "term limits",
     "record vs rhetoric",
+    "promises versus record",
     "positions in own words",
+    "questionnaire answers",
     "debates and forums",
     "endorsements",
+    "fact checks",
     "legal issues",
+    "ethics and elections orders",
     "strongest case",
 ]
+# Same filing day and the same buckets for every candidate. A value may be a gap.
+FINANCE_KEYS = (
+    "report_date",
+    "receipts",
+    "cash_on_hand",
+    "self_funding",
+    "small_donors",
+    "large_donors",
+    "in_district",
+    "pac_money",
+    "party_money",
+    "outside_spending",
+)
+# FEC itemization threshold. The guide uses this cut for every candidate.
+SMALL_DONOR_THRESHOLD = 200
+PROMISE_STATUS_LABELS = {
+    "kept": "status is kept",
+    "partially": "status is partially",
+    "not": "status is not",
+    "no_record": "status is no record",
+}
+SURVEY_NAMES = ("vote411", "ballotpedia", "votesmart")
+FACT_CHECK_CAVEAT = "never checked is not the same as checked out clean"
 MEASURE_CORE = [
     "official title",
     "measure type and qualification",
@@ -419,18 +571,39 @@ MEASURE_CORE = [
     "funding by side",
     "arguments for",
     "arguments against",
-    "supporters and opponents",
+    "official sponsor or committee",
+    "organizations supporting",
+    "organizations opposing",
+    "top funders",
 ]
 LEGISLATION_CORE = [
     "bill identity",
     "sponsors and cosponsors",
+    "drafting and model legislation",
+    "legislative history",
+    "committee referrals and amendments",
+    "companion bills",
     "status timeline",
     "plain summary",
     "current law and proposed change",
+    "who is affected",
     "fiscal note",
+    "staff analysis",
+    "section-by-section changes",
+    "effective date",
+    "implementing agency",
     "roll-call votes",
+    "party vote counts",
+    "veto and override",
+    "your legislators votes",
+    "similar laws",
+    "legal and constitutional challenges",
+    "interest groups and lobbying",
+    "hearing testimony",
+    "sponsor contributions",
     "arguments for",
     "arguments against",
+    "related litigation",
 ]
 PRIMARY_ADDON = [
     "primary type",
@@ -479,6 +652,7 @@ BANNER_SENTENCES = (
     "Not an official ballot and not voting instructions: confirm contests, deadlines, and polling places with the election office linked below.",
     "FICTIONAL EXAMPLE: this race is invented.",
     "FICTIONAL EXAMPLE: this measure is invented.",
+    "FICTIONAL EXAMPLE: this bill is invented.",
     "FICTIONAL EXAMPLE: Avery Quinn is not a real person, and Cedar Hollow and Westland are not real places.",
     "FICTIONAL EXAMPLE: Blake Okonkwo is not a real person, and Cedar Hollow and Westland are not real places.",
     "FICTIONAL EXAMPLE: these publishers are invented.",
@@ -490,12 +664,20 @@ DISTINGUISHING_ANCHOR_FIELDS = {"full_legal_name", "ballot_name", "name", "filin
 WITHDRAWN_RE = re.compile(r"^Withdrawn on \d{4}-\d{2}-\d{2}\b")
 JUDICIAL_CORE = [
     "retention question",
+    "party",
     "court and term",
     "appointing authority",
     "performance evaluation",
     "notable rulings",
     "discipline record",
     "issue positions",
+    "campaign funding",
+    "outside spending",
+    "attendance",
+    "financial disclosure",
+    "term limits",
+    "fact checks",
+    "ethics and elections orders",
 ]
 SUMMARY_TYPES = {"race", "measure", "legislation", "judicial-retention"}
 
@@ -1202,7 +1384,7 @@ def prose_marker_errors(text: str, label: str, exempt: set[str] | None = None) -
                     continue
                 if not seen_separator and index == 0:
                     continue
-                if _is_gap_text(row) or _is_effort_row(row, h1, h2):
+                if _is_gap_text(row) or _is_effort_row(row, h1, h2) or _is_review_row(row, h1, h2):
                     continue
                 if not _has_citation_marker(row):
                     errors.append(f"{label}: table row has no citation marker: {row.strip()[:120]}")
@@ -1282,6 +1464,8 @@ def _sentence_marker_errors(
         if not plain or _is_gap_text(plain):
             continue
         if _is_navigation_sentence(plain, exempt):
+            continue
+        if _is_plain_access_note(plain):
             continue
         if _is_run_record_sentence(plain, h1, h2, kind):
             continue
@@ -1372,6 +1556,7 @@ def assembled_guide_errors(
     errors.extend(summary_errors(text, "final/guide.md", index))
     if reader:
         errors.extend(reader_contest_budget_errors(text))
+        errors.extend(reader_log_errors(text))
     cited_text = addendum or text
     cited = works_cited_numbers(cited_text)
     addendum_anchors = anchor_ids(addendum) if addendum else set()
@@ -2414,6 +2599,22 @@ def structured_symmetry_errors(workspace) -> list[str]:
                             errors.append(
                                 f"{item_id}: legal_sweep.{key} is not_checked while another candidate in the race was checked"
                             )
+        party_rows = [(item_id, data.get("party")) for item_id, data in profiles if isinstance(data.get("party"), dict)]
+        if party_rows:
+            present = {item_id for item_id, _party in party_rows}
+            for candidate in candidates:
+                item_id = str(candidate.get("item_id") or candidate.get("id"))
+                if item_id not in present:
+                    errors.append(f"{item_id}: profile.yaml party is missing while another candidate in the race has one")
+        endorsement_rows = [(item_id, data.get("endorsements")) for item_id, data in profiles if "endorsements" in data]
+        if endorsement_rows:
+            present = {item_id for item_id, _rows in endorsement_rows}
+            for candidate in candidates:
+                item_id = str(candidate.get("item_id") or candidate.get("id"))
+                if item_id not in present:
+                    errors.append(
+                        f"{item_id}: profile.yaml endorsements is missing while another candidate in the race has a list"
+                    )
     return errors
 
 
@@ -2431,6 +2632,454 @@ def _sweep_search_state(row) -> str:
     return status or "missing"
 
 
+def _claim_section(claim: dict) -> str:
+    return norm_heading(str(claim.get("section") or ""))
+
+
+def _party_claims(doc: dict) -> list[dict]:
+    found = []
+    for claim in doc.get("claims") or []:
+        if not isinstance(claim, dict) or claim.get("removed"):
+            continue
+        if _claim_section(claim) == "party" or ".party." in str(claim.get("id") or ""):
+            found.append(claim)
+    return found
+
+
+def _section_is_scaffold(body: str) -> bool:
+    text = body or ""
+    return "not started" in text.lower() and "[^" not in text
+
+
+def party_record_errors(workspace) -> list[str]:
+    """Every researched candidate states a cited party, including a nonpartisan race label."""
+    errors = []
+    ballot = load_yaml(workspace / "ballot.yaml") or {}
+    if not isinstance(ballot, dict):
+        return errors
+    contests = [contest for contest in ballot.get("contests") or [] if isinstance(contest, dict)]
+    by_candidate: dict[str, dict] = {}
+    for contest in contests:
+        for candidate in contest.get("candidates") or []:
+            if isinstance(candidate, dict) and not candidate.get("write_in"):
+                item_id = str(candidate.get("item_id") or candidate.get("id") or "")
+                if item_id:
+                    by_candidate[item_id] = contest
+    for item in iter_items(workspace):
+        doc = load_yaml(item / "claims.yaml") or {}
+        if not isinstance(doc, dict):
+            continue
+        item_type = str(doc.get("item_type") or "")
+        contest = by_candidate.get(item.name)
+        if item_type not in PERSON_ITEM_TYPES and contest is None:
+            continue
+        if item_type not in PERSON_ITEM_TYPES and (contest or {}).get("type") not in {
+            "race",
+            "primary",
+            "local-office",
+            "judicial-retention",
+        }:
+            continue
+        draft_path = item / "draft.md"
+        if not draft_path.exists():
+            continue
+        sections = section_map(draft_path.read_text(encoding="utf-8"))
+        body = sections.get("party", "")
+        if "party" not in sections:
+            continue
+        state = load_json(item / "loop-state.json") or {}
+        signed = str(state.get("status") or "") in {"signed-off", "capped-disputed"}
+        if _section_is_scaffold(body):
+            if signed:
+                errors.append(f"{item.name}: party is still the untouched scaffold on a signed-off item")
+            continue
+        profile = load_yaml(item / "profile.yaml") or {}
+        party = profile.get("party") if isinstance(profile, dict) else None
+        nonpartisan = bool(isinstance(party, dict) and party.get("race_nonpartisan")) or is_nonpartisan_contest(contest)
+        if nonpartisan and NONPARTISAN_RACE not in body:
+            errors.append(f"{item.name}: a nonpartisan race must say '{NONPARTISAN_RACE}' in the party section")
+        if isinstance(party, dict):
+            source_kind = str(party.get("source_kind") or "")
+            if source_kind not in PARTY_SOURCE_KINDS:
+                errors.append(f"{item.name}: party.source_kind must be ballot, elections office, filing, or voter registration")
+            if party.get("race_nonpartisan") and source_kind not in {"ballot", "elections_office"}:
+                errors.append(
+                    f"{item.name}: the Nonpartisan race label is cited from the ballot or the elections office before a filing or registration"
+                )
+            display = str(party.get("display") or "")
+            if nonpartisan and NONPARTISAN_RACE not in display:
+                errors.append(f"{item.name}: party.display must include '{NONPARTISAN_RACE}'")
+            registered = str(party.get("registered_party") or "").strip()
+            if registered:
+                if REGISTERED_PARTY_LABEL not in body or REGISTERED_PARTY_LABEL not in display:
+                    errors.append(
+                        f"{item.name}: a registered party on a nonpartisan race uses the label '{REGISTERED_PARTY_LABEL}'"
+                    )
+                if str(party.get("registered_source_kind") or "") not in PARTY_SOURCE_KINDS:
+                    errors.append(f"{item.name}: registered party needs registered_source_kind")
+            for change in party.get("changes") or []:
+                if not isinstance(change, dict):
+                    continue
+                when = str(change.get("date") or "")
+                if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", when):
+                    errors.append(f"{item.name}: a party change needs an ISO date")
+                    continue
+                if when not in body and when[:4] not in body:
+                    errors.append(f"{item.name}: party change on {when} is not in the party section")
+            if not (party.get("changes") or []) and "not found" not in body.lower() and "party change" not in body.lower():
+                errors.append(
+                    f"{item.name}: party changes in the last 10 years need a cited change or a not-found line"
+                )
+            if "[^" not in display and not _is_gap_text(body):
+                errors.append(f"{item.name}: party.display needs the citation marker for the ballot label")
+        claims = _party_claims(doc)
+        if claims and not any(
+            source.get("tier") == "T1"
+            for claim in claims
+            for source in (claim.get("sources") or [])
+            if isinstance(source, dict)
+        ):
+            errors.append(f"{item.name}: party needs an official T1 source from the ballot, elections office, filing, or registration")
+    return errors
+
+
+def endorsement_record_errors(workspace) -> list[str]:
+    """Endorsements name the endorser, type, date, and whether the words are the group's or the candidate's."""
+    errors = []
+    for item in iter_items(workspace):
+        doc = load_yaml(item / "claims.yaml") or {}
+        if not isinstance(doc, dict):
+            continue
+        draft_path = item / "draft.md"
+        draft = draft_path.read_text(encoding="utf-8") if draft_path.exists() else ""
+        sections = section_map(draft) if draft else {}
+        for claim in doc.get("claims") or []:
+            if not isinstance(claim, dict) or claim.get("removed"):
+                continue
+            if _claim_section(claim) != "endorsements":
+                continue
+            record = claim.get("endorsement")
+            if not isinstance(record, dict):
+                errors.append(f"{item.name}: {claim.get('id')} is an endorsement without endorser, type, date, and source role")
+                continue
+            if str(record.get("endorser") or "").strip() and str(record.get("endorser")) not in str(claim.get("text") or ""):
+                errors.append(f"{item.name}: {claim.get('id')} does not name the endorser in the claim text")
+            when = str(record.get("date") or "")
+            if when and when[:4] not in draft and when not in draft:
+                errors.append(f"{item.name}: {claim.get('id')} endorsement date {when} is not in the draft")
+        endorsements_body = sections.get("endorsements", "")
+        if endorsements_body and _is_gap_text(endorsements_body):
+            continue
+        if doc.get("item_type") in PERSON_ITEM_TYPES and endorsements_body and not _section_is_scaffold(endorsements_body):
+            if not any(
+                isinstance(claim, dict) and _claim_section(claim) == "endorsements" and isinstance(claim.get("endorsement"), dict)
+                for claim in doc.get("claims") or []
+            ):
+                errors.append(f"{item.name}: endorsements section has no structured endorsement record")
+    return errors
+
+
+def measure_side_errors(workspace) -> list[str]:
+    """A measure lists the sponsor committee, both sides, and top funders, or an honest gap."""
+    errors = []
+    for item in iter_items(workspace):
+        doc = load_yaml(item / "claims.yaml") or {}
+        if not isinstance(doc, dict) or doc.get("item_type") != "measure":
+            continue
+        draft_path = item / "draft.md"
+        if not draft_path.exists():
+            continue
+        sections = section_map(draft_path.read_text(encoding="utf-8"))
+        if _section_is_scaffold("\n".join(sections.values())):
+            continue
+        roles = set()
+        for claim in doc.get("claims") or []:
+            if not isinstance(claim, dict) or claim.get("removed"):
+                continue
+            position = claim.get("ballot_position")
+            if isinstance(position, dict) and position.get("role"):
+                roles.add(str(position.get("role")))
+        gaps = {
+            "sponsor_committee": sections.get("official sponsor or committee", ""),
+            "supporter": sections.get("organizations supporting", ""),
+            "opponent": sections.get("organizations opposing", ""),
+            "funder_for": sections.get("top funders", ""),
+            "funder_against": sections.get("top funders", ""),
+        }
+        for role in MEASURE_SIDE_ROLES:
+            if role in roles:
+                continue
+            body = gaps.get(role, "")
+            if body and (_is_gap_text(body) or "not found" in body.lower()):
+                continue
+            errors.append(f"{item.name}: measure side '{role}' needs a cited organization or a not-found line")
+    return errors
+
+
+def legislation_depth_errors(workspace) -> list[str]:
+    """A researched bill names sponsor party and district, or records the gap. It does not invent a model-bill origin."""
+    errors = []
+    for item in iter_items(workspace):
+        doc = load_yaml(item / "claims.yaml") or {}
+        if not isinstance(doc, dict) or doc.get("item_type") != "legislation":
+            continue
+        draft_path = item / "draft.md"
+        if not draft_path.exists():
+            continue
+        sections = section_map(draft_path.read_text(encoding="utf-8"))
+        sponsors = sections.get("sponsors and cosponsors", "")
+        if not sponsors or _section_is_scaffold(sponsors) or _is_gap_text(sponsors):
+            continue
+        if not re.search(r"\bdistrict\b", sponsors, re.IGNORECASE):
+            errors.append(f"{item.name}: sponsors need a district or a not-found line")
+        if not re.search(
+            r"\b(?:democrat|republican|independent|libertarian|green|nonpartisan|no party affiliation|party)\b",
+            sponsors,
+            re.IGNORECASE,
+        ):
+            errors.append(f"{item.name}: sponsors need a party or a not-found line")
+        model = sections.get("drafting and model legislation", "")
+        if model and not _is_gap_text(model) and re.search(r"\b(?:ALEC|model bill)\b", model, re.IGNORECASE):
+            if "[^" not in model:
+                errors.append(f"{item.name}: a model-legislation origin needs a citation")
+    return errors
+
+
+def rendered_party_errors(workspace) -> list[str]:
+    """The reader guide shows party and endorsements as text, with no party color class."""
+    guide_path = workspace / "final" / "guide.md"
+    if not guide_path.exists():
+        return []
+    text = guide_path.read_text(encoding="utf-8")
+    errors = []
+    if re.search(r"party-(?:democrat|republican)|color:\s*#(?:ff0000|0000ff|0000ee)\b", text, re.IGNORECASE):
+        errors.append("final/guide.md: party is colored or classed by party")
+    ballot = load_yaml(workspace / "ballot.yaml") or {}
+    contests = [contest for contest in (ballot.get("contests") or []) if isinstance(contest, dict)] if isinstance(ballot, dict) else []
+    if any(is_nonpartisan_contest(contest) for contest in contests) and NONPARTISAN_RACE not in text:
+        errors.append("final/guide.md: missing the Nonpartisan race label")
+    if any(contest.get("type") in {"race", "primary", "local-office"} for contest in contests):
+        if not re.search(r"^\|\s*Party\s*\|", text, re.MULTILINE):
+            errors.append("final/guide.md: comparison tables are missing the Party row")
+        if not re.search(r"^\|\s*Endorsements\s*\|", text, re.MULTILINE):
+            errors.append("final/guide.md: comparison tables are missing the Endorsements row")
+    if any(contest.get("type") == "legislation" for contest in contests):
+        if "Related litigation" not in text and "related litigation" not in text.lower():
+            errors.append("final/guide.md: legislation is missing related litigation")
+    return errors
+
+
+def _signed_item(item: Path) -> bool:
+    state = load_json(item / "loop-state.json") or {}
+    return str(state.get("status") or "") in {"signed-off", "capped-disputed"}
+
+
+def _require_real_section(errors: list[str], item_name: str, sections: dict, name: str, signed: bool) -> str:
+    """Return the section body. A signed-off item cannot leave the heading as a scaffold."""
+    body = sections.get(name, "")
+    if not signed:
+        return body
+    if name not in sections or _section_is_scaffold(body):
+        errors.append(f"{item_name}: '{name}' needs a cited fact or a not-found line before sign-off")
+        return ""
+    return body
+
+
+def depth_record_errors(workspace) -> list[str]:
+    """Signed-off candidates and bills carry the depth fields, or an honest gap.
+
+    Finance uses one as-of date and the same buckets. Attendance is a count plus
+    the chamber median, not a rank. A fact-check that was never opened is not a
+    clean bill of health. Ethics lines are final orders. Term limits name the
+    eligible-through year. Bills cite a staff analysis or say it was not found.
+    Legislator votes follow district labels and never a street address.
+    """
+    errors: list[str] = []
+    ballot = load_yaml(workspace / "ballot.yaml") or {}
+    if not isinstance(ballot, dict):
+        ballot = {}
+    districts = [str(item).strip() for item in (ballot.get("districts") or []) if str(item).strip()]
+    for district in districts:
+        if looks_like_street_address(district):
+            errors.append("ballot.yaml districts contain a street address. Store the district label only.")
+    for item in iter_items(workspace):
+        doc = load_yaml(item / "claims.yaml") or {}
+        if not isinstance(doc, dict):
+            continue
+        draft_path = item / "draft.md"
+        if not draft_path.exists():
+            continue
+        signed = _signed_item(item)
+        if not signed:
+            continue
+        sections = section_map(draft_path.read_text(encoding="utf-8"))
+        item_type = str(doc.get("item_type") or "")
+        if item_type in PERSON_ITEM_TYPES:
+            errors.extend(_candidate_depth_errors(item.name, item, doc, sections, item_type))
+        if item_type == "legislation":
+            errors.extend(_legislation_depth_fields(item.name, doc, sections, districts))
+    return errors
+
+
+def _candidate_depth_errors(item_name: str, item: Path, doc: dict, sections: dict, item_type: str) -> list[str]:
+    errors: list[str] = []
+    funding = _require_real_section(errors, item_name, sections, "campaign funding", True)
+    if funding and not _is_gap_text(funding):
+        needed = (
+            ("small donor", "small donors at or under 200 dollars"),
+            ("large donor", "large donors"),
+            ("in-district", "in-district share"),
+            ("self-fund", "self-funding or loans"),
+            ("pac", "PAC money"),
+            ("party", "party committee money"),
+        )
+        lowered = funding.lower()
+        for needle, label in needed:
+            if needle == "self-fund":
+                if "self-fund" not in lowered and "loan" not in lowered:
+                    errors.append(f"{item_name}: campaign funding is missing {label}")
+                continue
+            if needle == "party":
+                if "party committee" not in lowered and "party money" not in lowered:
+                    errors.append(f"{item_name}: campaign funding is missing {label}")
+                continue
+            if needle not in lowered:
+                errors.append(f"{item_name}: campaign funding is missing {label}")
+    profile = load_yaml(item / "profile.yaml") or {}
+    money = profile.get("money") if isinstance(profile, dict) else None
+    if not isinstance(money, dict):
+        errors.append(f"{item_name}: profile.yaml money needs the shared finance breakdown")
+    else:
+        for key in FINANCE_KEYS:
+            if not str(money.get(key) or "").strip():
+                errors.append(f"{item_name}: profile.yaml money.{key} is empty")
+    outside = _require_real_section(errors, item_name, sections, "outside spending", True)
+    if outside and not _is_gap_text(outside):
+        if "independent expenditure" not in outside.lower() and "outside spending" not in outside.lower():
+            errors.append(f"{item_name}: outside spending must name independent expenditures or a not-found line")
+        if re.search(r"\baffiliated\b", outside, re.IGNORECASE) and "filing" not in outside.lower():
+            errors.append(f"{item_name}: an affiliated committee has to come from a filing")
+    attendance = _require_real_section(errors, item_name, sections, "attendance", True)
+    if attendance and not _is_gap_text(attendance):
+        if "median" not in attendance.lower():
+            errors.append(f"{item_name}: attendance needs the chamber median beside the member's count")
+        if re.search(r"\brank(?:ed|ing|s)?\b", attendance, re.IGNORECASE):
+            errors.append(f"{item_name}: attendance does not rank members")
+    disclosure = _require_real_section(errors, item_name, sections, "financial disclosure", True)
+    if disclosure and not _is_gap_text(disclosure):
+        if re.search(r"\b(?:conflict|unethical|corrupt|improper)\b", disclosure, re.IGNORECASE):
+            errors.append(f"{item_name}: a disclosure overlap is stated without a verdict")
+    _require_real_section(errors, item_name, sections, "fact checks", True)
+    fact_body = sections.get("fact checks", "")
+    if fact_body and not _section_is_scaffold(fact_body) and FACT_CHECK_CAVEAT not in fact_body.lower():
+        errors.append(
+            f"{item_name}: fact checks must say that never checked is not the same as checked out clean"
+        )
+    ethics = _require_real_section(errors, item_name, sections, "ethics and elections orders", True)
+    if ethics and "final order" not in ethics.lower():
+        errors.append(f"{item_name}: ethics and elections lines are final orders, or a not-found line that says so")
+    limits = _require_real_section(errors, item_name, sections, "term limits", True)
+    if limits and not _is_gap_text(limits) and not re.search(r"eligible through\s+\d{4}", limits, re.IGNORECASE):
+        errors.append(f"{item_name}: term limits need an eligible-through year or a not-found line")
+    if item_type == "judicial-retention":
+        return errors
+    promises = _require_real_section(errors, item_name, sections, "promises versus record", True)
+    if promises and not _is_gap_text(promises):
+        if "first platform item" not in promises.lower():
+            errors.append(f"{item_name}: promises use the first platform item, the same rule for every candidate")
+        found_status = False
+        for claim in doc.get("claims") or []:
+            if not isinstance(claim, dict) or claim.get("removed"):
+                continue
+            if norm_heading(str(claim.get("section") or "")) != "promises versus record":
+                continue
+            status = str(claim.get("promise_status") or "")
+            label = PROMISE_STATUS_LABELS.get(status, "")
+            if not label:
+                errors.append(f"{item_name}: {claim.get('id')} needs promise_status kept, partially, not, or no_record")
+                continue
+            found_status = True
+            if label not in promises.lower():
+                errors.append(f"{item_name}: {claim.get('id')} status '{label}' is not in the promises section")
+        if not found_status:
+            errors.append(f"{item_name}: promises versus record needs a promise_status claim or a not-found line")
+    survey = _require_real_section(errors, item_name, sections, "questionnaire answers", True)
+    if survey and not _is_gap_text(survey):
+        lowered = survey.lower().replace(" ", "")
+        for name in SURVEY_NAMES:
+            if name not in lowered and name not in survey.lower():
+                errors.append(f"{item_name}: questionnaire answers must cover {name}")
+        if "did not respond" not in survey.lower() and "answered" not in survey.lower():
+            errors.append(f"{item_name}: a missing survey answer is 'did not respond'")
+        if re.search(r"sent a questionnaire|emailed the candidate|we asked them", survey, re.IGNORECASE):
+            errors.append(f"{item_name}: do not send a questionnaire; use Vote411, Ballotpedia, and VoteSmart")
+    elif survey and _is_gap_text(survey):
+        blob = survey.lower().replace(" ", "")
+        for name in SURVEY_NAMES:
+            if name not in blob:
+                errors.append(f"{item_name}: questionnaire gap must name {name}")
+    return errors
+
+
+def _legislation_depth_fields(item_name: str, doc: dict, sections: dict, districts: list[str]) -> list[str]:
+    errors: list[str] = []
+    for name in (
+        "section-by-section changes",
+        "effective date",
+        "implementing agency",
+        "party vote counts",
+        "veto and override",
+        "your legislators votes",
+        "similar laws",
+        "legal and constitutional challenges",
+        "staff analysis",
+    ):
+        _require_real_section(errors, item_name, sections, name, True)
+    staff_sources = False
+    for claim in doc.get("claims") or []:
+        if not isinstance(claim, dict):
+            continue
+        for source in claim.get("sources") or []:
+            if not isinstance(source, dict):
+                continue
+            blob = f"{source.get('doc_type') or ''} {source.get('title') or ''}".lower()
+            if "staff analysis" in blob:
+                staff_sources = True
+    staff_body = sections.get("staff analysis", "")
+    if not staff_sources and not (_is_gap_text(staff_body) or "not found" in staff_body.lower()):
+        errors.append(f"{item_name}: a bill needs a House or Senate staff analysis source, or a not-found line")
+    changes = sections.get("section-by-section changes", "")
+    if changes and not _is_gap_text(changes) and not _section_is_scaffold(changes):
+        if "section" not in changes.lower():
+            errors.append(f"{item_name}: section-by-section changes need the statute section or a not-found line")
+    party_votes = sections.get("party vote counts", "")
+    if party_votes and not _is_gap_text(party_votes) and not _section_is_scaffold(party_votes):
+        if re.search(r"\b(?:in red|in blue|party color)\b", party_votes, re.IGNORECASE):
+            errors.append(f"{item_name}: party vote counts are plain numbers, not colors")
+        if not re.search(r"\b(?:yes|no)\b", party_votes, re.IGNORECASE):
+            errors.append(f"{item_name}: party vote counts need the yes and no totals")
+    votes = sections.get("your legislators votes", "")
+    if votes and looks_like_street_address(votes):
+        errors.append(f"{item_name}: legislator votes are looked up by district, not by street address")
+    if votes and not _is_gap_text(votes) and not _section_is_scaffold(votes):
+        if not districts:
+            errors.append(f"{item_name}: legislator votes need district labels on the ballot, not an address")
+        for district in districts:
+            if district not in votes:
+                errors.append(f"{item_name}: legislator votes are missing district '{district}'")
+    similar = sections.get("similar laws", "")
+    if similar and not _is_gap_text(similar) and not _section_is_scaffold(similar):
+        lowered = similar.lower()
+        if "ncsl" not in lowered and "oppaga" not in lowered:
+            errors.append(f"{item_name}: similar laws cite NCSL or OPPAGA, or a not-found line")
+        if len(re.findall(r"\[\^\d+\]", similar)) < 2:
+            errors.append(f"{item_name}: a similar-law outcome needs two independent sources")
+    legal = sections.get("legal and constitutional challenges", "")
+    if legal and not _is_gap_text(legal) and re.search(r"\b(?:likely|probably)\b", legal, re.IGNORECASE):
+        errors.append(f"{item_name}: legal challenges cite a filed case or opinion, not a prediction")
+    return errors
+
+
 def content_gate_errors(workspace, today: date, *, include_guide: bool = True) -> list[str]:
     errors: list[str] = []
     errors.extend(citation_errors(workspace, guide=include_guide))
@@ -2445,6 +3094,13 @@ def content_gate_errors(workspace, today: date, *, include_guide: bool = True) -
     errors.extend(figure_source_errors(workspace))
     errors.extend(templated_prose_errors(workspace))
     errors.extend(heading_errors(workspace))
+    errors.extend(party_record_errors(workspace))
+    errors.extend(endorsement_record_errors(workspace))
+    errors.extend(measure_side_errors(workspace))
+    errors.extend(legislation_depth_errors(workspace))
+    errors.extend(depth_record_errors(workspace))
+    if include_guide:
+        errors.extend(rendered_party_errors(workspace))
     return errors
 
 

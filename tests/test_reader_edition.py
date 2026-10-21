@@ -28,6 +28,7 @@ from lib.quality import (
     prose_marker_errors,
     quote_verbatim_errors,
     reader_contest_budget_errors,
+    reader_log_errors,
     semantic_claim_errors,
     structured_symmetry_errors,
     templated_prose_errors,
@@ -630,11 +631,14 @@ def test_all_not_found_comparison_group_collapses_to_a_gap_sentence(tmp_path: Pa
     assert "### Positions" in text
     assert "supports the parks levy" in text
     assert "### Money" not in text
-    assert "### At a glance" not in text
+    assert "### At a glance" in text
+    assert "| Party | Not found | Not found |" in text
     assert "### Experience and background" not in text
     assert "### Record" not in text
-    assert "Not found (searched: receipts, cash on hand, self-funding or loans, share from small donors, outside spending, report date)." in text
-    assert text.count("### ") == 1
+    assert "### Service and record" not in text
+    assert "Not found (searched: receipts, cash on hand, self-funding or loans, share from small donors, large donors, in-district share, pac money, party money, outside spending, report date)." in text
+    assert "Not found (searched: attendance, eligible through, promises, questionnaire, fact checks, disclosure, ethics orders)." in text
+    assert text.count("### ") == 2
 
 
 def test_review_status_accepts_a_colon_in_the_contest_title(tmp_path: Path):
@@ -655,11 +659,93 @@ def test_review_status_accepts_a_colon_in_the_contest_title(tmp_path: Path):
             ],
         },
     )
-    text = "\n".join(_GuideModel(tmp_path, "2026-10-21")._methodology("reader"))
-    assert "status signed-off, round 1, mode initial — Measure 1: Parks levy" in text
-    assert "Avery Quinn was convicted of fraud" not in text
-    assert "Removed measure-1.title.001 at the round cap." in text
-    assert prose_marker_errors(text, "guide") == []
+    model = _GuideModel(tmp_path, "2026-10-21")
+    reader = "\n".join(model._methodology("reader"))
+    full = "\n".join(model._methodology("full"))
+    assert "status signed-off, round 1, mode initial — measure-1" in full
+    assert "Avery Quinn was convicted of fraud" not in reader
+    assert "Avery Quinn was convicted of fraud" not in full
+    assert "Removed measure-1.title.001 at the round cap." not in reader
+    assert "Removed measure-1.title.001 at the round cap." in full
+    assert "fresh-context" not in reader
+    assert "process gap" not in reader.lower()
+    assert "signed off in the same context" not in reader
+    assert prose_marker_errors(reader, "guide") == []
+    assert prose_marker_errors(full, "guide") == []
+
+
+def test_reader_edition_drops_duplicate_process_and_portal_logs(tmp_path: Path):
+    contest = {
+        "id": "race-mayor",
+        "item_id": "race-mayor",
+        "type": "race",
+        "title": "Mayor",
+        "candidates": [
+            {"id": "cand-a", "item_id": "cand-a", "name": "Ada One"},
+            {"id": "cand-b", "item_id": "cand-b", "name": "Bea Two"},
+        ],
+    }
+    dump_yaml(tmp_path / "ballot.yaml", {"contests": [contest], "report_version": "v1.0"})
+    dump_yaml(tmp_path / "intake.yaml", {"parallel_subagents": False})
+    process = (
+        "factcheck signed off in the same context as the research. "
+        "This is a process gap, not a fresh-context review."
+    )
+    portal = "Sunbiz officer search was blocked by Cloudflare."
+    plain = "Florida business records could not be retrieved automatically; ownership was not verified."
+    for item_id, name in (("cand-a", "Ada One"), ("cand-b", "Bea Two")):
+        item = tmp_path / "items" / item_id
+        item.mkdir(parents=True)
+        (item / "draft.md").write_text(
+            f"# {name}\n\n"
+            f"## Identity\n\n{name} is on the ballot[^1]. {portal}\n\n"
+            f"## Positions in own words\n\n{name} supports the parks levy[^1].\n",
+            encoding="utf-8",
+        )
+        dump_json(
+            item / "loop-state.json",
+            {
+                "status": "signed-off",
+                "round": 1,
+                "mode": "initial",
+                "signoffs": {
+                    reviewer: {"signed": True, "at": "2026-10-21 12:00 ET", "round": 1}
+                    for reviewer in ("factcheck", "sourcing", "neutrality", "privacy-legal")
+                },
+                "gaps": [portal, portal],
+                "process_gaps": [process, process, process],
+            },
+        )
+    model = _GuideModel(tmp_path, "2026-10-21")
+    reader, sources = model.render("reader")
+    full, full_sources = model.render("full")
+    assert "Reviews: 0 of 2 candidate profiles were checked by a separate reviewer; the rest were checked in the same session, which is less independent." in reader
+    assert "| Ada One | Same session / Separate / Separate / Separate |" in reader
+    assert "| Bea Two | Same session / Separate / Separate / Separate |" in reader
+    assert plain in reader
+    assert reader.count(plain) == 2
+    assert "Cloudflare" not in reader
+    assert "Sunbiz" not in reader
+    assert "fresh-context" not in reader
+    assert "process gap" not in reader.lower()
+    assert "signed off in the same context" not in reader
+    assert "Cloudflare" not in sources
+    assert plain in sources
+    assert full.count(process) == 2
+    assert full.count(portal) == 2
+    assert "### cand-a" in full
+    assert "### cand-b" in full
+    assert portal in full_sources
+    assert reader_log_errors(reader) == []
+    reader_method = "\n".join(model._methodology("reader"))
+    full_method = "\n".join(model._methodology("full"))
+    assert prose_marker_errors(reader_method, "guide") == []
+    assert prose_marker_errors(full_method, "guide") == []
+    assert prose_marker_errors(f"# Ada One\n\n{plain}\n", "guide") == []
+    duplicated = reader + "\n- Same bullet\n- Same bullet\n"
+    assert any("duplicate bullet" in error for error in reader_log_errors(duplicated))
+    leaked = reader + "\nThis is a process gap, not a fresh-context review.\n"
+    assert any("process gap" in error for error in reader_log_errors(leaked))
 
 
 def test_sample_saved_page_is_checked_verbatim():

@@ -287,6 +287,366 @@ Claim race-mayor.logistics.001: Oak County publishes election information on its
 
 [Back to the guide](guide.md#cite-40)
 
+### Source 41 {#source-41 .source-entry}
+
+[41] Oak County Elections (fictional). "Sample ballot, Cedar Hollow, November 3, 2026." Official sample ballot, published 2026-09-15. https://fictional.example/oak-county/2026/sample-ballot — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Mayor contest, party column.
+
+Quote:
+
+> Avery Quinn, Mayor, Nonpartisan.
+
+Claim cand-quinn.party.001: The sample ballot places Avery Quinn of Cedar Hollow in a Nonpartisan race.
+
+[Back to the guide](guide.md#cite-41)
+
+### Source 42 {#source-42 .source-entry}
+
+[42] Oak County Elections (fictional). "Voter registration extract, Avery Quinn." Voter registration, published 2026-09-01. https://fictional.example/oak-county/registration/quinn — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Party field.
+
+Quote:
+
+> Avery Quinn, No Party Affiliation.
+
+Claim cand-quinn.party.002: Voter registration lists Avery Quinn of Cedar Hollow as no party affiliation, a registered party on a nonpartisan race.
+
+[Back to the guide](guide.md#cite-42)
+
+### Source 43 {#source-43 .source-entry}
+
+[43] Oak County Elections (fictional). "Registration change, Avery Quinn." Voter registration, published 2019-03-12. https://fictional.example/oak-county/registration/quinn-2019 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Change line.
+
+Quote:
+
+> Party change from Republican to No Party Affiliation on 2019-03-12.
+
+Claim cand-quinn.party.003: In 2019 Avery Quinn of Cedar Hollow left the Republican listing.
+
+[Back to the guide](guide.md#cite-43)
+
+### Source 44 {#source-44 .source-entry}
+
+[44] Oak County Elections (fictional). "Sample ballot, Cedar Hollow, November 3, 2026." Official sample ballot, published 2026-09-15. https://fictional.example/oak-county/2026/sample-ballot — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Mayor contest, party column.
+
+Quote:
+
+> Blake Okonkwo, Mayor, Nonpartisan.
+
+Claim cand-okonkwo.party.001: The sample ballot places Blake Okonkwo of Cedar Hollow in a Nonpartisan race.
+
+[Back to the guide](guide.md#cite-44)
+
+### Source 45 {#source-45 .source-entry}
+
+[45] Oak County Elections (fictional). "Voter registration extract, Blake Okonkwo." Voter registration, published 2026-09-01. https://fictional.example/oak-county/registration/okonkwo — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Party field.
+
+Quote:
+
+> Blake Okonkwo, Democratic.
+
+Claim cand-okonkwo.party.002: Voter registration lists Blake Okonkwo of Cedar Hollow as Democratic, a registered party on a nonpartisan race.
+
+[Back to the guide](guide.md#cite-45)
+
+### Source 46 {#source-46 .source-entry}
+
+[46] Westland campaign finance office (fictional). "Quinn itemized receipts, small donors." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/quinn-2026-q3-items — Archived: https://fictional.example/archive/quinn-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Small-donor total. Local copy: saved/quinn-depth.html.
+
+Quote:
+
+> Small donors at or under 200 dollars gave 12000 dollars.
+
+Claim cand-quinn.funding.002: Small donors at or under 200 dollars gave 12000 dollars to Avery Quinn of Cedar Hollow.
+
+[Back to the guide](guide.md#cite-46)
+
+### Source 47 {#source-47 .source-entry}
+
+[47] Westland campaign finance office (fictional). "Quinn itemized receipts, large donors." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/quinn-2026-q3-items — Archived: https://fictional.example/archive/quinn-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Large-donor total. Local copy: saved/quinn-depth.html.
+
+Quote:
+
+> Large donors gave 20000 dollars.
+
+Claim cand-quinn.funding.003: Large donors gave 20000 dollars to Avery Quinn of Cedar Hollow.
+
+[Back to the guide](guide.md#cite-47)
+
+### Source 48 {#source-48 .source-entry}
+
+[48] Westland campaign finance office (fictional). "Quinn itemized receipts, in-district." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/quinn-2026-q3-items — Archived: https://fictional.example/archive/quinn-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: In-district total. Local copy: saved/quinn-depth.html.
+
+Quote:
+
+> In-district donors gave 15000 dollars.
+
+Claim cand-quinn.funding.004: In-district donors gave 15000 dollars to Avery Quinn of Cedar Hollow.
+
+[Back to the guide](guide.md#cite-48)
+
+### Source 49 {#source-49 .source-entry}
+
+[49] Westland campaign finance office (fictional). "Quinn loans and self-funding." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/quinn-2026-q3 — Archived: https://fictional.example/archive/quinn-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Loan line. Local copy: saved/quinn-depth.html.
+
+Quote:
+
+> Loans and self-funding were 0 dollars.
+
+Claim cand-quinn.funding.005: Loans and self-funding for Avery Quinn of Cedar Hollow were 0 dollars.
+
+[Back to the guide](guide.md#cite-49)
+
+### Source 50 {#source-50 .source-entry}
+
+[50] Westland campaign finance office (fictional). "Quinn PAC receipts." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/quinn-2026-q3-items — Archived: https://fictional.example/archive/quinn-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: PAC total. Local copy: saved/quinn-depth.html.
+
+Quote:
+
+> PAC committees gave 8000 dollars.
+
+Claim cand-quinn.funding.006: PAC committees gave 8000 dollars to Avery Quinn of Cedar Hollow.
+
+[Back to the guide](guide.md#cite-50)
+
+### Source 51 {#source-51 .source-entry}
+
+[51] Westland campaign finance office (fictional). "Quinn party committee receipts." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/quinn-2026-q3-items — Archived: https://fictional.example/archive/quinn-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Party total. Local copy: saved/quinn-depth.html.
+
+Quote:
+
+> Party committee money was 0 dollars.
+
+Claim cand-quinn.funding.007: Party committee money for Avery Quinn of Cedar Hollow was 0 dollars.
+
+[Back to the guide](guide.md#cite-51)
+
+### Source 52 {#source-52 .source-entry}
+
+[52] Westland campaign finance office (fictional). "Independent expenditure index, mayor." Independent expenditure filing, published 2026-10-15. https://fictional.example/westland-finance/ie-mayor-2026 — Archived: https://fictional.example/archive/quinn-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Quinn row. Local copy: saved/quinn-depth.html.
+
+Quote:
+
+> Independent expenditures for Avery Quinn were 0 dollars and independent expenditures against Avery Quinn were 0 dollars.
+
+Claim cand-quinn.outside.001: Independent expenditures for and against Avery Quinn of Cedar Hollow were 0 dollars.
+
+[Back to the guide](guide.md#cite-52)
+
+### Source 53 {#source-53 .source-entry}
+
+[53] Westland campaign finance office (fictional). "Okonkwo itemized receipts, small donors." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/okonkwo-2026-q3-items — Archived: https://fictional.example/archive/okonkwo-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Small-donor total. Local copy: saved/okonkwo-depth.html.
+
+Quote:
+
+> Small donors at or under 200 dollars gave 9000 dollars.
+
+Claim cand-okonkwo.funding.003: Small donors at or under 200 dollars gave 9000 dollars to Blake Okonkwo of Cedar Hollow.
+
+[Back to the guide](guide.md#cite-53)
+
+### Source 54 {#source-54 .source-entry}
+
+[54] Westland campaign finance office (fictional). "Okonkwo itemized receipts, large donors." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/okonkwo-2026-q3-items — Archived: https://fictional.example/archive/okonkwo-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Large-donor total. Local copy: saved/okonkwo-depth.html.
+
+Quote:
+
+> Large donors gave 14000 dollars.
+
+Claim cand-okonkwo.funding.004: Large donors gave 14000 dollars to Blake Okonkwo of Cedar Hollow.
+
+[Back to the guide](guide.md#cite-54)
+
+### Source 55 {#source-55 .source-entry}
+
+[55] Westland campaign finance office (fictional). "Okonkwo itemized receipts, in-district." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/okonkwo-2026-q3-items — Archived: https://fictional.example/archive/okonkwo-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: In-district total. Local copy: saved/okonkwo-depth.html.
+
+Quote:
+
+> In-district donors gave 7000 dollars.
+
+Claim cand-okonkwo.funding.005: In-district donors gave 7000 dollars to Blake Okonkwo of Cedar Hollow.
+
+[Back to the guide](guide.md#cite-55)
+
+### Source 56 {#source-56 .source-entry}
+
+[56] Westland campaign finance office (fictional). "Okonkwo loans and self-funding." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/okonkwo-2026-q3 — Archived: https://fictional.example/archive/okonkwo-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Loan line. Local copy: saved/okonkwo-depth.html.
+
+Quote:
+
+> Loans and self-funding were 0 dollars.
+
+Claim cand-okonkwo.funding.006: Loans and self-funding for Blake Okonkwo of Cedar Hollow were 0 dollars.
+
+[Back to the guide](guide.md#cite-56)
+
+### Source 57 {#source-57 .source-entry}
+
+[57] Westland campaign finance office (fictional). "Okonkwo PAC receipts." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/okonkwo-2026-q3-items — Archived: https://fictional.example/archive/okonkwo-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: PAC total. Local copy: saved/okonkwo-depth.html.
+
+Quote:
+
+> PAC committees gave 2000 dollars.
+
+Claim cand-okonkwo.funding.007: PAC committees gave 2000 dollars to Blake Okonkwo of Cedar Hollow.
+
+[Back to the guide](guide.md#cite-57)
+
+### Source 58 {#source-58 .source-entry}
+
+[58] Westland campaign finance office (fictional). "Okonkwo party committee receipts." Campaign filing, published 2026-10-15. https://fictional.example/westland-finance/okonkwo-2026-q3-items — Archived: https://fictional.example/archive/okonkwo-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Party total. Local copy: saved/okonkwo-depth.html.
+
+Quote:
+
+> Party committee money was 0 dollars.
+
+Claim cand-okonkwo.funding.008: Party committee money for Blake Okonkwo of Cedar Hollow was 0 dollars.
+
+[Back to the guide](guide.md#cite-58)
+
+### Source 59 {#source-59 .source-entry}
+
+[59] Westland campaign finance office (fictional). "Independent expenditure index, mayor." Independent expenditure filing, published 2026-10-15. https://fictional.example/westland-finance/ie-mayor-2026 — Archived: https://fictional.example/archive/okonkwo-depth. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Okonkwo row. Local copy: saved/okonkwo-depth.html.
+
+Quote:
+
+> Independent expenditures for Blake Okonkwo were 0 dollars and independent expenditures against Blake Okonkwo were 0 dollars.
+
+Claim cand-okonkwo.outside.001: Independent expenditures for and against Blake Okonkwo of Cedar Hollow were 0 dollars.
+
+[Back to the guide](guide.md#cite-59)
+
+### Source 60 {#source-60 .source-entry}
+
+[60] Cedar Hollow Clerk (fictional). "Council attendance, 2025." Meeting roll, published 2026-01-15. https://fictional.example/cedar-hollow/attendance/2025 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Attendance table.
+
+Quote:
+
+> Quinn attended 11 of 12 meetings. The median was 10 of 12.
+
+Claim cand-quinn.attendance.001: Avery Quinn of Cedar Hollow attended 11 of 12 council meetings in 2025, and the median was 10 of 12.
+
+[Back to the guide](guide.md#cite-60)
+
+### Source 61 {#source-61 .source-entry}
+
+[61] Cedar Hollow Clerk (fictional). "Local disclosure, Avery Quinn, 2026." Financial disclosure, published 2026-07-01. https://fictional.example/cedar-hollow/disclosure/quinn-2026 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Holdings line.
+
+Quote:
+
+> The disclosure lists a parks-bond holding.
+
+Claim cand-quinn.disclosure.001: The local disclosure for Avery Quinn of Cedar Hollow lists a parks-bond holding, and Avery Quinn of Cedar Hollow voted on the parks budget.
+
+[Back to the guide](guide.md#cite-61)
+
+### Source 62 {#source-62 .source-entry}
+
+[62] Quinn for Cedar committee (fictional). "Campaign site, first platform item." Campaign site, published 2026-09-01. https://quinn-for-cedar.example/platform — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: First item.
+
+Quote:
+
+> The first platform item says the levy stays at the ballot amount.
+
+Claim cand-quinn.promises.001: The first platform item for Avery Quinn of Cedar Hollow matches the 2024 parks vote, so the status is kept.
+
+[Back to the guide](guide.md#cite-62)
+
+### Source 63 {#source-63 .source-entry}
+
+[63] Okonkwo for Cedar committee (fictional). "Campaign site, first platform item." Campaign site, published 2026-09-01. https://okonkwo-for-cedar.example/platform — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: First item.
+
+Quote:
+
+> The first platform item says a repair list comes before a levy change.
+
+Claim cand-okonkwo.promises.001: The first platform item for Blake Okonkwo of Cedar Hollow has no earlier vote, so the status is no record.
+
+[Back to the guide](guide.md#cite-63)
+
+### Source 64 {#source-64 .source-entry}
+
+[64] Vote411 (fictional extract). "Vote411 mayor page." Questionnaire, published 2026-10-01. https://fictional.example/vote411/cedar-mayor — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T2. Locator: Quinn row.
+
+Quote:
+
+> Vote411 shows no reply from Avery Quinn.
+
+Claim cand-quinn.survey.001: Vote411 shows did not respond for Avery Quinn of Cedar Hollow.
+
+[Back to the guide](guide.md#cite-64)
+
+### Source 68 {#source-68 .source-entry}
+
+[68] Ballotpedia (fictional extract). "Ballotpedia candidate survey." Questionnaire, published 2026-10-01. https://fictional.example/ballotpedia/okonkwo — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T2. Locator: Survey block.
+
+Quote:
+
+> No survey answers from Blake Okonkwo.
+
+Claim cand-okonkwo.survey.002: Ballotpedia shows did not respond for Blake Okonkwo of Cedar Hollow.
+
+[Back to the guide](guide.md#cite-68)
+
+### Source 70 {#source-70 .source-entry}
+
+[70] Cedar Hollow Clerk (fictional). "City charter, mayor term limit." Charter, published 2026-01-01. https://fictional.example/cedar-hollow/charter/mayor — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Term section.
+
+Quote:
+
+> Avery Quinn is eligible through 2030.
+
+Claim cand-quinn.term.001: Avery Quinn of Cedar Hollow is eligible through 2030.
+
+[Back to the guide](guide.md#cite-70)
+
+### Source 71 {#source-71 .source-entry}
+
+[71] Cedar Hollow Clerk (fictional). "City charter, mayor term limit." Charter, published 2026-01-01. https://fictional.example/cedar-hollow/charter/mayor — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Challenger paragraph.
+
+Quote:
+
+> Blake Okonkwo is eligible through 2034.
+
+Claim cand-okonkwo.term.001: Blake Okonkwo of Cedar Hollow is eligible through 2034.
+
+[Back to the guide](guide.md#cite-71)
+
+### Source 72 {#source-72 .source-entry}
+
+[72] PolitiFact Florida (fictional extract). "Search method note." Fact-check method, published 2026-10-01. https://fictional.example/politifact/method — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T2. Locator: Absence note.
+
+Quote:
+
+> A statement that was never checked is not the same as a statement checked out clean.
+
+Claim cand-quinn.facts.001: Never checked is not the same as checked out clean for Avery Quinn of Cedar Hollow.
+
+[Back to the guide](guide.md#cite-72)
+
+### Source 73 {#source-73 .source-entry}
+
+[73] FactCheck.org (fictional extract). "Search method note." Fact-check method, published 2026-10-01. https://fictional.example/factcheck/method — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T2. Locator: Absence note.
+
+Quote:
+
+> Never checked is not the same as checked out clean.
+
+Claim cand-okonkwo.facts.001: Never checked is not the same as checked out clean for Blake Okonkwo of Cedar Hollow.
+
+[Back to the guide](guide.md#cite-73)
+
+### Source 76 {#source-76 .source-entry}
+
+[76] Cedar Hollow Clerk (fictional). "Council minutes, June 4, 2024." Meeting minutes, published 2024-06-04. https://fictional.example/cedar-hollow/minutes/2024-06-04 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Vote table, parks budget.
+
+Quote:
+
+> Mayor Quinn voted yes on the parks budget.
+
+Claim cand-quinn.promises.001: The first platform item for Avery Quinn of Cedar Hollow matches the 2024 parks vote, so the status is kept.
+
+[Back to the guide](guide.md#cite-76)
+
 ### Cell detail
 
 #### Mayor of Cedar Hollow summary {#detail-race-mayor-summary}
@@ -312,26 +672,6 @@ The ballot lists Blake Okonkwo of Cedar Hollow as a nonpartisan challenger and d
 #### Current or most recent office: Avery Quinn {#detail-race-mayor-current-or-most-recent-office-avery-quinn}
 
 Avery Quinn of Cedar Hollow was elected to the city council for a four-year term that began after the 2018 election[^2].
-
-#### Receipts: Avery Quinn {#detail-race-mayor-receipts-avery-quinn}
-
-The summary for Avery Quinn of Cedar Hollow shows 48200 dollars in receipts, 31000 dollars spent, 17200 dollars in cash on hand, and no debt[^5].
-
-#### Receipts: Blake Okonkwo {#detail-race-mayor-receipts-blake-okonkwo}
-
-The summary for Blake Okonkwo of Cedar Hollow shows 30100 dollars in receipts, 18400 dollars spent, 11700 dollars in cash on hand, and no debt[^14].
-
-#### Cash on hand: Avery Quinn {#detail-race-mayor-cash-on-hand-avery-quinn}
-
-Cash on hand for Avery Quinn of Cedar Hollow means money the report still showed at the end of that filing period[^5].
-
-#### Report date: Avery Quinn {#detail-race-mayor-report-date-avery-quinn}
-
-Avery Quinn of Cedar Hollow filed on October 15, 2026 for the quarter that ended September 30, 2026[^5].
-
-#### Report date: Blake Okonkwo {#detail-race-mayor-report-date-blake-okonkwo}
-
-Blake Okonkwo of Cedar Hollow filed on October 15, 2026 for the quarter that ended September 30, 2026[^14].
 
 #### Prior offices: Avery Quinn {#detail-race-mayor-prior-offices-avery-quinn}
 
@@ -369,14 +709,6 @@ On June 4, 2024, Avery Quinn of Cedar Hollow voted yes on the city parks budget[
 
 A 2025 parks department report names Blake Okonkwo of Cedar Hollow as the lead on the river path repair[^13].
 
-#### Endorsements: Avery Quinn {#detail-race-mayor-endorsements-avery-quinn}
-
-The Cedar Hollow Firefighters Association said on September 2, 2026 that it endorses Avery Quinn of Cedar Hollow[^9].
-
-#### Endorsements: Blake Okonkwo {#detail-race-mayor-endorsements-blake-okonkwo}
-
-Friends of the River Path said on September 5, 2026 that it endorses Blake Okonkwo of Cedar Hollow[^17].
-
 #### Debates and forums: Avery Quinn {#detail-race-mayor-debates-and-forums-avery-quinn}
 
 Avery Quinn of Cedar Hollow spoke at the September 20, 2026 library forum[^8].
@@ -384,6 +716,46 @@ Avery Quinn of Cedar Hollow spoke at the September 20, 2026 library forum[^8].
 #### Debates and forums: Blake Okonkwo {#detail-race-mayor-debates-and-forums-blake-okonkwo}
 
 Blake Okonkwo of Cedar Hollow spoke at the September 20, 2026 library forum[^16].
+
+#### Attendance: Avery Quinn {#detail-race-mayor-attendance-avery-quinn}
+
+The clerk roll does not give a reason for the meeting Avery Quinn of Cedar Hollow missed[^60].
+
+#### Eligible through: Avery Quinn {#detail-race-mayor-eligible-through-avery-quinn}
+
+Under the city charter's two-term rule, Avery Quinn of Cedar Hollow is eligible through 2030[^70].
+
+#### Eligible through: Blake Okonkwo {#detail-race-mayor-eligible-through-blake-okonkwo}
+
+Blake Okonkwo of Cedar Hollow has not started a mayoral term, and the charter leaves Blake Okonkwo of Cedar Hollow eligible through 2034[^71].
+
+#### Promises: Avery Quinn {#detail-race-mayor-promises-avery-quinn}
+
+The first platform item for Avery Quinn of Cedar Hollow says the levy stays at the ballot amount, and the 2024 parks vote matches that item, so the status is kept[^62][^76].
+
+#### Promises: Blake Okonkwo {#detail-race-mayor-promises-blake-okonkwo}
+
+The first platform item for Blake Okonkwo of Cedar Hollow asks for a repair list before any levy change, and no earlier council vote was found, so the status is no record[^63].
+
+#### Questionnaire: Avery Quinn {#detail-race-mayor-questionnaire-avery-quinn}
+
+Vote411 shows did not respond for Avery Quinn of Cedar Hollow, and the campaign site does not link a Vote411 reply[^64].
+
+#### Questionnaire: Blake Okonkwo {#detail-race-mayor-questionnaire-blake-okonkwo}
+
+On Ballotpedia, Blake Okonkwo of Cedar Hollow did not respond, and that page was opened before the other two surveys[^68].
+
+#### Fact checks: Avery Quinn {#detail-race-mayor-fact-checks-avery-quinn}
+
+No fact-check article names Avery Quinn of Cedar Hollow[^72].
+
+#### Fact checks: Blake Okonkwo {#detail-race-mayor-fact-checks-blake-okonkwo}
+
+FactCheck.org had no item about Blake Okonkwo of Cedar Hollow[^73].
+
+#### Disclosure: Avery Quinn {#detail-race-mayor-disclosure-avery-quinn}
+
+The local disclosure for Avery Quinn of Cedar Hollow lists a parks-bond holding, and Avery Quinn of Cedar Hollow voted yes on the parks budget[^61].
 
 ### Search log
 
@@ -395,13 +767,21 @@ Blake Okonkwo of Cedar Hollow spoke at the September 20, 2026 library forum[^16]
 
 - Avery Quinn — Legal issues: Not found (searched: fictional Oak County court index, fictional Westland court index, and the candidate filing on 2026-10-20).
 
-- Avery Quinn — Interest-group ratings: Not found (searched: fictional paired rating pages for a pair from opposite sides).
+- Avery Quinn — Ethics and elections orders: Not found (searched: fictional Florida Commission on Ethics final orders and fictional Florida Elections Commission final orders).
+
+- Avery Quinn — Interest-group ratings: Not found (searched: fictional paired rating pages from opposite sides).
 
 - Blake Okonkwo — Prior offices and public service: Not found (searched: fictional council certificates and the 2026 ballot filing).
 
+- Blake Okonkwo — Attendance: Not found (searched: fictional council attendance rolls and fictional House vote journals).
+
+- Blake Okonkwo — Financial disclosure: Not found (searched: fictional local disclosure filings and fictional Form 6 filings).
+
 - Blake Okonkwo — Legal issues: Not found (searched: fictional Oak County court index, fictional Westland court index, and the candidate filing on 2026-10-20).
 
-- Blake Okonkwo — Interest-group ratings: Not found (searched: fictional paired rating pages for a pair from opposite sides).
+- Blake Okonkwo — Ethics and elections orders: Not found (searched: fictional Florida Commission on Ethics final orders and fictional Florida Elections Commission final orders).
+
+- Blake Okonkwo — Interest-group ratings: Not found (searched: fictional paired rating pages from opposite sides).
 
 ## Measure H, Cedar Hollow parks levy {#addendum-measure-h .source-group}
 
@@ -539,6 +919,30 @@ Claim measure-h.fiscal.001: The official note estimates 1.2 million dollars a ye
 
 [Back to the guide](guide.md#cite-31)
 
+### Source 36 {#source-36 .source-entry}
+
+[36] Cedar Hollow Council (fictional). "Resolution 2026-14, referring Measure H." Council resolution, published 2026-07-09. https://fictional.example/cedar-hollow/resolutions/2026-14 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Sponsor clause.
+
+Quote:
+
+> Yes on H is the sponsor committee for Measure H.
+
+Claim measure-h.sponsor.001: The council resolution names Yes on H as the sponsor committee for Measure H.
+
+[Back to the guide](guide.md#cite-36)
+
+### Source 37 {#source-37 .source-entry}
+
+[37] Westland campaign finance office (fictional). "Yes on H itemized receipts." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/yes-on-h-q3-items — Archived: https://fictional.example/archive/yes-on-h-items. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Largest receipt. Local copy: saved/measure-funders.html.
+
+Quote:
+
+> The largest Yes on H receipt is 8000 dollars from the Cedar Hollow Parks Foundation.
+
+Claim measure-h.funders.001: Yes on H reported 8000 dollars from the Cedar Hollow Parks Foundation.
+
+[Back to the guide](guide.md#cite-37)
+
 ### Cell detail
 
 #### Measure H, Cedar Hollow parks levy summary {#detail-measure-h-summary}
@@ -569,14 +973,420 @@ The Westland fiscal office note, dated August 1, 2026, estimates 1.2 million dol
 
 Yes on H reported 20000 dollars in receipts for the quarter that ended September 30, 2026[^27].
 
+#### Sponsor or committee: measure-h {#detail-measure-h-sponsor-or-committee}
+
+The council resolution names Yes on H as the sponsor committee for Measure H[^36].
+
+#### Organizations supporting: measure-h {#detail-measure-h-organizations-supporting}
+
+The parks board and the library board signed the argument for Measure H[^29].
+
+#### Organizations opposing: measure-h {#detail-measure-h-organizations-opposing}
+
+A homeowners association and a grocer signed the argument against Measure H[^30].
+
+#### Top funders: measure-h {#detail-measure-h-top-funders}
+
+Yes on H reported 8000 dollars from the Cedar Hollow Parks Foundation, the largest receipt in that quarter[^37].
+
 #### Measure H, Cedar Hollow parks levy: Current law and proposed change {#detail-measure-h-current-law-and-proposed-change}
 
 The city code says the current parks levy, adopted in 2020, expires after the 2026 tax year[^22].
 
-#### Measure H, Cedar Hollow parks levy: Supporters and opponents {#detail-measure-h-supporters-and-opponents}
+#### Measure H, Cedar Hollow parks levy: Official sponsor or committee {#detail-measure-h-official-sponsor-or-committee}
 
-The parks board and the library board signed the argument for the measure[^29].
+The council resolution names Yes on H as the sponsor committee for Measure H[^36].
 
 ### Search log
 
 - Measure H, Cedar Hollow parks levy — Fiscal impact: Not found (searched: fictional university budget notes and fictional news budget notes).
+
+## House Bill 18, parks repair reporting {#addendum-bill-hb18 .source-group}
+
+[Back to House Bill 18, parks repair reporting](guide.md#contest-bill-hb18)
+
+### Source 80 {#source-80 .source-entry}
+
+[80] Westland House (fictional). "House Bill 18, bill page." Bill page, published 2026-03-01. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Title line.
+
+Quote:
+
+> House Bill 18, parks repair reporting.
+
+Claim bill-hb18.identity.001: House Bill 18 is titled parks repair reporting.
+
+[Back to the guide](guide.md#cite-80)
+
+### Source 81 {#source-81 .source-entry}
+
+[81] Westland House (fictional). "House Bill 18 sponsors." Bill page, published 2026-03-01. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Sponsor line.
+
+Quote:
+
+> Morgan Hale (D-4) and Riley Chen (R-9).
+
+Claim bill-hb18.sponsors.001: Morgan Hale, a Democrat from House district 4, is the primary sponsor, and Riley Chen, a Republican from House district 9, is the cosponsor.
+
+[Back to the guide](guide.md#cite-81)
+
+### Source 82 {#source-82 .source-entry}
+
+[82] Westland House (fictional). "House Bill 18 staff analysis." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Drafting note.
+
+Quote:
+
+> Legislative counsel drafted the posted text.
+
+Claim bill-hb18.drafting.001: Legislative counsel drafted the posted text of House Bill 18.
+
+[Back to the guide](guide.md#cite-82)
+
+### Source 84 {#source-84 .source-entry}
+
+[84] Westland House (fictional). "House Bill 7 of 2024." Bill page, published 2024-02-01. https://fictional.example/westland-house/2024/hb7 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary line.
+
+Quote:
+
+> House Bill 7 of 2024 required a parks inventory.
+
+Claim bill-hb18.history.001: House Bill 7 of 2024 required a parks inventory and did not require a public posting.
+
+[Back to the guide](guide.md#cite-84)
+
+### Source 86 {#source-86 .source-entry}
+
+[86] Westland House (fictional). "House Bill 18 history." Bill history, published 2026-03-12. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: History row.
+
+Quote:
+
+> The Local Government Committee heard the bill on March 12, 2026.
+
+Claim bill-hb18.committee.001: The Local Government Committee heard House Bill 18 on March 12, 2026.
+
+[Back to the guide](guide.md#cite-86)
+
+### Source 88 {#source-88 .source-entry}
+
+[88] Westland Senate (fictional). "Senate Bill 22." Bill page, published 2026-03-15. https://fictional.example/westland-senate/2026/sb22 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Companion line.
+
+Quote:
+
+> Senate Bill 22 is the companion bill.
+
+Claim bill-hb18.companion.001: Senate Bill 22 is the companion bill.
+
+[Back to the guide](guide.md#cite-88)
+
+### Source 89 {#source-89 .source-entry}
+
+[89] Westland House (fictional). "House Bill 18 history." Bill history, published 2026-04-02. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Passage row.
+
+Quote:
+
+> The House passed House Bill 18 on April 2, 2026.
+
+Claim bill-hb18.status.001: The House passed House Bill 18 on April 2, 2026, and the bill is in the Senate.
+
+[Back to the guide](guide.md#cite-89)
+
+### Source 90 {#source-90 .source-entry}
+
+[90] Westland House (fictional). "House Bill 18 digest." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Digest.
+
+Quote:
+
+> The bill would require a city to post its parks repair list each year.
+
+Claim bill-hb18.summary.001: House Bill 18 would require a city to post its parks repair list each year.
+
+[Back to the guide](guide.md#cite-90)
+
+### Source 91 {#source-91 .source-entry}
+
+[91] Westland Code (fictional). "Parks inventory section." Statute, published 2020-01-01. https://fictional.example/westland-code/parks — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 12.
+
+Quote:
+
+> City code requires a parks inventory and does not require a public posting.
+
+Claim bill-hb18.law.001: City code requires a parks inventory and does not require a public posting.
+
+[Back to the guide](guide.md#cite-91)
+
+### Source 92 {#source-92 .source-entry}
+
+[92] Westland House (fictional). "House Bill 18 staff analysis." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Effect paragraph.
+
+Quote:
+
+> The bill applies to cities that run a parks department.
+
+Claim bill-hb18.affected.001: The staff analysis says the bill applies to cities that run a parks department.
+
+[Back to the guide](guide.md#cite-92)
+
+### Source 93 {#source-93 .source-entry}
+
+[93] Westland fiscal office (fictional). "House Bill 18 fiscal note." Official fiscal note, published 2026-03-08. https://fictional.example/westland-fiscal/hb18 — Archived: https://fictional.example/archive/hb18. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Estimate line. Local copy: saved/bill-hb18.html.
+
+Quote:
+
+> The note estimates 40000 dollars for the posting website.
+
+Claim bill-hb18.fiscal.001: The fiscal note estimates 40000 dollars for the posting website.
+
+[Back to the guide](guide.md#cite-93)
+
+### Source 94 {#source-94 .source-entry}
+
+[94] Westland House (fictional). "House Bill 18 staff analysis." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Present situation.
+
+Quote:
+
+> Staff analysis says the bill adds a public posting and does not change the tax rate.
+
+Claim bill-hb18.staff.001: The House staff analysis says House Bill 18 adds a public posting and does not change the tax rate.
+
+[Back to the guide](guide.md#cite-94)
+
+### Source 95 {#source-95 .source-entry}
+
+[95] Westland House (fictional). "House Bill 18 roll call." Roll call, published 2026-04-02. https://fictional.example/westland-house/2026/hb18/votes — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Vote totals.
+
+Quote:
+
+> The House vote was 28 yes and 12 no.
+
+Claim bill-hb18.roll.001: The House vote on April 2, 2026 was 28 yes and 12 no.
+
+[Back to the guide](guide.md#cite-95)
+
+### Source 96 {#source-96 .source-entry}
+
+[96] Westland House (fictional). "House Bill 18 roll call by party." Roll call, published 2026-04-02. https://fictional.example/westland-house/2026/hb18/votes — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Party lines.
+
+Quote:
+
+> Democrats 18 yes and 2 no. Republicans 10 yes and 10 no.
+
+Claim bill-hb18.parties.001: Democrats cast 18 yes and 2 no, and Republicans cast 10 yes and 10 no.
+
+[Back to the guide](guide.md#cite-96)
+
+### Source 98 {#source-98 .source-entry}
+
+[98] Westland lobbyist index (fictional). "Lobbyist registrations, 2026." Lobbyist registration, published 2026-03-01. https://fictional.example/westland-lobby/2026 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Guild row.
+
+Quote:
+
+> The Parks Workers Guild registered to lobby for House Bill 18.
+
+Claim bill-hb18.lobby.001: The Parks Workers Guild registered to lobby for House Bill 18.
+
+[Back to the guide](guide.md#cite-98)
+
+### Source 100 {#source-100 .source-entry}
+
+[100] Westland House (fictional). "Local Government Committee hearing." Hearing record, published 2026-03-12. https://fictional.example/westland-house/2026/hb18/hearing — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Witness line.
+
+Quote:
+
+> A guild witness said the posting would show delayed repairs.
+
+Claim bill-hb18.testimony.001: A guild witness told the committee the posting would show delayed repairs.
+
+[Back to the guide](guide.md#cite-100)
+
+### Source 101 {#source-101 .source-entry}
+
+[101] Westland campaign finance office (fictional). "Hale contributions, 2024." Campaign filing, published 2024-06-01. https://fictional.example/westland-finance/hale-2024 — Archived: https://fictional.example/archive/hb18. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Guild receipt. Local copy: saved/bill-hb18.html.
+
+Quote:
+
+> The Parks Workers Guild gave 500 dollars on June 1, 2024.
+
+Claim bill-hb18.gift.001: The Parks Workers Guild gave Morgan Hale 500 dollars in 2024.
+
+[Back to the guide](guide.md#cite-101)
+
+### Source 102 {#source-102 .source-entry}
+
+[102] Parks Workers Guild (fictional). "Hearing statement." Hearing record, published 2026-03-12. https://fictional.example/westland-house/2026/hb18/hearing — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T4. Locator: Guild statement.
+
+Quote:
+
+> The public list would show which repairs are waiting.
+
+Claim bill-hb18.for.001: The guild said the public list would show which repairs are waiting.
+
+[Back to the guide](guide.md#cite-102)
+
+### Source 103 {#source-103 .source-entry}
+
+[103] City Managers Association (fictional). "Hearing statement." Hearing record, published 2026-03-12. https://fictional.example/westland-house/2026/hb18/hearing — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T4. Locator: Managers statement.
+
+Quote:
+
+> The posting repeats the inventory the city already keeps.
+
+Claim bill-hb18.against.001: The managers association said the posting repeats the inventory the city already keeps.
+
+[Back to the guide](guide.md#cite-103)
+
+### Source 104 {#source-104 .source-entry}
+
+[104] Westland House (fictional). "House Bill 18, section 12." Bill text, published 2026-03-01. https://fictional.example/westland-house/2026/hb18/text — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 12.
+
+Quote:
+
+> Section 12 would add a yearly public posting effective July 1, 2027.
+
+Claim bill-hb18.redline.001: Section 12 would add a yearly public posting, effective July 1, 2027.
+
+[Back to the guide](guide.md#cite-104)
+
+### Source 105 {#source-105 .source-entry}
+
+[105] Westland House (fictional). "House Bill 18 effective date." Bill text, published 2026-03-01. https://fictional.example/westland-house/2026/hb18/text — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Effective date.
+
+Quote:
+
+> The bill takes effect on July 1, 2027.
+
+Claim bill-hb18.effective.001: House Bill 18 takes effect on July 1, 2027.
+
+[Back to the guide](guide.md#cite-105)
+
+### Source 106 {#source-106 .source-entry}
+
+[106] Westland House (fictional). "House Bill 18 implementing agency." Bill text, published 2026-03-01. https://fictional.example/westland-house/2026/hb18/text — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Agency line.
+
+Quote:
+
+> The bill assigns implementation to the Parks Division.
+
+Claim bill-hb18.agency.001: The bill names the Parks Division as the implementing agency.
+
+[Back to the guide](guide.md#cite-106)
+
+### Source 107 {#source-107 .source-entry}
+
+[107] Westland House (fictional). "House Bill 18 roll call." Roll call, published 2026-04-02. https://fictional.example/westland-house/2026/hb18/votes — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: District 4.
+
+Quote:
+
+> The member for Westland House district 4 voted yes.
+
+Claim bill-hb18.member.001: The member for Westland House district 4 voted yes on House Bill 18.
+
+[Back to the guide](guide.md#cite-107)
+
+### Source 108 {#source-108 .source-entry}
+
+[108] NCSL (fictional extract). "Parks posting laws." 50-state table, published 2026-05-01. https://fictional.example/ncsl/parks-posting — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T2. Locator: Easton row.
+
+Quote:
+
+> Easton passed a parks-posting law in 2024.
+
+Claim bill-hb18.similar.001: NCSL lists a parks-posting law Easton passed in 2024.
+
+[Back to the guide](guide.md#cite-108)
+
+### Cell detail
+
+#### House Bill 18, parks repair reporting summary {#detail-bill-hb18-summary}
+
+House Bill 18 would make a city post its parks repair list each year[^90]. The House passed the bill on April 2, 2026[^89].
+
+#### House Bill 18, parks repair reporting: Bill identity {#detail-bill-hb18-bill-identity}
+
+House Bill 18 is the parks repair reporting bill on the fictional Westland House page[^80].
+
+#### House Bill 18, parks repair reporting: Sponsors and cosponsors {#detail-bill-hb18-sponsors-and-cosponsors}
+
+Morgan Hale, a Democrat from House district 4, is the primary sponsor of House Bill 18, and Riley Chen, a Republican from House district 9, is the cosponsor[^81].
+
+#### House Bill 18, parks repair reporting: Drafting and model legislation {#detail-bill-hb18-drafting-and-model-legislation}
+
+Legislative counsel drafted the posted text of House Bill 18[^82].
+
+#### House Bill 18, parks repair reporting: Legislative history {#detail-bill-hb18-legislative-history}
+
+House Bill 7 of 2024 required a parks inventory and did not require a public posting[^84].
+
+#### House Bill 18, parks repair reporting: Committee referrals and amendments {#detail-bill-hb18-committee-referrals-and-amendments}
+
+The Local Government Committee heard House Bill 18 on March 12, 2026[^86].
+
+#### House Bill 18, parks repair reporting: Companion bills {#detail-bill-hb18-companion-bills}
+
+Senate Bill 22 is the companion to House Bill 18[^88].
+
+#### House Bill 18, parks repair reporting: Status timeline {#detail-bill-hb18-status-timeline}
+
+The House passed House Bill 18 on April 2, 2026, and the bill is in the Senate[^89].
+
+#### House Bill 18, parks repair reporting: Current law and proposed change {#detail-bill-hb18-current-law-and-proposed-change}
+
+The city code, in force since 2020, requires a parks inventory and does not require a public posting[^91].
+
+#### House Bill 18, parks repair reporting: Section-by-section changes {#detail-bill-hb18-section-by-section-changes}
+
+Section 12 of the parks code would add a yearly public posting, and that change is written to take effect on July 1, 2027[^104].
+
+#### House Bill 18, parks repair reporting: Effective date {#detail-bill-hb18-effective-date}
+
+House Bill 18 takes effect on July 1, 2027[^105].
+
+#### House Bill 18, parks repair reporting: Implementing agency {#detail-bill-hb18-implementing-agency}
+
+The bill names the Parks Division as the implementing agency[^106].
+
+#### House Bill 18, parks repair reporting: Who is affected {#detail-bill-hb18-who-is-affected}
+
+The staff analysis says House Bill 18 applies to cities that run a parks department[^92].
+
+#### House Bill 18, parks repair reporting: Fiscal note {#detail-bill-hb18-fiscal-note}
+
+The fiscal note estimates 40000 dollars for the posting website[^93].
+
+#### House Bill 18, parks repair reporting: Staff analysis {#detail-bill-hb18-staff-analysis}
+
+The House staff analysis says House Bill 18 adds a public posting and does not change the tax rate[^94].
+
+#### House Bill 18, parks repair reporting: Roll-call votes {#detail-bill-hb18-roll-call-votes}
+
+The House vote on April 2, 2026 was 28 yes and 12 no[^95].
+
+#### House Bill 18, parks repair reporting: Party vote counts {#detail-bill-hb18-party-vote-counts}
+
+On that roll call, Democrats cast 18 yes and 2 no, and Republicans cast 10 yes and 10 no[^96]. Those totals are the journal lines for each party[^96].
+
+#### House Bill 18, parks repair reporting: Your legislators votes {#detail-bill-hb18-your-legislators-votes}
+
+The member for Westland House district 4 voted yes on House Bill 18[^107].
+
+#### House Bill 18, parks repair reporting: Similar laws {#detail-bill-hb18-similar-laws}
+
+NCSL lists a parks-posting law that Easton passed in 2024[^108].
+
+#### House Bill 18, parks repair reporting: Interest groups and lobbying {#detail-bill-hb18-interest-groups-and-lobbying}
+
+The Parks Workers Guild registered to lobby for House Bill 18[^98].
+
+#### House Bill 18, parks repair reporting: Hearing testimony {#detail-bill-hb18-hearing-testimony}
+
+A guild witness told the committee the posting would show delayed repairs[^100].
+
+#### House Bill 18, parks repair reporting: Sponsor contributions {#detail-bill-hb18-sponsor-contributions}
+
+The Parks Workers Guild gave Morgan Hale 500 dollars in 2024[^101].
+
+### Search log
+
+- House Bill 18, parks repair reporting — Veto and override: Not found (searched: fictional governor veto letters and fictional override journals).
+
+- House Bill 18, parks repair reporting — Legal and constitutional challenges: Not found (searched: fictional CourtListener dockets, fictional attorney general opinions, and the staff analysis constitutional issues heading).
+
+- House Bill 18, parks repair reporting — Related litigation: Not found (searched: fictional Westland appellate index and fictional Oak County civil docket).

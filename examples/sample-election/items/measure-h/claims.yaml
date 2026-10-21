@@ -163,7 +163,7 @@ claims:
     url: https://fictional.example/westland-code/levy-threshold
     archive_url: https://fictional.example/archive/levy-threshold
     archive_failed: false
-    archive_failed_reason: Fictional example; no live document exists.
+    archive_failed_reason: null
     publisher: Westland Elections Code (fictional)
     title: Local levy approval rule
     doc_type: Statute
@@ -172,8 +172,8 @@ claims:
     tier: T1
     locator: Section 4
     quote: A local levy passes with more than half the votes cast on the measure.
-    local_copy: saved/levy-threshold.html
     confidence: verified
+    local_copy: saved/levy-threshold.html
   confidence: verified
   drives_summary: true
   polarity: neutral
@@ -187,7 +187,7 @@ claims:
     url: https://fictional.example/westland-finance/yes-on-h-q3
     archive_url: https://fictional.example/archive/yes-on-h-q3
     archive_failed: false
-    archive_failed_reason: Fictional example; no live document exists.
+    archive_failed_reason: null
     publisher: Westland campaign finance office (fictional)
     title: Yes on H committee, quarter ending September 30, 2026
     doc_type: Campaign filing
@@ -196,8 +196,8 @@ claims:
     tier: T1
     locator: Receipts line
     quote: The Yes on H committee reported 20000 dollars in receipts.
-    local_copy: saved/yes-on-h-q3.html
     confidence: verified
+    local_copy: saved/yes-on-h-q3.html
   confidence: verified
   drives_summary: true
   polarity: neutral
@@ -213,7 +213,7 @@ claims:
     url: https://fictional.example/westland-finance/no-on-h-q3
     archive_url: https://fictional.example/archive/no-on-h-q3
     archive_failed: false
-    archive_failed_reason: Fictional example; no live document exists.
+    archive_failed_reason: null
     publisher: Westland campaign finance office (fictional)
     title: No on H committee, quarter ending September 30, 2026
     doc_type: Campaign filing
@@ -222,8 +222,8 @@ claims:
     tier: T1
     locator: Receipts line
     quote: The No on H committee reported 18000 dollars in receipts.
-    local_copy: saved/no-on-h-q3.html
     confidence: verified
+    local_copy: saved/no-on-h-q3.html
   confidence: verified
   drives_summary: true
   polarity: neutral
@@ -253,6 +253,9 @@ claims:
   drives_summary: true
   polarity: neutral
   about_person: false
+  ballot_position:
+    role: supporter
+    organization: Cedar Hollow Parks Board
 - id: measure-h.opponents.001
   section: opponents
   text: A homeowners association and a grocer signed the argument against Measure H.
@@ -276,3 +279,61 @@ claims:
   drives_summary: true
   polarity: neutral
   about_person: false
+  ballot_position:
+    role: opponent
+    organization: Cedar Hollow homeowners association
+- id: measure-h.sponsor.001
+  section: sponsor
+  text: The council resolution names Yes on H as the sponsor committee for Measure H.
+  marker: 36
+  sources:
+  - marker: 36
+    url: https://fictional.example/cedar-hollow/resolutions/2026-14
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow Council (fictional)
+    title: Resolution 2026-14, referring Measure H
+    doc_type: Council resolution
+    published: '2026-07-09'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Sponsor clause
+    quote: Yes on H is the sponsor committee for Measure H.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+  ballot_position:
+    role: sponsor_committee
+    organization: Yes on H
+- id: measure-h.funders.001
+  section: funders
+  text: Yes on H reported 8000 dollars from the Cedar Hollow Parks Foundation.
+  marker: 37
+  sources:
+  - marker: 37
+    url: https://fictional.example/westland-finance/yes-on-h-q3-items
+    archive_url: https://fictional.example/archive/yes-on-h-items
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Yes on H itemized receipts
+    doc_type: Campaign filing
+    published: '2026-10-12'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Largest receipt
+    quote: The largest Yes on H receipt is 8000 dollars from the Cedar Hollow Parks Foundation.
+    confidence: verified
+    local_copy: saved/measure-funders.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: false
+  as_of: '2026-09-30'
+  ballot_position:
+    role: funder_for
+    organization: Cedar Hollow Parks Foundation
+    amount: 8000 dollars

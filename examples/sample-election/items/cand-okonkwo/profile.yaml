@@ -1,0 +1,25 @@
+item_id: cand-okonkwo
+party:
+  race_nonpartisan: true
+  source_kind: ballot
+  ballot_label: Nonpartisan
+  registered_party: Democratic
+  registered_source_kind: voter_registration
+  display: Nonpartisan race, Democratic, registered party (race is nonpartisan)[^44][^45]
+endorsements:
+- endorser: Friends of the River Path
+  endorser_type: advocacy
+  date: '2026-09-05'
+  source_role: endorser_statement
+  source_url: https://fictional.example/river-path/endorsement-2026
+money:
+  report_date: 2026-09-30[^14]
+  receipts: 30100 dollars in receipts[^14]
+  cash_on_hand: 11700 dollars in cash on hand[^14]
+  self_funding: 0 dollars in loans and self-funding[^56]
+  small_donors: 9000 dollars from small donors[^53]
+  large_donors: 14000 dollars from large donors[^54]
+  in_district: 7000 dollars in-district[^55]
+  pac_money: 2000 dollars from PAC committees[^57]
+  party_money: 0 dollars in party committee money[^58]
+  outside_spending: 0 dollars in independent expenditures[^59]

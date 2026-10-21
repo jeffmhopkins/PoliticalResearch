@@ -51,9 +51,21 @@ The pamphlet argument for Measure H says the levy keeps the current parks hours 
 
 The pamphlet argument against Measure H says the city should let the levy end and pay for parks from the existing budget[^30]. A homeowners association and a grocer signed that argument[^30]. Opponents also point to the fiscal note so readers can see the yearly amount[^25].
 
-## Supporters and opponents
+## Official sponsor or committee
 
-The parks board and the library board signed the argument for the measure[^29]. A homeowners association and a grocer signed the argument against it[^30].
+The council resolution names Yes on H as the sponsor committee for Measure H[^36].
+
+## Organizations supporting
+
+The parks board and the library board signed the argument for Measure H[^29].
+
+## Organizations opposing
+
+A homeowners association and a grocer signed the argument against Measure H[^30].
+
+## Top funders
+
+Yes on H reported 8000 dollars from the Cedar Hollow Parks Foundation, the largest receipt in that quarter[^37]. Not found (searched: fictional No on H itemized receipts for a largest donor).
 
 ## Sources and retrieval dates
 

@@ -29,6 +29,11 @@ properties:
     type: array
     items:
       type: string
+  districts:
+    description: District labels only, such as a state house district. Never a street address. Legislator votes are looked up from these labels.
+    type: array
+    items:
+      type: string
   depth:
     type: string
     enum: [quick, standard, deep]

@@ -20,7 +20,7 @@ The record outweighs the rhetoric. Every candidate in a race gets the same secti
 
 ## Non-goals
 
-- No endorsements, scores, ranks, or voting advice.
+- No voting advice, scores, or ranks. Cited endorsements are reported. The guide does not endorse a candidate.
 - Not an official ballot. Logistics are links to election offices.
 - No web app, database, or accounts in v1.
 - No requester address or ballot photo in git.

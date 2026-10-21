@@ -10,6 +10,7 @@ Updated: 2026-10-20 12:00 ET
 
 | Item | Status | Round | Open blocker | Open major | Open minor |
 | --- | --- | --- | --- | --- | --- |
+| bill-hb18 | signed-off | 1 | 0 | 0 | 0 |
 | cand-okonkwo | capped-disputed | 3 | 0 | 0 | 0 |
 | cand-quinn | signed-off | 1 | 0 | 0 | 0 |
 | measure-h | signed-off | 1 | 0 | 0 | 0 |

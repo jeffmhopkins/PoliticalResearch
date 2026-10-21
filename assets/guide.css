@@ -443,6 +443,46 @@ h1.guide-title {
   border-left: 1.25pt solid var(--ink);
 }
 
+/* Party text uses the same ink as the rest of the page. No party color. */
+.candidate-index > .nameplate {
+  flex: 1 1 0;
+  min-width: 2.1in;
+  margin: 0;
+  padding: 0.55rem 0.65rem 0.65rem;
+  border: 0;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.candidate-index > .nameplate + .nameplate {
+  border-left: 1.25pt solid var(--ink);
+}
+
+.candidate-index > .nameplate h3.candidate-name {
+  flex: none;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.nameplate {
+  margin: 0.45rem 0 0.8rem;
+  padding: 0.2rem 0 0.45rem;
+  border-top: 2pt solid var(--ink);
+  color: var(--ink);
+}
+
+.nameplate p {
+  margin: 0.2rem 0 0;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
 h3.candidate-name,
 .candidate-name h3 { bookmark-level: 3; }
 
