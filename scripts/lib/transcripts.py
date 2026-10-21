@@ -15,8 +15,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from lib.quality import SENTENCE_SPLIT_RE
-from lib.util import dump_yaml, load_config, repo_root, resolve_bin, slugify, unsafe_fetch_target
+from lib.sentences import split_sentences
+from lib.util import dump_yaml, load_config, repo_root, resolve_bin, slugify, vetted_fetch_url
 
 SKIP_MESSAGE = (
     "Whisper transcription is not available. It is opt-in: set whisper_transcription: true "
@@ -102,7 +102,7 @@ def quote_from_segments(segments: list[dict]) -> tuple[str, str]:
     start_at = None
     end_at = None
     for segment in segments:
-        parts = [part.strip() for part in SENTENCE_SPLIT_RE.split(segment["text"]) if part.strip()]
+        parts = split_sentences(segment["text"])
         if not parts:
             continue
         if start_at is None:
@@ -219,9 +219,7 @@ def transcribe_item(
 
 
 def live_download(url: str, media_dir: Path) -> Path | None:
-    reason = unsafe_fetch_target(url)
-    if reason:
-        raise RuntimeError(f"Refusing fetch: {reason}")
+    page = vetted_fetch_url(url)
     binary = resolve_bin("yt-dlp")
     if not binary or resolve_bin("ffmpeg") is None:
         return None
@@ -238,7 +236,7 @@ def live_download(url: str, media_dir: Path) -> Path | None:
             "--no-write-info-json",
             "-o",
             template,
-            url,
+            page,
         ],
         capture_output=True,
         text=True,

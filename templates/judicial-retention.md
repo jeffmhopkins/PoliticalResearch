@@ -1,4 +1,4 @@
-<!-- Judicial retention. Do not include campaign promises or party sections. -->
+<!-- Judicial retention. Do not include campaign promises or party sections. Appointing authority, prior retention, discipline, rulings, and the evaluation feed the cross-ballot table. A field empty for every judge becomes one gap sentence. -->
 
 <!-- summary -->
 Not found (searched: not started).

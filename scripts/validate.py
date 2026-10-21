@@ -30,7 +30,10 @@ def main(argv: list[str] | None = None) -> int:
             print("Provide --schema with --file.", file=sys.stderr)
             return 2
         raw = path.read_text(encoding="utf-8")
+        from lib.util import coerce_yaml_dates
+
         data = json.loads(raw) if path.suffix == ".json" else yaml.safe_load(raw)
+        data = coerce_yaml_dates(data)
         errors = instance_errors(data, load_schema(args.schema))
         for error in errors:
             print(error)

@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 
 from lib.quality import html_a11y_errors
-from lib.util import resolve_bin
+from lib.util import load_yaml, resolve_bin
 
 
 def _which(name: str) -> str | None:
@@ -30,12 +30,29 @@ def check_html(path: Path, *, which=None, run=subprocess.run) -> tuple[int, str]
     return code, "\n".join(lines)
 
 
+def _asked_for_external_a11y(path: Path) -> bool:
+    """True when intake asked for pa11y or a screen reader. Plain language does not."""
+    intake_path = path.parent.parent / "intake.yaml"
+    if not intake_path.is_file():
+        return False
+    data = load_yaml(intake_path) or {}
+    if not isinstance(data, dict):
+        return False
+    text = str(data.get("accessibility_needs") or "").lower()
+    return "pa11y" in text or "screen reader" in text or "screen-reader" in text
+
+
 def external_a11y(path: Path, *, which=None, run=subprocess.run) -> tuple[int, str]:
     which = which or _which
     pa11y = which("pa11y")
+    axe = which("axe")
+    if _asked_for_external_a11y(path) and not pa11y and not axe:
+        return (
+            1,
+            "Requester asked for pa11y or a screen-reader check, and neither pa11y nor axe is installed.",
+        )
     if pa11y:
         return _run_pa11y(path, run, pa11y)
-    axe = which("axe")
     if axe:
         return _run_axe(path, run, axe)
     return 0, "pa11y and axe are not installed. Built-in HTML checks still ran."

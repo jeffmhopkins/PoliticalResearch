@@ -90,6 +90,21 @@ def load_yaml(path: Path):
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
+def coerce_yaml_dates(value):
+    """Turn YAML date objects into YYYY-MM-DD strings before schema checks."""
+    from datetime import date, datetime
+
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {key: coerce_yaml_dates(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [coerce_yaml_dates(item) for item in value]
+    return value
+
+
 def dump_yaml(path: Path, data) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     text = yaml.safe_dump(data, sort_keys=False, allow_unicode=True, width=100)
@@ -160,8 +175,10 @@ def looks_like_street_address(value: str) -> bool:
 def _blocked_ip(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped is not None:
         address = address.ipv4_mapped
-    # is_private misses shared address space (100.64.0.0/10). is_global is false for
-    # private, loopback, link-local, reserved, multicast, unspecified, and that range.
+    # is_global is true for multicast on this Python, so test multicast on its own.
+    # is_private also misses shared address space (100.64.0.0/10).
+    if address.is_multicast or address.is_reserved or address.is_unspecified or address.is_loopback:
+        return True
     return not address.is_global
 
 
@@ -295,13 +312,34 @@ def safe_request(method: str, url: str, *, headers: dict | None = None, params: 
     raise RuntimeError("Refusing fetch: too many redirects")
 
 
+def vetted_fetch_url(url: str, *, timeout: int = 20) -> str:
+    """Follow redirects with a check on every hop. Subprocess tools get only this URL."""
+    reason = unsafe_fetch_target(url)
+    if reason:
+        raise RuntimeError(f"Refusing fetch: {reason}")
+    headers = {"User-Agent": "PoliticalResearch-archive/0.1"}
+    response = safe_request("HEAD", url, timeout=timeout, headers=headers)
+    if response.status_code in {403, 405, 501}:
+        response = safe_request("GET", url, timeout=max(timeout, 30), headers=headers)
+    final = str(getattr(response, "url", None) or url)
+    reason = unsafe_fetch_target(final)
+    if reason:
+        raise RuntimeError(f"Refusing fetch: {reason}")
+    return final
+
+
 def resolve_bin(name: str, root: Path | None = None) -> str | None:
     found = shutil.which(name)
     if found:
         return found
-    candidate = (root or repo_root()) / ".venv" / "bin" / name
-    if candidate.is_file() and os.access(candidate, os.X_OK):
-        return str(candidate)
+    base = root or repo_root()
+    candidates = (
+        base / ".venv" / "bin" / name,
+        base / ".tools" / "a11y" / "node_modules" / ".bin" / name,
+    )
+    for candidate in candidates:
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
     return None
 
 

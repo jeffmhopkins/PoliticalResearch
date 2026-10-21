@@ -11,6 +11,19 @@ from lib.cli import base_parser, workspace_from
 from lib.util import dump_json, dump_yaml, load_dotenv, load_yaml, redact
 
 
+def _remember_precinct(ballot: dict, payload: dict) -> None:
+    """Keep a precinct code. Drop anything that looks like a street address."""
+    from lib.util import looks_like_street_address
+
+    raw = payload.get("precinctId") or payload.get("precinct_id") or payload.get("precinct")
+    if raw is None:
+        return
+    text = str(raw).strip()
+    if not text or looks_like_street_address(text):
+        return
+    ballot["precinct"] = text
+
+
 def _address(workspace, explicit: str | None) -> str | None:
     if explicit:
         return explicit.strip()
@@ -46,7 +59,13 @@ def main(argv: list[str] | None = None) -> int:
         ballot["lookup_status"] = "skipped_no_api_key"
         ballot["lookup_source"] = None
         ballot["notes"] = list(ballot.get("notes") or [])
-        note = "Ballot lookup skipped: GOOGLE_CIVIC_API_KEY is unset. Use an official sample ballot and record its URL on every contest."
+        note = (
+            "Ballot lookup skipped: GOOGLE_CIVIC_API_KEY is unset and Democracy Works is not configured. "
+            "Use the county Supervisor of Elections finder (for example VoterFocus Find My Precinct and the sample-ballot PDF) "
+            "or a sample ballot the requester supplied. Record the precinct code, not the street address, and put an official URL on every contest. "
+            "Read a bilingual sample ballot with scripts/lib/ballot_text.py (pdftotext -raw -nodiag) and compare it to the election-office copy. "
+            "A token such as Shallll Judge is an extraction error, not a contest name."
+        )
         if note not in ballot["notes"]:
             ballot["notes"].append(note)
         dump_yaml(ballot_path, ballot)
@@ -71,6 +90,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Google Civic lookup failed ({ballot['lookup_error']}). Existing contests were left unchanged.")
             return 0
         payload = scrub_civic_payload(payload)
+        _remember_precinct(ballot, payload)
         dump_json(private / "google-civic.json", payload)
         if ballot.get("contests"):
             ballot["lookup_status"] = "fetched_not_applied"

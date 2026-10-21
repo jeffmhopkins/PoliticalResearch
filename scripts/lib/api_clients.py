@@ -15,8 +15,8 @@ _CIVIC_DROP = {
     "pollinglocations",
     "earlyvotesites",
     "dropofflocations",
-    "precinctid",
     "address",
+    # precinctId stays. It is a precinct code, not a street address.
 }
 
 

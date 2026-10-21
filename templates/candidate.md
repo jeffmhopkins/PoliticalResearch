@@ -1,4 +1,6 @@
 <!-- Core sections are required for every candidate in the race. Optional sections stay only when the rule in the comment is met. -->
+<!-- The reader collapses a section that is only a gap into one line and moves the search path to the search log. Keep the heading here. -->
+<!-- Optional profile.yaml: issues (same keys for every candidate), money.report_date, gaps, and fields. A fact in that file still needs a marker. -->
 
 <!-- summary -->
 Not found (searched: not started).

@@ -48,7 +48,7 @@ The 2018 council term and the 2024 parks vote for Avery Quinn of Cedar Hollow ar
 
 ## Interest-group ratings
 
-Not found (searched: fictional paired rating pages; omitted because ratings are included only when a pair from opposite sides exists).
+Not found (searched: fictional paired rating pages for a pair from opposite sides).
 
 ## Sources and retrieval dates
 

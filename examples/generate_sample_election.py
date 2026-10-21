@@ -18,13 +18,14 @@ CLOCK = "2026-10-20 12:00 ET"
 RETRIEVED = "2026-10-20 09:30 ET"
 
 
-def source(marker, publisher, title, doc_type, published, quote, url, locator, tier="T1", confidence="verified"):
+def source(marker, publisher, title, doc_type, published, quote, url, locator, tier="T1", confidence="verified", archive_url=None):
+    failed = archive_url is None
     return {
         "marker": marker,
         "url": url,
-        "archive_url": None,
-        "archive_failed": True,
-        "archive_failed_reason": "Fictional example; no live document exists.",
+        "archive_url": archive_url,
+        "archive_failed": failed,
+        "archive_failed_reason": "Fictional example; no live document exists." if failed else None,
         "publisher": publisher,
         "title": title,
         "doc_type": doc_type,
@@ -166,6 +167,7 @@ def quinn_claims():
         "Receipts 48200, disbursements 31000, cash on hand 17200, debt 0.",
         "https://fictional.example/westland-finance/quinn-2026-q3",
         "Summary page, lines 1 through 4",
+        archive_url="https://fictional.example/archive/quinn-2026-q3",
     )
     vote = source(
         6,
@@ -291,6 +293,7 @@ def okonkwo_claims():
         "Receipts 30100, disbursements 18400, cash on hand 11700, debt 0.",
         "https://fictional.example/westland-finance/okonkwo-2026-q3",
         "Summary page, lines 1 through 4",
+        archive_url="https://fictional.example/archive/okonkwo-2026-q3",
     )
     donor = source(
         19,
@@ -513,6 +516,17 @@ def measure_claims():
         "https://fictional.example/westland-fiscal/measure-h",
         "Estimate table",
     )
+    fiscal_press = source(
+        31,
+        "Westland Civic Ledger (fictional)",
+        "Parks levy estimate, Measure H",
+        "News report",
+        "2026-08-03",
+        "The note estimates 1.2 million dollars a year for parks if the levy passes.",
+        "https://fictional.example/westland-ledger/measure-h-estimate",
+        "Estimate paragraph",
+        tier="T2",
+    )
     threshold = source(
         26,
         "Westland Elections Code (fictional)",
@@ -522,6 +536,7 @@ def measure_claims():
         "A local levy passes with more than half the votes cast on the measure.",
         "https://fictional.example/westland-code/levy-threshold",
         "Section 4",
+        archive_url="https://fictional.example/archive/levy-threshold",
     )
     support_money = source(
         27,
@@ -532,6 +547,7 @@ def measure_claims():
         "The Yes on H committee reported 20000 dollars in receipts.",
         "https://fictional.example/westland-finance/yes-on-h-q3",
         "Receipts line",
+        archive_url="https://fictional.example/archive/yes-on-h-q3",
     )
     oppose_money = source(
         28,
@@ -542,6 +558,7 @@ def measure_claims():
         "The No on H committee reported 18000 dollars in receipts.",
         "https://fictional.example/westland-finance/no-on-h-q3",
         "Receipts line",
+        archive_url="https://fictional.example/archive/no-on-h-q3",
     )
     support_names = source(
         29,
@@ -569,7 +586,7 @@ def measure_claims():
         claim("measure-h.law.001", "law", "The current parks levy, adopted in 2020, expires after the 2026 tax year.", [law]),
         claim("measure-h.yes.001", "yes", "A yes vote replaces the expiring levy at the same rate.", [yes]),
         claim("measure-h.no.001", "no", "A no vote lets the current levy expire.", [no]),
-        claim("measure-h.fiscal.001", "fiscal", "The official note estimates 1.2 million dollars a year for parks if the levy passes.", [fiscal], as_of="2026-08-01"),
+        claim("measure-h.fiscal.001", "fiscal", "The official note estimates 1.2 million dollars a year for parks if the levy passes.", [fiscal, fiscal_press], as_of="2026-08-01"),
         claim("measure-h.threshold.001", "threshold", "Under the 2019 levy rule, the measure needs more than half the votes cast on it.", [threshold]),
         claim("measure-h.funding.001", "funding", "Yes on H reported 20000 dollars in receipts for the quarter ending September 30, 2026.", [support_money], as_of="2026-09-30", filing_period="2026-07-01 through 2026-09-30"),
         claim("measure-h.funding.002", "funding", "No on H reported 18000 dollars in receipts for the quarter ending September 30, 2026.", [oppose_money], as_of="2026-09-30", filing_period="2026-07-01 through 2026-09-30"),
@@ -801,7 +818,7 @@ A no vote lets the current parks levy expire after the 2026 tax year[^24]. The c
 
 ## Fiscal impact
 
-The Westland fiscal office note, dated August 1, 2026, estimates 1.2 million dollars a year for parks if the levy passes[^25].
+The Westland fiscal office note, dated August 1, 2026, estimates 1.2 million dollars a year for parks if the levy passes[^25][^31].
 
 Not found (searched: fictional university budget notes and fictional news budget notes).
 

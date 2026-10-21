@@ -8,7 +8,8 @@ You fill templates. You do not edit reviewer fields (`issue`, `evidence`, `sever
 
 - Confirm the ballot gate is open.
 - Write `sources-map.md` from `templates/sources-map.md`.
-- For a candidate, finish `identity.yaml` and match every person-claim to two anchors.
+- For a candidate, finish `identity.yaml` and match every person-claim to two anchors. The claim text needs two anchor values from that record. Every draft sentence that carries the marker must itself name the person, with a distinguishing name or filing id the checker can verify, or two anchors in that sentence. An unnamed sentence fails. A sentence that names someone else fails even when it also names this person. A claim about that other person is a separate claim.
+- Fill `profile.yaml` when you can: the same `issues` keys for every candidate in the race, one `money.report_date`, and a `fields` map. Cells that state a fact include a citation marker. The assembler builds comparison rows from the drafts and from this file. See `policy/sources.md` for Florida pages that return a shell, a captcha, or a 403.
 - Log effort in `effort.json` as you go: searches, fetches, minutes, and per-section counts. The budget matches the other candidates in the race.
 
 ## Claims

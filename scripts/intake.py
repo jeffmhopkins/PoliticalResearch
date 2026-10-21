@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 import _boot  # noqa: F401
 import yaml
@@ -29,7 +30,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--label", default="requester")
     parser.add_argument("--field")
     parser.add_argument("--value")
-    parser.add_argument("--address")
+    parser.add_argument("--address", help="Avoid this. It stores the street address in shell history.")
+    parser.add_argument("--address-file", help="Read the address from a mode-600 file instead of the command line.")
     args = parser.parse_args(argv)
     if args.command == "init" and not args.election_id and not args.workspace:
         print("init needs --election-id.", file=sys.stderr)
@@ -58,14 +60,41 @@ def main(argv: list[str] | None = None) -> int:
             print("\n".join(errors), file=sys.stderr)
             return 1
         dump_yaml(intake_path, intake)
+        write_status(workspace, clock)
+        if args.field == "offline_archive":
+            from lib.archive import estimate_archive_size
+
+            tier = str(intake.get("archive_tier") or "html-pdf")
+            print(estimate_archive_size(0, tier if intake.get("offline_archive") is True else "html-pdf"))
+            if intake.get("offline_archive") == "pending":
+                print("offline_archive is pending. The archive does not run until it is set to true.")
         print(f"Set {args.field}.")
         return 0
     if args.command == "set-address":
-        if not args.address:
-            print("set-address needs --address. The value is written only under private/.", file=sys.stderr)
+        parser_file = getattr(args, "address_file", None)
+        if parser_file:
+            address = Path(parser_file).read_text(encoding="utf-8")
+        elif args.address:
+            print(
+                "Warning: --address puts the street address in shell history. Prefer stdin or --address-file.",
+                file=sys.stderr,
+            )
+            address = args.address
+        elif not sys.stdin.isatty():
+            address = sys.stdin.read()
+        else:
+            print(
+                "set-address reads the address from stdin or --address-file. "
+                "--address is recorded in shell history.",
+                file=sys.stderr,
+            )
             return 2
-        set_address(workspace, intake, args.address)
+        if not address.strip():
+            print("set-address received an empty address.", file=sys.stderr)
+            return 2
+        set_address(workspace, intake, address)
         dump_yaml(intake_path, intake)
+        write_status(workspace, clock)
         print("Address stored at private/address.txt. It is not in intake.yaml.")
         return 0
     if args.command == "show":

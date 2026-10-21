@@ -45,6 +45,16 @@ The record outweighs the rhetoric. Every candidate in a race gets the same secti
 
 Policies in `policy/` are binding. If this file and a policy disagree, the stricter citation, privacy, or neutrality rule wins.
 
+# Do not game the gates
+
+Do not write the same sentences for every candidate, with only the name swapped, to pass a length check. A near-copy fails the same check. `templated_prose_errors` rejects both. Do not pad a gap, and do not drop sources to make the archive smaller. A missing fact stays `Not found (searched: ...)`. A verified dollar or vote total needs a T1 filing or two independent sources. When that filing was not archived, a second independent source is required. A `fiction: true` practice ballot does not waive that. Cutting a source to shrink the archive does not satisfy the gate.
+
+A cloud VM snapshot can be an old commit. Before research, `git fetch origin main` and fast-forward. Do not treat the snapshot as the latest tree.
+
+# Depth
+
+`depth` on intake is `quick`, `standard`, or `deep`. Standard research for a full ballot is about 30 to 50 agent-hours. Quick covers the official ballot, filings, and the candidate's own words. Deep adds the record behind those words. The same depth applies to every candidate in a race. Parallel researchers are allowed. Parallel reviewers still need a fresh context. A solo session may draft claims only while it is acting as the researcher. A sign-off in that same context is a process gap (`loop.py signoff --same-context`), not a silent pass. These notes are guidance. They do not lower a gate.
+
 # Phases
 
 | # | Phase | Owner | Gate |

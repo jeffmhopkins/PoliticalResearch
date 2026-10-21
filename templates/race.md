@@ -1,4 +1,6 @@
-<!-- One race overview for the office. Link each candidate profile. Use the same rows for every candidate. -->
+<!-- One race overview for the office. Link each candidate profile with an anchor the assembler can rewrite. Use the same rows for every candidate. -->
+<!-- The reader omits Write-in, Withdrawn, and Uncontested when they are None or the race is contested. Keep the headings in this draft. -->
+<!-- Sources and retrieval dates, Item changelog, and Findings and disputes stay in the draft. The reader does not print those stubs. -->
 
 <!-- summary -->
 Not found (searched: not started).

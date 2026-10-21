@@ -13,6 +13,10 @@ pdf_engine_preference:
 whisper_transcription: false
 # Model downloaded only after that opt-in. base stays small; small is the next step.
 whisper_model: base
+# quick: official ballot, filings, and the candidate's own words.
+# standard: about 30 to 50 agent-hours for a full ballot.
+# deep: the record behind those words. The same depth applies to every candidate.
+# This is guidance. It does not lower a gate.
 legislation_included_by_default: false
 languages_v1:
   - en

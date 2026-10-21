@@ -728,7 +728,11 @@ def test_confirm_refuses_a_directory_symlink_outside_private(tmp_path: Path):
     secret.write_bytes(b"not-a-real-photo")
     (tmp_path / "private" / "linked").symlink_to(outside, target_is_directory=True)
     (tmp_path / "private" / "address.txt").write_text("PO Box 12\n", encoding="utf-8")
-    assert confirm_ballot(tmp_path, "2026-10-20 12:00 ET") == []
+    errors = confirm_ballot(tmp_path, "2026-10-20 12:00 ET")
+    assert errors
+    assert any("symlink" in error or "not set" in error for error in errors)
+    confirmed = yaml.safe_load((tmp_path / "ballot.yaml").read_text(encoding="utf-8"))
+    assert confirmed["confirmed_by_requester"] is not True
     assert secret.exists()
     assert (tmp_path / "private" / "linked").is_symlink()
     assert (tmp_path / "private" / "address.txt").exists()

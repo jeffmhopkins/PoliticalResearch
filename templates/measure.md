@@ -1,4 +1,4 @@
-<!-- Ballot measure. Arguments for and against must be close in length and attributed. -->
+<!-- Ballot measure. Arguments for and against must be close in length and attributed. A side that is only a gap is not padded. The reader puts the two arguments in one table. -->
 
 <!-- summary -->
 Not found (searched: not started).
