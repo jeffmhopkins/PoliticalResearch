@@ -6,7 +6,7 @@ import html
 import re
 from urllib.parse import urlencode, urljoin
 
-from portals.base import SEARCH_FORM_NOTE, PortalResult, PortalRow, classify_portal_html
+from portals.base import PortalResult, PortalRow, classify_search_page, is_challenge_page
 from portals.fetch import PortalFetchError
 
 DEFAULT_BASE = "https://licenseesearch.fldfs.com"
@@ -108,16 +108,14 @@ class DfsPortal:
                 executed=False,
                 note="DFS licensee search is unavailable now",
             )
-        kind = classify_portal_html(page, "data-licensee-id")
-        if kind == "challenge":
-            return PortalResult(status="portal-down", executed=False, note="DFS returned a challenge page, not results")
-        if kind == "form":
-            return PortalResult(status="search-form-only", executed=False, note=SEARCH_FORM_NOTE)
-        if kind == "unreadable":
-            return PortalResult(status="portal-down", executed=False, note="DFS response was not a results page")
-        rows = parse_dfs_rows(page, final_url, limit)
-        if not rows:
-            return PortalResult(status="searched-none", executed=True, note="searched, no match under this name")
+        rows = [] if is_challenge_page(page) else parse_dfs_rows(page, final_url, limit)
+        status, executed, note = classify_search_page(
+            page,
+            len(rows),
+            ("search results", "licensee search results", "individual search results"),
+        )
+        if status != "hits":
+            return PortalResult(status=status, executed=executed, note=note)
         return PortalResult(
             status="hits",
             executed=True,

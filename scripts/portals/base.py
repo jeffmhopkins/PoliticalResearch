@@ -2,19 +2,47 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 SEARCH_FORM_NOTE = (
     "That page is an interactive search form, not results. "
     "The query was not executed, so this is not evidence the record is absent."
 )
+CHALLENGE_NOTE = "The portal returned a challenge page, not results."
+UNREADABLE_NOTE = "The response was not a recognized results page with an explicit no-results line."
 _CHALLENGE = (
     "cf-browser-verification",
     "cf-challenge",
     "just a moment",
     "g-recaptcha",
     "hcaptcha",
+    "recaptcha",
+    "captcha",
+    "/cdn-cgi/challenge",
+    "attention required",
+    "verify you are human",
+    "are you a robot",
+    "bot detection",
+    "checking your browser",
 )
+_NO_RESULTS = (
+    "no records found",
+    "no record found",
+    "no results found",
+    "no result found",
+    "no matching records",
+    "no matches found",
+    "no matches were found",
+    "your search returned no",
+    "0 records found",
+    "no data found",
+    "no licensees found",
+    "no corporations found",
+    "no entities found",
+    "search returned no results",
+)
+_FORM = re.compile(r"<form\b", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -43,15 +71,43 @@ class PortalResult:
         return self.status == "searched-none" and self.executed
 
 
-def classify_portal_html(html: str, detail_marker: str) -> str:
-    """Return rows, empty, form, challenge, or unreadable."""
-    lowered = (html or "").lower()
-    if detail_marker.lower() in lowered:
-        return "rows"
-    if any(token in lowered for token in _CHALLENGE):
-        return "challenge"
-    if "<table" in lowered:
-        return "empty"
-    if "<form" in lowered:
-        return "form"
-    return "unreadable"
+def _flat(html: str) -> str:
+    return re.sub(r"\s+", " ", html or "").lower()
+
+
+def is_challenge_page(html: str) -> bool:
+    lowered = _flat(html)
+    return any(token in lowered for token in _CHALLENGE)
+
+
+def has_search_form(html: str) -> bool:
+    return bool(_FORM.search(html or ""))
+
+
+def has_explicit_no_results(html: str) -> bool:
+    lowered = _flat(html)
+    return any(token in lowered for token in _NO_RESULTS)
+
+
+def is_recognized_results_page(html: str, results_markers: tuple[str, ...]) -> bool:
+    lowered = _flat(html)
+    return any(marker in lowered for marker in results_markers)
+
+
+def classify_search_page(html: str, row_count: int, results_markers: tuple[str, ...]) -> tuple[str, bool, str]:
+    """Return status, executed, and a note.
+
+    A challenge, captcha, or bot page is not an executed search, even when the
+    HTML also contains a detail-page marker. A page that contains a search form
+    and no detail rows is not executed. ``searched-none`` is only a recognized
+    results page that states, in so many words, that nothing was found.
+    """
+    if is_challenge_page(html):
+        return "portal-down", False, CHALLENGE_NOTE
+    if row_count:
+        return "hits", True, ""
+    if has_search_form(html):
+        return "search-form-only", False, SEARCH_FORM_NOTE
+    if is_recognized_results_page(html, results_markers) and has_explicit_no_results(html):
+        return "searched-none", True, "searched, no match under this name"
+    return "portal-down", False, UNREADABLE_NOTE

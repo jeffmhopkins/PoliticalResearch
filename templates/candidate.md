@@ -7,7 +7,7 @@ Not found (searched: not started).
 
 ## Identity
 
-<!-- Name, office sought, party or nonpartisan, incumbency, official ballot designation, campaign site. One claim per fact, with a marker. Documented former, maiden, and filing names go in identity.yaml aliases with the source that recorded each one. Search every alias before a Not found line. birth_year, when a public record supports it, stays in identity.yaml for the identity gate and is never printed. -->
+<!-- Name, office sought, party or nonpartisan, incumbency, official ballot designation, campaign site. One claim per fact, with a marker. Documented former, maiden, and filing names go in identity.yaml aliases. Each source is a URL or a claim id, and the alias is a full name that is not another candidate's. An alias does not replace the two identity anchors. Search every alias before a Not found line. birth_year, when a public record supports it, stays in identity.yaml for the identity gate and is never printed. Do not write a street address here. -->
 
 Not found (searched: not started).
 

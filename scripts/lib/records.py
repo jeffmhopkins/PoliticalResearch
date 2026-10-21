@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import re
 
+from lib.util import looks_like_street_address
+
 LEGAL_SWEEP_KEYS = (
     "criminal",
     "civil",
@@ -23,12 +25,49 @@ _NAME_TOKEN = re.compile(r"[^\W\d_]+(?:['-][^\W\d_]+)*", re.UNICODE)
 _YEAR = re.compile(r"\b(1[89]\d\d|20\d\d)\b")
 _DATE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 _GAP = re.compile(r"^not found \(searched: (.+)\)\.$", re.IGNORECASE)
-_BIRTH_PHRASE = re.compile(
-    r"\b(?:date of birth|birth year|d\.?\s*o\.?\s*b\.?)\b"
-    r"|\bborn\s+in\s+(?:1[89]\d\d|20\d\d)\b"
-    r"|\bborn\s+on\b",
+# A birth cue. `(?!\w)` is required after an optional period: `\b` does not match
+# between "." and a space. Bare "born" is a cue only when a year is nearby.
+_BIRTH_CUE = (
+    r"(?:year\s+of\s+birth|birth\s*years?|birth\s*dates?|birthdates?|"
+    r"dates?\s+of\s+birth|d\.?\s*o\.?\s*b\.?|y\.?\s*o\.?\s*b\.?|born|(?<!\w)b\.)"
+)
+_BIRTH_LABEL = re.compile(
+    r"(?<!\w)(?:"
+    r"year\s+of\s+birth|birth\s*years?|birth\s*dates?|birthdates?|"
+    r"dates?\s+of\s+birth|d\.?\s*o\.?\s*b\.?|y\.?\s*o\.?\s*b\.?"
+    r")(?!\w)",
     re.IGNORECASE,
 )
+_CUE_THEN_YEAR = re.compile(
+    rf"(?P<cue>{_BIRTH_CUE})(?P<gap>.{{0,40}}?)(?P<year>1[89]\d\d|20\d\d)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+_YEAR_THEN_CUE = re.compile(
+    rf"\b(?P<year>1[89]\d\d|20\d\d)(?P<gap>.{{0,40}}?)(?P<cue>{_BIRTH_CUE})",
+    re.IGNORECASE | re.DOTALL,
+)
+_ALIAS_URL = re.compile(r"^https?://\S+$")
+_ALIAS_EVIDENCE_ID = re.compile(r"^[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+\.[0-9]{3}$")
+MIN_PARTY_SURNAME = 3
+_PARTY_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "at",
+    "by",
+    "for",
+    "from",
+    "in",
+    "into",
+    "of",
+    "on",
+    "or",
+    "the",
+    "to",
+    "v",
+    "vs",
+    "with",
+}
 _SHIFT = re.compile(r"\b(?:shift(?:ed|s)?|changed position|position changed)\b", re.IGNORECASE)
 _ALIGNMENT = re.compile(
     r"\b(?:alignment|aligned with|hypocrisy|hypocrite|revealed preference|"
@@ -72,15 +111,112 @@ _RHETORIC_LABELS = ("MATCH", "CONTRADICTION", "NO RECORD")
 _RHETORIC_WORD = re.compile(r"\b(?:MATCH|CONTRADICTION|NO RECORD)\b")
 
 
-def identity_names(record: dict | None) -> list[str]:
-    """Ballot name, legal name, and every documented alias."""
+def _clean_name(value: str) -> str:
+    return re.sub(r"\s+", " ", value or "").strip()
+
+
+def _name_tokens(name: str) -> list[str]:
+    cleaned = (name or "").replace("’", "'").replace("`", "'")
+    return _NAME_TOKEN.findall(cleaned)
+
+
+def _strip_suffix(tokens: list[str]) -> list[str]:
+    kept = list(tokens)
+    while kept and kept[-1].casefold().rstrip(".") in _SUFFIXES:
+        kept.pop()
+    return kept
+
+
+def alias_rows(record: dict | None) -> list[tuple[str, str]]:
+    """(name, source) pairs. A bare string has no source."""
     if not isinstance(record, dict):
         return []
+    rows = []
+    for item in record.get("aliases") or []:
+        if isinstance(item, dict):
+            rows.append((_clean_name(str(item.get("name") or "")), str(item.get("source") or "").strip()))
+        else:
+            rows.append((_clean_name(str(item or "")), ""))
+    return rows
+
+
+def alias_source_ok(source: str) -> bool:
+    """A URL or a claim id. A free-text note is not a source."""
+    text = str(source or "").strip()
+    return bool(_ALIAS_URL.match(text) or _ALIAS_EVIDENCE_ID.match(text))
+
+
+def alias_name_errors(name: str) -> list[str]:
+    """A usable alias is a full name, not one short token or a function word."""
+    tokens = _strip_suffix(_name_tokens(name))
+    if len(tokens) < 2:
+        return ["alias must be a full name, not a single token"]
+    surname_token = tokens[-1]
+    if len(surname_token) < MIN_PARTY_SURNAME or surname_token.casefold() in _PARTY_STOPWORDS:
+        return [
+            f"alias surname must be at least {MIN_PARTY_SURNAME} characters "
+            "and must not be a function word"
+        ]
+    return []
+
+
+def person_name_key(name: str) -> str:
+    """Order-insensitive key so 'Okonkwo, Blake' matches 'Blake Okonkwo'."""
+    tokens = _strip_suffix(_name_tokens(name))
+    return " ".join(sorted(token.casefold() for token in tokens))
+
+
+def identity_name_keys(record: dict | None) -> set[str]:
+    if not isinstance(record, dict):
+        return set()
+    keys = set()
+    for field in ("ballot_name", "full_legal_name", "name"):
+        key = person_name_key(str(record.get(field) or ""))
+        if key:
+            keys.add(key)
+    for name, _source in alias_rows(record):
+        key = person_name_key(name)
+        if key:
+            keys.add(key)
+    return keys
+
+
+def alias_record_errors(record: dict | None, other_name_keys: set[str] | None = None) -> list[str]:
+    """Cited source, full name, and no other candidate's name."""
+    blocked = other_name_keys or set()
+    errors: list[str] = []
+    seen: set[str] = set()
+
+    def add(message: str) -> None:
+        if message not in seen:
+            seen.add(message)
+            errors.append(message)
+
+    for name, source in alias_rows(record):
+        label = name or "?"
+        if not alias_source_ok(source):
+            add(f"alias {label} source must be a URL or an evidence record id, not a free-text note")
+        for message in alias_name_errors(name):
+            add(f"alias {label}: {message}")
+        key = person_name_key(name)
+        if key and key in blocked:
+            add(f"alias {label} matches another candidate's name on the ballot")
+    return errors
+
+
+def identity_names(record: dict | None, blocked_name_keys: set[str] | None = None) -> list[str]:
+    """Ballot name, legal name, and aliases that pass the source and full-name checks.
+
+    An alias that repeats another candidate's name is not usable as a party name.
+    """
+    if not isinstance(record, dict):
+        return []
+    blocked = blocked_name_keys or set()
     names: list[str] = []
     seen: set[str] = set()
 
     def add(value: str) -> None:
-        text = re.sub(r"\s+", " ", value or "").strip()
+        text = _clean_name(value)
         key = text.casefold()
         if text and key not in seen:
             seen.add(key)
@@ -89,11 +225,12 @@ def identity_names(record: dict | None) -> list[str]:
     add(str(record.get("ballot_name") or ""))
     add(str(record.get("full_legal_name") or ""))
     add(str(record.get("name") or ""))
-    for item in record.get("aliases") or []:
-        if isinstance(item, dict):
-            add(str(item.get("name") or ""))
-        else:
-            add(str(item or ""))
+    for name, source in alias_rows(record):
+        if alias_name_errors(name) or not alias_source_ok(source):
+            continue
+        if person_name_key(name) in blocked:
+            continue
+        add(name)
     return names
 
 
@@ -112,23 +249,39 @@ def alias_names(record: dict | None) -> list[str]:
 
 
 def surname(name: str) -> str:
-    """Last name token, with a trailing generational suffix removed."""
-    cleaned = (name or "").replace("’", "'").replace("`", "'")
-    tokens = _NAME_TOKEN.findall(cleaned)
-    while tokens and tokens[-1].casefold().rstrip(".") in _SUFFIXES:
-        tokens.pop()
+    """Last name token, casefolded, with a trailing generational suffix removed."""
+    tokens = _strip_suffix(_name_tokens(name))
     return tokens[-1].casefold() if tokens else ""
 
 
+def party_surname(name: str) -> str:
+    """Original-case surname used for a party match.
+
+    Shorter than three characters, or a function word, is not a party name.
+    """
+    tokens = _strip_suffix(_name_tokens(name))
+    if not tokens:
+        return ""
+    token = tokens[-1]
+    if len(token) < MIN_PARTY_SURNAME or token.casefold() in _PARTY_STOPWORDS:
+        return ""
+    return token
+
+
 def surnames_for(names: list[str]) -> set[str]:
-    return {surname(name) for name in names if surname(name)}
+    return {party_surname(name) for name in names if party_surname(name)}
 
 
 def names_party(caption: str, surnames: set[str]) -> bool:
-    """True when the caption names one of these surnames as a whole word."""
-    lowered = (caption or "").lower()
+    """True when the caption names one of these surnames as a whole word.
+
+    The match is case-sensitive and ignores tokens shorter than the minimum.
+    """
+    text = caption or ""
     for token in surnames:
-        if token and re.search(rf"(?<![\w'-]){re.escape(token)}(?![\w'-])", lowered):
+        if not token or len(token) < MIN_PARTY_SURNAME or token.casefold() in _PARTY_STOPWORDS:
+            continue
+        if re.search(rf"(?<![\w'-]){re.escape(token)}(?![\w'-])", text):
             return True
     return False
 
@@ -163,12 +316,15 @@ def court_gate(
     record_date: str | None,
     names: list[str],
     birth_year: int | None,
+    *,
+    surnames: set[str] | None = None,
 ) -> list[str]:
     """Party gate, then era gate. A missing birth year leaves the era gate off."""
     errors = []
     if not str(caption or "").strip():
         return ["court record needs a caption so the party gate can run"]
-    if not names_party(caption, surnames_for(names)):
+    party_names = surnames if surnames is not None else surnames_for(names)
+    if not names_party(caption, party_names):
         errors.append("court caption does not name the candidate or a documented alias as a party")
     cutoff = adult_year(birth_year)
     year = record_year(record_date)
@@ -180,16 +336,45 @@ def court_gate(
 
 
 def rendered_birth_errors(text: str, birth_years: list[int] | None = None) -> list[str]:
-    """Phrases that would publish a birth year or a date of birth."""
+    """Phrases that would publish a birth year or a date of birth.
+
+    Whitespace, including line breaks, is part of the match: `born` and the year
+    may sit on different lines. An unrelated year, such as a budget year, is left alone.
+    """
+    raw = text or ""
     errors = []
-    if _BIRTH_PHRASE.search(text or ""):
+    if _BIRTH_LABEL.search(raw) or _CUE_THEN_YEAR.search(raw) or _YEAR_THEN_CUE.search(raw):
         errors.append("birth year or date of birth is internal and must not be rendered")
     for year in birth_years or []:
-        if re.search(rf"\bborn\b.{{0,40}}\b{year}\b|\b{year}\b.{{0,40}}\bborn\b", text or "", re.IGNORECASE):
+        if re.search(
+            rf"(?:{_BIRTH_CUE}).{{0,40}}\b{year}\b|\b{year}\b.{{0,40}}(?:{_BIRTH_CUE})",
+            raw,
+            re.IGNORECASE | re.DOTALL,
+        ):
             message = f"birth year {year} must not be rendered"
             if message not in errors:
                 errors.append(message)
     return errors
+
+
+def redact_rendered_birth(text: str, birth_years: list[int] | None = None) -> str:
+    """Replace a year that sits next to a birth cue. Other years stay."""
+
+    def _cue_year(match: re.Match) -> str:
+        return match.group("cue") + match.group("gap") + "[year withheld]"
+
+    def _year_cue(match: re.Match) -> str:
+        return "[year withheld]" + match.group("gap") + match.group("cue")
+
+    redacted = _CUE_THEN_YEAR.sub(_cue_year, text or "")
+    redacted = _YEAR_THEN_CUE.sub(_year_cue, redacted)
+    return redacted
+
+
+def street_address_errors(label: str, text: str) -> list[str]:
+    if looks_like_street_address(text or ""):
+        return [f"{label} contains a street address. Keep addresses in private/ only."]
+    return []
 
 
 def alias_gap_errors(draft: str, aliases: list[str], aliases_searched: list[str] | None = None) -> list[str]:
@@ -422,13 +607,17 @@ def donation_alignment_errors(text: str) -> list[str]:
     return []
 
 
-def claim_record_errors(claim: dict, identity: dict) -> list[str]:
+def claim_record_errors(
+    claim: dict,
+    identity: dict,
+    blocked_name_keys: set[str] | None = None,
+) -> list[str]:
     if not isinstance(claim, dict) or claim.get("removed"):
         return []
     errors: list[str] = []
     birth = identity.get("birth_year") if isinstance(identity, dict) else None
     birth_year = birth if isinstance(birth, int) else None
-    names = identity_names(identity)
+    names = identity_names(identity, blocked_name_keys)
     if is_court_claim(claim):
         errors.extend(
             court_gate(
@@ -452,10 +641,17 @@ def claim_record_errors(claim: dict, identity: dict) -> list[str]:
     return errors
 
 
-def item_record_errors(identity: dict, claims: list[dict], draft: str, profile: dict | None) -> list[str]:
+def item_record_errors(
+    identity: dict,
+    claims: list[dict],
+    draft: str,
+    profile: dict | None,
+    other_name_keys: set[str] | None = None,
+) -> list[str]:
     identity = identity if isinstance(identity, dict) else {}
     claims = [claim for claim in claims if isinstance(claim, dict)]
     profile = profile if isinstance(profile, dict) else {}
+    blocked = other_name_keys or set()
     errors: list[str] = []
     birth = identity.get("birth_year")
     years = [birth] if isinstance(birth, int) else []
@@ -463,8 +659,9 @@ def item_record_errors(identity: dict, claims: list[dict], draft: str, profile: 
     raw_sweep = profile.get("legal_sweep")
     sweep = raw_sweep if isinstance(raw_sweep, dict) else None
     searched = [str(item) for item in (raw_sweep.get("aliases_searched") or [])] if isinstance(raw_sweep, dict) else []
+    errors.extend(alias_record_errors(identity, blocked))
     for claim in claims:
-        errors.extend(claim_record_errors(claim, identity))
+        errors.extend(claim_record_errors(claim, identity, blocked))
     errors.extend(alias_gap_errors(draft, aliases, searched))
     errors.extend(legal_sweep_errors(sweep, claims, aliases))
     errors.extend(rhetoric_draft_errors(draft, claims))

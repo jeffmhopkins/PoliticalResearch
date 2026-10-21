@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
-import re
 import sys
 from urllib.parse import urlparse
 
 import _boot  # noqa: F401
 from lib.cli import base_parser, workspace_from
 from lib.quality import blinded_swap
+from lib.records import redact_rendered_birth
 from lib.util import load_yaml
 
 LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -101,19 +101,7 @@ def main(argv: list[str] | None = None) -> int:
         print("No race or measure contest found.", file=sys.stderr)
         return 1
     blinded = blinded_swap("\n\n".join(chunks), replacements)
-    for year in birth_years:
-        blinded = re.sub(
-            rf"(\bborn\b[^.\n]{{0,40}})\b{year}\b",
-            r"\1[year withheld]",
-            blinded,
-            flags=re.IGNORECASE,
-        )
-        blinded = re.sub(
-            rf"\b{year}\b([^.\n]{{0,40}}\bborn\b)",
-            r"[year withheld]\1",
-            blinded,
-            flags=re.IGNORECASE,
-        )
+    blinded = redact_rendered_birth(blinded, birth_years)
     header = (
         "# Blinded swap draft\n\n"
         "Names, surnames, and campaign web addresses are replaced across the whole ballot. "

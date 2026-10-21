@@ -2,7 +2,7 @@
 
 Read `AGENTS.md`, `REVIEW.md`, `policy/truth-seeking.md`, and `policy/sources.md`. Use a fresh context. Do not review an item you researched. Do not edit claims, drafts, or another reviewer's findings.
 
-Read negative and absence claims first. Open the primary document yourself. An absence the draft asserts, including "no record," "nothing found," and "does not list," is a finding until you have re-run the authoritative check. File a finding when the sentence does not match that document, the locator is wrong, the person does not match `identity.yaml` on two anchors, or a court caption does not name the candidate or a documented alias as a party. A case dated before the candidate turned 18 does not belong in the guide. `birth_year` is not a fact to print.
+Read negative and absence claims first. Open the primary document yourself. An absence the draft asserts, including "no record," "nothing found," and "does not list," is a finding until you have re-run the authoritative check. File a finding when the sentence does not match that document, the locator is wrong, the person does not match `identity.yaml` on two anchors, or a court caption does not name the candidate or a documented alias as a party. An alias is not itself those two anchors. Its source is a URL or a claim id, and it is not another candidate's name. A case dated before the candidate turned 18 does not belong in the guide. `birth_year` is not a fact to print. A street address in the draft, the claims, or the guide is a finding.
 
 Flag a degree, field, license number, case number, or other specific that the cited page does not literally state. A company's license is the entity's record. Spend the review on the highest-risk claims first. Before sign-off, record what you did not check:
 

@@ -138,13 +138,14 @@ def fec_aliases_from_payloads(candidate_id: str, candidate_payload: dict, commit
         seen.add(key)
         aliases.append({"name": text, "source": source, "kind": "filing"})
 
+    candidate_url = f"https://www.fec.gov/data/candidate/{candidate_id}/"
     for row in _fec_results(candidate_payload):
-        add(str(row.get("name") or ""), f"OpenFEC candidate {candidate_id} name field")
+        add(str(row.get("name") or ""), candidate_url)
     for row in committees:
         if not isinstance(row, dict):
             continue
         committee_id = str(row.get("committee_id") or "").strip()
-        source = f"OpenFEC committee {committee_id} treasurer_name" if committee_id else "OpenFEC committee treasurer_name"
+        source = f"https://www.fec.gov/data/committee/{committee_id}/" if committee_id else candidate_url
         add(str(row.get("treasurer_name") or ""), source)
     return aliases
 

@@ -128,15 +128,25 @@ def test_schema_keeps_birth_year_internal_and_requires_alias_sources():
     nameless = dict(ok)
     nameless["aliases"] = [{"name": "Avery Hale"}]
     assert instance_errors(nameless, schema)
+    noted = dict(ok)
+    noted["aliases"] = [{"name": "Avery Hale", "source": "notes"}]
+    assert instance_errors(noted, schema)
+    cited = dict(ok)
+    cited["aliases"] = [{"name": "Avery Hale", "source": "cand-fixture.legal.001", "kind": "former"}]
+    assert instance_errors(cited, schema) == []
 
 
 def test_party_and_era_gates_use_aliases_and_drop_pre_adult_cases():
+    from lib.records import surnames_for
+
     assert surname("Alex Rivera Jr") == "rivera"
     assert surname("O'Brien") == "o'brien"
     names = ["Avery Quinn", "Avery Hale"]
-    assert names_party("State v. Hale", {surname(name) for name in names})
-    assert not names_party("State v. Okonkwo", {surname(name) for name in names})
-    assert not names_party("Hale's appeal", {surname(name) for name in names})
+    assert names_party("State v. Hale", surnames_for(names))
+    assert not names_party("State v. Okonkwo", surnames_for(names))
+    assert not names_party("Hale's appeal", surnames_for(names))
+    assert not names_party("State v. Smith, in the circuit court", {"in", "In"})
+    assert surnames_for(["Mary In"]) == set()
     assert adult_year(1990) == 2008
     assert court_gate("State v. Hale", "1983-04-01", names, 1990)
     assert court_gate("State v. Okonkwo", "2010-04-01", names, 1990)
@@ -188,6 +198,128 @@ def test_birth_year_is_not_rendered_and_aliases_are_searched(tmp_path: Path):
     errors = identity_gate_errors(tmp_path)
     assert any("must not be rendered" in error for error in errors)
     assert any("omits alias search" in error for error in errors)
+    for phrase in (
+        "year of birth 1990.",
+        "birthdate 1990.",
+        "Avery Quinn, b. 1990.",
+        "born\n1990",
+    ):
+        _write_item(tmp_path, f"# Avery\n\n{phrase}\n", [], _identity())
+        assert any("must not be rendered" in error for error in identity_gate_errors(tmp_path))
+    _write_item(tmp_path, "# Avery\n\nThe 1990 budget was adopted.\n", [], _identity())
+    assert not any("must not be rendered" in error for error in identity_gate_errors(tmp_path))
+    _write_item(
+        tmp_path,
+        "# Avery\n\n## Legal issues\n\nNot found (searched: fictional docket under Avery Quinn and Avery Hale).\n",
+        [_claim(text="Avery Quinn, b. 1990, filed papers.")],
+        _identity(),
+    )
+    assert any("must not be rendered" in error for error in identity_gate_errors(tmp_path))
+    final = tmp_path / "final"
+    final.mkdir()
+    (final / "guide.md").write_text("# Guide\n\nyear of birth 1990.\n", encoding="utf-8")
+    _write_item(
+        tmp_path,
+        "# Avery\n\n## Legal issues\n\nNot found (searched: fictional docket under Avery Quinn and Avery Hale).\n",
+        [],
+        _identity(),
+    )
+    assert any("guide.md" in error and "must not be rendered" in error for error in identity_gate_errors(tmp_path))
+    from lib.records import redact_rendered_birth
+
+    redacted = redact_rendered_birth("year of birth 1990. Avery Quinn, b. 1990.\nborn\n1990\nThe 1990 budget was adopted.")
+    assert "year of birth [year withheld]" in redacted
+    assert "b. [year withheld]" in redacted
+    assert "The 1990 budget was adopted." in redacted
+
+
+def test_alias_requires_a_citation_and_does_not_adopt_another_candidate(tmp_path: Path):
+    from lib.quality import anchors_identify_person, semantic_claim_errors
+
+    other = tmp_path / "items" / "cand-other"
+    other.mkdir(parents=True)
+    dump_yaml(
+        other / "identity.yaml",
+        {
+            "item_id": "cand-other",
+            "full_legal_name": "Blake Okonkwo",
+            "ballot_name": "Blake Okonkwo",
+            "office": "Mayor",
+            "photo_included": False,
+        },
+    )
+    dump_yaml(
+        tmp_path / "ballot.yaml",
+        {
+            "contests": [
+                {
+                    "id": "race-1",
+                    "type": "race",
+                    "candidates": [
+                        {"id": "cand-fixture", "item_id": "cand-fixture", "name": "Avery Quinn"},
+                        {"id": "cand-other", "item_id": "cand-other", "name": "Blake Okonkwo"},
+                    ],
+                }
+            ]
+        },
+    )
+    draft = "# Avery\n\n## Legal issues\n\nNot found (searched: fictional docket under Avery Quinn).\n"
+    stolen = _identity(
+        city="Cedar Hollow",
+        aliases=[{"name": "Blake Okonkwo", "source": "notes", "kind": "also_known_as"}],
+    )
+    claim = _claim(
+        text="Blake Okonkwo of Cedar Hollow was convicted in 2010.",
+        identity_attributes=["aliases", "city"],
+        record_kind="court",
+        court_caption="State v. Okonkwo",
+        record_date="2010-04-01",
+        legal_category="criminal",
+        legal_status="pending",
+    )
+    _write_item(tmp_path, draft, [claim], stolen)
+    errors = identity_gate_errors(tmp_path)
+    assert any("evidence record id" in error for error in errors)
+    assert any("matches another candidate" in error for error in errors)
+    assert any("does not name the candidate" in error for error in errors)
+    cited = _identity(
+        city="Cedar Hollow",
+        aliases=[{"name": "Blake Okonkwo", "source": "https://fictional.example/filing", "kind": "former"}],
+    )
+    text = "Blake Okonkwo of Cedar Hollow was convicted in 2010"
+    assert anchors_identify_person(cited, text) is False
+    assert anchors_identify_person(cited, "Avery Quinn of Cedar Hollow was convicted in 2010") is True
+    semantic = semantic_claim_errors(
+        {"item_id": "cand-fixture", "item_type": "candidate", "claims": [claim]},
+        "claims",
+        [cited],
+        text + ".[^1]\n",
+    )
+    assert any("two anchor" in error for error in semantic)
+    short = _identity(aliases=[{"name": "Mary In", "source": "https://fictional.example/filing"}])
+    _write_item(tmp_path, draft, [], short)
+    assert any("function word" in error or "surname" in error for error in identity_gate_errors(tmp_path))
+    single = _identity(aliases=[{"name": "Quinn", "source": "cand-fixture.legal.001"}])
+    _write_item(tmp_path, draft, [], single)
+    assert any("single token" in error for error in identity_gate_errors(tmp_path))
+
+
+def test_street_address_is_rejected_in_drafts_claims_and_the_guide(tmp_path: Path):
+    draft = "# Avery\n\nThe campaign office is at 123 Main Street.\n"
+    _write_item(tmp_path, draft, [_claim(text="Mail was sent to PO Box 44.")], _identity())
+    errors = identity_gate_errors(tmp_path)
+    assert any("draft.md" in error and "street address" in error for error in errors)
+    assert any("claims.yaml" in error and "street address" in error for error in errors)
+    final = tmp_path / "final"
+    final.mkdir()
+    (final / "guide.md").write_text("The office is at 123 Main Street.\n", encoding="utf-8")
+    _write_item(
+        tmp_path,
+        "# Avery\n\n## Legal issues\n\nNot found (searched: fictional docket under Avery Quinn and Avery Hale).\n",
+        [],
+        _identity(),
+    )
+    assert any(error.startswith("guide.md") and "street address" in error for error in identity_gate_errors(tmp_path))
 
 
 def test_legal_sweep_dismissal_settlement_and_symmetry(tmp_path: Path):
@@ -249,6 +381,20 @@ def test_legal_sweep_dismissal_settlement_and_symmetry(tmp_path: Path):
         dump_yaml(folder / "profile.yaml", profile)
     symmetry = structured_symmetry_errors(tmp_path)
     assert any("legal_sweep is missing" in error for error in symmetry)
+    for item_id, status in (("cand-a", "checked_nothing_found"), ("cand-b", "not_checked")):
+        dump_yaml(
+            tmp_path / "items" / item_id / "profile.yaml",
+            {"item_id": item_id, "legal_sweep": _sweep(status)},
+        )
+    status_errors = structured_symmetry_errors(tmp_path)
+    assert any("not_checked while another candidate" in error for error in status_errors)
+    for item_id, status in (("cand-a", "checked_nothing_found"), ("cand-b", "record_found")):
+        dump_yaml(
+            tmp_path / "items" / item_id / "profile.yaml",
+            {"item_id": item_id, "legal_sweep": _sweep(status)},
+        )
+    balanced = structured_symmetry_errors(tmp_path)
+    assert not any("not_checked while another candidate" in error for error in balanced)
 
 
 def identity_gate_errors_for(root: Path, draft: str, claims: list[dict]) -> list[str]:
@@ -373,14 +519,40 @@ def test_sunbiz_distinguishes_hits_empty_form_and_outage():
     assert "SearchResultDetail" in found.citations[0]
     assert found.counts_as_searched_empty() is False
 
-    empty = portal.search(_FakePortal({url: "<table><tr><th>Entity Name</th></tr></table>"}), "Hale Example")
+    empty_page = "<h1>Corporation Search Results</h1><p>No records found.</p>"
+    empty = portal.search(_FakePortal({url: empty_page}), "Hale Example")
     assert empty.status == "searched-none" and empty.executed is True
     assert empty.counts_as_searched_empty() is True
     assert empty.citations == ()
 
-    form = portal.search(_FakePortal({url: "<form action=\"/Inquiry/CorporationSearch/ByName\"></form>"}), "Hale Example")
+    header_only = "<table><tr><th>Entity Name</th></tr></table>"
+    unrecognized = portal.search(_FakePortal({url: header_only}), "Hale Example")
+    assert unrecognized.status == "portal-down" and unrecognized.executed is False
+    assert unrecognized.counts_as_searched_empty() is False
+
+    form_in_table = (
+        "<table><tr><td><form action=\"/Inquiry/CorporationSearch/ByName\">"
+        "<input name=\"SearchTerm\"></form></td></tr></table>"
+    )
+    form = portal.search(_FakePortal({url: form_in_table}), "Hale Example")
     assert form.status == "search-form-only" and form.executed is False
+    assert form.counts_as_searched_empty() is False
     assert "not evidence" in form.note
+
+    challenge = (
+        "<html><title>Just a moment...</title><div class=\"cf-challenge\"></div>"
+        "SearchResultDetail</html>"
+    )
+    blocked_page = portal.search(_FakePortal({url: challenge}), "Hale Example")
+    assert blocked_page.status == "portal-down" and blocked_page.executed is False
+    assert blocked_page.counts_as_searched_empty() is False
+
+    form_and_empty = "<h1>Corporation Search Results</h1><form></form><p>No records found.</p>"
+    not_run = portal.search(_FakePortal({url: form_and_empty}), "Hale Example")
+    assert not_run.status == "search-form-only" and not_run.executed is False
+    bare_phrase = "<p>No records found.</p>"
+    bare = portal.search(_FakePortal({url: bare_phrase}), "Hale Example")
+    assert bare.status == "portal-down" and bare.counts_as_searched_empty() is False
 
     class Down:
         def fetch_html(self, requested, **kwargs):
@@ -513,6 +685,7 @@ def test_fec_import_lists_aliases_and_donations_without_addresses():
         "contributor_name",
     }
     assert "recipient, amount, and date" in identity["note"]
+    assert all(row["source"].startswith("https://") for row in identity["aliases"])
     assert fec_donations_from_schedule({"results": []}) == []
     assert calls
 
