@@ -222,7 +222,6 @@ p { margin: 0 0 8pt; }
 .candidate-index {
   display: flex;
   align-items: stretch;
-  gap: 12pt;
   margin: 8pt 0 20pt;
   border: 0;
 }
@@ -236,6 +235,13 @@ p { margin: 0 0 8pt; }
   border: 0.9pt solid var(--rule);
   border-top: 3pt solid var(--ink);
   background: transparent;
+}
+
+.candidate-index > h3.candidate-name + h3.candidate-name,
+.candidate-index > .nameplate + .nameplate,
+.candidate-index > h3.candidate-name + .nameplate,
+.candidate-index > .nameplate + h3.candidate-name {
+  margin-left: 12pt;
 }
 
 .candidate-index h3.candidate-name {
@@ -354,7 +360,6 @@ p.not-found {
 .vote-pair {
   display: flex;
   align-items: stretch;
-  gap: 0;
   margin: 8pt 0 0;
   border: 1.15pt solid var(--ink);
 }

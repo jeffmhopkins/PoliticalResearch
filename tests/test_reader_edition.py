@@ -32,7 +32,7 @@ from lib.quality import (
     structured_symmetry_errors,
     templated_prose_errors,
 )
-from lib.util import dump_yaml
+from lib.util import dump_json, dump_yaml
 from lib.workflow import init_workspace, structural_workspace_errors
 
 
@@ -600,6 +600,66 @@ def test_a_quote_without_a_local_copy_is_not_skipped(tmp_path: Path):
         text="The precinct list names the candidate.",
     )
     assert quote_verbatim_errors(tmp_path) == []
+
+
+def test_all_not_found_comparison_group_collapses_to_a_gap_sentence(tmp_path: Path):
+    contest = {
+        "id": "race-mayor",
+        "item_id": "race-mayor",
+        "type": "race",
+        "title": "Mayor",
+        "candidates": [
+            {"id": "cand-a", "item_id": "cand-a", "name": "Ada One"},
+            {"id": "cand-b", "item_id": "cand-b", "name": "Bea Two"},
+        ],
+    }
+    dump_yaml(tmp_path / "ballot.yaml", {"contests": [contest]})
+    dump_yaml(tmp_path / "intake.yaml", {})
+    for item_id, name in (("cand-a", "Ada One"), ("cand-b", "Bea Two")):
+        item = tmp_path / "items" / item_id
+        item.mkdir(parents=True)
+        (item / "draft.md").write_text(
+            f"# {name}\n\n"
+            "## Identity\n\nNot found (searched: the filing).\n\n"
+            "## Campaign funding\n\nNot found (searched: the finance report).\n\n"
+            "## Positions in own words\n\n"
+            f"{name} supports the parks levy[^1].\n",
+            encoding="utf-8",
+        )
+    text = "\n".join(_GuideModel(tmp_path, "2026-10-21")._fixed_tables(contest))
+    assert "### Positions" in text
+    assert "supports the parks levy" in text
+    assert "### Money" not in text
+    assert "### At a glance" not in text
+    assert "### Experience and background" not in text
+    assert "### Record" not in text
+    assert "Not found (searched: receipts, cash on hand, self-funding or loans, share from small donors, outside spending, report date)." in text
+    assert text.count("### ") == 1
+
+
+def test_review_status_accepts_a_colon_in_the_contest_title(tmp_path: Path):
+    item = tmp_path / "items" / "measure-1"
+    item.mkdir(parents=True)
+    dump_yaml(tmp_path / "ballot.yaml", {"contests": [{"id": "measure-1", "title": "Measure 1: Parks levy"}]})
+    dump_yaml(tmp_path / "intake.yaml", {"parallel_subagents": False})
+    dump_json(
+        item / "loop-state.json",
+        {
+            "status": "signed-off",
+            "round": 1,
+            "mode": "initial",
+            "gaps": ["Removed measure-1.title.001: Avery Quinn was convicted of fraud in 2019."],
+            "process_gaps": [
+                "factcheck signed off in the same context as the research. "
+                "This is a process gap, not a fresh-context review."
+            ],
+        },
+    )
+    text = "\n".join(_GuideModel(tmp_path, "2026-10-21")._methodology("reader"))
+    assert "status signed-off, round 1, mode initial — Measure 1: Parks levy" in text
+    assert "Avery Quinn was convicted of fraud" not in text
+    assert "Removed measure-1.title.001 at the round cap." in text
+    assert prose_marker_errors(text, "guide") == []
 
 
 def test_sample_saved_page_is_checked_verbatim():

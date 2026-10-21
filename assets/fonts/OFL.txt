@@ -1,6 +1,8 @@
 These fonts are licensed under the SIL Open Font License, Version 1.1.
-Static instances were generated from the upstream variable fonts for WeasyPrint.
-Upstream: https://github.com/google/fonts (OFL).
+IBM Plex Sans Medium and SemiBold are the official static TrueType files from IBM Plex.
+Fraunces is the 144pt display cut of the official variable font, instantiated for WeasyPrint.
+The other faces are static builds of the upstream OFL fonts.
+Upstream: https://github.com/IBM/plex and https://github.com/google/fonts (OFL).
 
 ========================================================================
 Source Serif 4

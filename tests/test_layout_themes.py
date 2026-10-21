@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import struct
 import subprocess
 from pathlib import Path
 
@@ -61,6 +62,72 @@ def test_theme_faces_are_vendored_under_the_ofl():
         for filename in faces:
             assert (ROOT / "assets" / "fonts" / filename).is_file(), filename
         assert "font-weight: 650" not in css
+        assert not re.search(r"(?m)^\s*gap\s*:", css)
+
+
+def _ttf_table(data: bytes, tag: bytes) -> bytes:
+    count = int.from_bytes(data[4:6], "big")
+    for index in range(count):
+        start = 12 + index * 16
+        if data[start : start + 4] == tag:
+            offset = int.from_bytes(data[start + 8 : start + 12], "big")
+            length = int.from_bytes(data[start + 12 : start + 16], "big")
+            return data[offset : offset + length]
+    raise AssertionError(tag)
+
+
+def _ttf_name(data: bytes, name_id: int) -> str:
+    table = _ttf_table(data, b"name")
+    count = int.from_bytes(table[2:4], "big")
+    string_offset = int.from_bytes(table[4:6], "big")
+    fallback = ""
+    for index in range(count):
+        platform, encoding, _language, nid, length, offset = struct.unpack(
+            ">HHHHHH", table[6 + index * 12 : 18 + index * 12]
+        )
+        if nid != name_id:
+            continue
+        raw = table[string_offset + offset : string_offset + offset + length]
+        text = raw.decode("utf-16-be") if platform == 3 else raw.decode("latin-1", "replace")
+        if platform == 3 and encoding in (1, 10):
+            return text
+        fallback = text
+    return fallback
+
+
+def _ttf_weight(data: bytes) -> int:
+    return int.from_bytes(_ttf_table(data, b"OS/2")[4:6], "big")
+
+
+def test_plex_sans_and_fraunces_names_match_the_cut():
+    """Official Plex weights keep their own names, and Fraunces is the display cut."""
+    fonts = ROOT / "assets" / "fonts"
+    medium = (fonts / "IBMPlexSans-Medium.ttf").read_bytes()
+    semibold = (fonts / "IBMPlexSans-Semibold.ttf").read_bytes()
+    assert _ttf_name(medium, 4) == "IBM Plex Sans Medm"
+    assert _ttf_name(medium, 6) == "IBMPlexSans-Medm"
+    assert _ttf_name(medium, 17) == "Medium"
+    assert _ttf_name(semibold, 4) == "IBM Plex Sans SmBld"
+    assert _ttf_name(semibold, 6) == "IBMPlexSans-SmBld"
+    assert _ttf_name(semibold, 17) == "SemiBold"
+    assert _ttf_weight(medium) == 500
+    assert _ttf_weight(semibold) == 600
+    for blob in (medium, semibold):
+        for name_id in (1, 4, 6):
+            assert _ttf_name(blob, name_id) not in {"IBM Plex Sans Regular", "IBMPlexSans-Regular"}
+    expected = {
+        "Fraunces-Medium.ttf": (500, "Fraunces-Medium", "Fraunces 144pt Medium"),
+        "Fraunces-MediumItalic.ttf": (500, "Fraunces-MediumItalic", "Fraunces 144pt Medium Italic"),
+        "Fraunces-SemiBold.ttf": (600, "Fraunces-SemiBold", "Fraunces 144pt SemiBold"),
+    }
+    for filename, (weight, postscript, full_name) in expected.items():
+        blob = (fonts / filename).read_bytes()
+        full = _ttf_name(blob, 4)
+        assert full == full_name
+        assert "9pt" not in full
+        assert _ttf_name(blob, 1) == "Fraunces"
+        assert _ttf_name(blob, 6) == postscript
+        assert _ttf_weight(blob) == weight
 
 
 def test_themes_keep_neutral_aa_contrast_and_drop_the_stray_bar():

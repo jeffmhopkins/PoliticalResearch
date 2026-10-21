@@ -1076,15 +1076,19 @@ class _GuideModel:
                     anchor = f"detail-{contest_id}-{slugify(label)}-{slugify(name)}"
                     short_cells.append(self._show_cell(cell, anchor, f"{label}: {name}", label))
                 shown_rows.append((label, short_cells))
-            block = [f"### {heading}", ""]
-            for headers, body in comparison_tables(names, shown_rows):
-                block.extend(["::: comparison", ""])
-                block.extend(_emit_table(headers, body))
-                block.extend([":::", ""])
+            # A group whose every cell is Not found is the same gap as an empty
+            # section: one sentence, and no heading for a table that is not there.
+            block: list[str] = []
+            if shown_rows:
+                block = [f"### {heading}", ""]
+                for headers, body in comparison_tables(names, shown_rows):
+                    block.extend(["::: comparison", ""])
+                    block.extend(_emit_table(headers, body))
+                    block.extend([":::", ""])
             if dropped:
                 block.append(_gap_line(", ".join(dropped)))
                 block.append("")
-            if len(block) > 2:
+            if block:
                 lines_out.extend(block)
         return lines_out
 
@@ -1288,8 +1292,9 @@ class _GuideModel:
         for item in iter_items(self.workspace):
             state = load_json(item / "loop-state.json") or {}
             label = item.name if edition == "full" else self.titles.get(item.name, item.name)
+            # Status is the prefix so a contest title may contain a colon.
             lines.append(
-                f"- {label}: status {state.get('status')}, round {state.get('round')}, mode {state.get('mode')}"
+                f"- status {state.get('status')}, round {state.get('round')}, mode {state.get('mode')} — {label}"
             )
         lines.extend(["", "## Effort", ""])
         lines.append("| Item | Searches | Fetches | Minutes |")
@@ -1306,9 +1311,9 @@ class _GuideModel:
             state = load_json(item / "loop-state.json") or {}
             label = item.name if edition == "full" else self.titles.get(item.name, item.name)
             for gap in state.get("gaps") or []:
-                gap_lines.append(f"- {label}: {gap}")
+                gap_lines.append(f"- {label}: {_published_known_gap(gap)}")
             for gap in state.get("process_gaps") or []:
-                gap_lines.append(f"- {label}: {gap}")
+                gap_lines.append(f"- {label}: {_published_known_gap(gap)}")
         lines.extend(gap_lines or ["- None recorded in loop state."])
         lines.append("")
         return lines
@@ -1607,6 +1612,19 @@ def _gap_line(subject: str) -> str:
     inner = re.sub(r"\s+", " ", subject).strip().strip(".")
     inner = inner.replace(";", ",").replace(":", ",")
     return f"Not found (searched: {inner})."
+
+
+def _published_known_gap(gap: str) -> str:
+    """Drop free-text finding issues from the run record.
+
+    The loop keeps the issue. The guide line is the closed removal sentence,
+    so an allegation in the issue is not an uncited run-record bullet.
+    """
+    text = re.sub(r"\s+", " ", str(gap or "")).strip()
+    removed = re.fullmatch(r"Removed ([A-Za-z0-9_.-]+): .+", text)
+    if removed:
+        return f"Removed {removed.group(1)} at the round cap."
+    return text
 
 
 def _cell_has_marker(text: str) -> bool:

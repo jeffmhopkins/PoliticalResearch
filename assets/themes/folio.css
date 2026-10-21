@@ -15,19 +15,19 @@
 
 @font-face {
   font-family: "Fraunces";
-  src: url("../fonts/Fraunces-Regular.ttf") format("truetype");
+  src: url("../fonts/Fraunces-Medium.ttf") format("truetype");
   font-weight: 500;
   font-style: normal;
 }
 @font-face {
   font-family: "Fraunces";
-  src: url("../fonts/Fraunces-Italic.ttf") format("truetype");
+  src: url("../fonts/Fraunces-MediumItalic.ttf") format("truetype");
   font-weight: 500;
   font-style: italic;
 }
 @font-face {
   font-family: "Fraunces";
-  src: url("../fonts/Fraunces-Semibold.ttf") format("truetype");
+  src: url("../fonts/Fraunces-SemiBold.ttf") format("truetype");
   font-weight: 600;
   font-style: normal;
 }
@@ -229,7 +229,6 @@ p { margin: 0 0 8pt; }
 .candidate-index {
   display: flex;
   align-items: stretch;
-  gap: 0;
   margin: 6pt 0 20pt;
   border: 0;
   border-top: 0.8pt solid var(--ink);
@@ -375,7 +374,6 @@ p.not-found {
 .vote-pair {
   display: flex;
   align-items: stretch;
-  gap: 0;
   margin: 4pt 0 0;
   border: 0;
   border-top: 0.8pt solid var(--ink);

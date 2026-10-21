@@ -294,17 +294,23 @@ EXEMPT_HEADINGS = {
     "search log",
 }
 # The published "How we researched" heading is not exempt. An ordinary sentence
-# there needs a marker. These lines are the assembler's own run record (version,
-# counts, review state, effort, known gaps). policy/citations.md still treats
-# that record as methodology, not as a claim about a candidate.
+# there needs a marker. Only the lines the assembler actually writes are exempt:
+# the version and count sentences, the two parallel-subagent sentences, a review
+# line that starts with the status clause, an effort row whose label is a title,
+# and the closed known-gap sentences. A title may contain a colon. A claim may not
+# stand in for that title. policy/citations.md still treats this record as
+# methodology, not as a claim about a candidate.
 _RUN_RECORD_SENTENCE_RE = re.compile(
     r"^(?:"
     r"Version \S+ assembled on \d{4}-\d{2}-\d{2}"
     r"|Environment rating: (?:Full|Reduced|Minimal)"
     r"|Environment rating is not recorded in env\.md"
     r"|No environment rating file was found"
+    # The citation checker strips markdown emphasis, including underscores,
+    # before this match. The assembler writes suspected_injection.
     r"|Sources flagged suspected_?injection: \d+"
-    r"|Parallel subagents: .+"
+    r"|Parallel subagents: available"
+    r"|Parallel subagents: not used; roles run one at a time in fresh contexts"
     r"|Findings recorded: \d+"
     r"|Accepted: \d+"
     r"|Disputed: \d+"
@@ -314,28 +320,78 @@ _RUN_RECORD_SENTENCE_RE = re.compile(
     r"|Works cited, quotes, and the search log are in the sources addendum"
     r"|Per-candidate prose is in the full edition"
     r"|The full edition adds the marker index and the changelog"
-    r")\.?$",
-    re.IGNORECASE,
+    r")\.?$"
 )
-_REVIEW_STATE_RE = re.compile(r"^[^:]+: status \S+, round \d+, mode \S+\.?$", re.IGNORECASE)
-_EFFORT_ROW_RE = re.compile(r"^\|[^|]+\|\s*\d*\s*\|\s*\d*\s*\|\s*\d*\s*\|$")
+_REVIEW_STATUSES = r"researching|in-review|fixing|signed-off|capped-disputed"
+_REVIEW_MODES = r"initial|refresh"
+# Status comes first so a contest title may contain a colon. The words before
+# "status" are not a free field.
+_REVIEW_STATE_RE = re.compile(
+    rf"^status (?:{_REVIEW_STATUSES}), round \d+, mode (?:{_REVIEW_MODES}) — (?P<label>.+)$"
+)
+_EFFORT_ROW_RE = re.compile(
+    r"^\|\s*(?P<label>[^|]*)\|\s*\d*\s*\|\s*\d*\s*\|\s*\d*\s*\|$"
+)
+_PROCESS_GAP_RE = re.compile(
+    r"^(?P<label>.+): (?:factcheck|sourcing|neutrality|privacy-legal) "
+    r"signed off in the same context as the research\.?$"
+)
+_REMOVED_GAP_RE = re.compile(
+    r"^(?P<label>.+): Removed [A-Za-z0-9_.-]+ at the round cap\.?$"
+)
+_KNOWN_GAP_SENTENCES = {
+    "None recorded in loop state.",
+    "None recorded in loop state",
+    "This is a process gap, not a fresh-context review.",
+    "This is a process gap, not a fresh-context review",
+}
+
+
+def _run_record_label_ok(label: str) -> bool:
+    """A ballot title or item id. A sentence that states a fact is not a title."""
+    text = re.sub(r"\s+", " ", label or "").strip()
+    if not text:
+        return False
+    pieces = [part.strip() for part in split_sentences(text) if part.strip()]
+    if len(pieces) != 1:
+        return False
+    if pieces[0].endswith((".", "!")):
+        return False
+    if _GAP_CLAUSE_RE.search(pieces[0]):
+        return False
+    return True
+
+
+def _is_known_gap_sentence(text: str) -> bool:
+    if text in _KNOWN_GAP_SENTENCES:
+        return True
+    for pattern in (_PROCESS_GAP_RE, _REMOVED_GAP_RE):
+        match = pattern.match(text)
+        if match and _run_record_label_ok(match.group("label")):
+            return True
+    return False
 
 
 def _is_run_record_sentence(plain: str, h1: str, h2: str, kind: str) -> bool:
+    del kind
     if h1 != "how we researched":
         return False
     text = re.sub(r"\s+", " ", plain or "").strip()
     if h2 == "review state":
-        return _REVIEW_STATE_RE.match(text) is not None
-    if h2 == "known gaps" and kind == "list item":
-        return True
+        match = _REVIEW_STATE_RE.match(text)
+        return match is not None and _run_record_label_ok(match.group("label"))
+    if h2 == "known gaps":
+        return _is_known_gap_sentence(text)
     if h2 == "":
         return _RUN_RECORD_SENTENCE_RE.match(text) is not None
     return False
 
 
 def _is_effort_row(row: str, h1: str, h2: str) -> bool:
-    return h1 == "how we researched" and h2 == "effort" and _EFFORT_ROW_RE.match(row.strip()) is not None
+    if h1 != "how we researched" or h2 != "effort":
+        return False
+    match = _EFFORT_ROW_RE.match(row.strip())
+    return match is not None and _run_record_label_ok(match.group("label"))
 
 
 CANDIDATE_CORE = [

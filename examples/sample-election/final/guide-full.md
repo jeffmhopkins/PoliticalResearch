@@ -479,10 +479,10 @@ The reader edition keeps a short summary and comparison tables for each contest.
 
 ## Review state
 
-- cand-okonkwo: status capped-disputed, round 3, mode initial
-- cand-quinn: status signed-off, round 1, mode initial
-- measure-h: status signed-off, round 1, mode initial
-- race-mayor: status signed-off, round 1, mode initial
+- status capped-disputed, round 3, mode initial — cand-okonkwo
+- status signed-off, round 1, mode initial — cand-quinn
+- status signed-off, round 1, mode initial — measure-h
+- status signed-off, round 1, mode initial — race-mayor
 
 ## Effort
 

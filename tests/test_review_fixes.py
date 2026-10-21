@@ -610,17 +610,51 @@ def test_plain_language_and_how_we_researched_are_citation_gated():
     record = (
         "# How we researched\n\n"
         "Version v1.0 assembled on 2026-10-20. Environment rating is not recorded in env.md.\n"
+        "Parallel subagents: not used; roles run one at a time in fresh contexts.\n"
+        "Parallel subagents: available.\n"
         "Findings recorded: 2. Accepted: 1. Disputed: 1.\n\n"
         "## Review state\n\n"
-        "- Avery Quinn: status signed-off, round 1, mode initial\n\n"
+        "- status signed-off, round 1, mode initial — Avery Quinn\n"
+        "- status signed-off, round 1, mode initial — Measure 1: Parks levy\n\n"
         "## Effort\n\n"
         "| Item | Searches | Fetches | Minutes |\n"
         "| --- | --- | --- | --- |\n"
-        "| Avery Quinn | 12 | 8 | 40 |\n\n"
+        "| Avery Quinn | 12 | 8 | 40 |\n"
+        "| Measure 1: Parks levy | 4 | 2 | 15 |\n\n"
         "## Known gaps\n\n"
         "- None recorded in loop state.\n"
+        "- Measure 1: Parks levy: factcheck signed off in the same context as the research. "
+        "This is a process gap, not a fresh-context review.\n"
+        "- Measure 1: Parks levy: Removed measure-1.title.001 at the round cap.\n"
     )
     assert prose_marker_errors(record, "guide") == []
+    allegation = "Avery Quinn was convicted of fraud in 2019."
+    gaps = f"# How we researched\n\n## Known gaps\n\n- {allegation}\n"
+    gap_errors = prose_marker_errors(gaps, "guide")
+    assert any("convicted of fraud" in error for error in gap_errors)
+    parallel = (
+        "# How we researched\n\n"
+        "Parallel subagents: Avery Quinn was convicted of fraud in 2019.\n"
+    )
+    assert any("convicted of fraud" in error for error in prose_marker_errors(parallel, "guide"))
+    effort = (
+        "# How we researched\n\n"
+        "## Effort\n\n"
+        "| Item | Searches | Fetches | Minutes |\n"
+        "| --- | --- | --- | --- |\n"
+        f"| {allegation} | 12 | 8 | 40 |\n"
+        f"| {allegation} |  |  |  |\n"
+    )
+    effort_errors = prose_marker_errors(effort, "guide")
+    assert len([error for error in effort_errors if "convicted of fraud" in error]) == 2
+    review = (
+        "# How we researched\n\n"
+        "## Review state\n\n"
+        "- Avery Quinn was convicted of fraud: status signed-off, round 1, mode initial\n"
+        "- status signed-off, round 1, mode initial — Avery Quinn was convicted of fraud in 2019.\n"
+    )
+    review_errors = prose_marker_errors(review, "guide")
+    assert len([error for error in review_errors if "convicted of fraud" in error]) == 2
 
 
 def _relative_luminance(hex_color: str) -> float:

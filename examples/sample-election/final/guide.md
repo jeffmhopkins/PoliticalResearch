@@ -369,10 +369,10 @@ The reader edition keeps a short summary and comparison tables for each contest.
 
 ## Review state
 
-- Blake Okonkwo: status capped-disputed, round 3, mode initial
-- Avery Quinn: status signed-off, round 1, mode initial
-- Measure H, Cedar Hollow parks levy: status signed-off, round 1, mode initial
-- Mayor of Cedar Hollow: status signed-off, round 1, mode initial
+- status capped-disputed, round 3, mode initial — Blake Okonkwo
+- status signed-off, round 1, mode initial — Avery Quinn
+- status signed-off, round 1, mode initial — Measure H, Cedar Hollow parks levy
+- status signed-off, round 1, mode initial — Mayor of Cedar Hollow
 
 ## Effort
 
