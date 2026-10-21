@@ -1,0 +1,598 @@
+/* Docket. A news-brief theme: NYT and ProPublica election guides.
+   Load after assets/guide.css. Select with: scripts/build.sh --theme docket
+   The default guide is unchanged when --theme is omitted.
+
+   Type: IBM Plex Sans for structure, tables, and furniture. IBM Plex Serif
+   for the contest title, the summary, and candidate names. Both are SIL
+   Open Font License.
+   Grid: equal margins, one measure. Cards and yes/no are one ruled module
+   with a shared divider and no gutter. Vertical steps are 6pt and 10pt.
+   Figures are tabular. Color: off-white paper and ink. The dark areas are
+   headers with type inside them. No red or blue.
+
+   The running header is a masthead band: the section, the contest, and the
+   page number sit in the band. A table caption is a short label locked to a
+   column-header row. The header row carries the words Topic and the names. */
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../fonts/IBMPlexSans-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../fonts/IBMPlexSans-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../fonts/IBMPlexSans-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../fonts/IBMPlexSans-Semibold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: "IBM Plex Serif";
+  src: url("../fonts/IBMPlexSerif-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "IBM Plex Serif";
+  src: url("../fonts/IBMPlexSerif-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: "IBM Plex Serif";
+  src: url("../fonts/IBMPlexSerif-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "IBM Plex Serif";
+  src: url("../fonts/IBMPlexSerif-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+
+:root {
+  --ink: #161616;
+  --paper: #fbfbfa;
+  --muted: #2e2e2e;
+  --rule: #5c5852;
+  --band: #161616;
+  --band-text: #f4f1ea;
+  --zebra: #f3f1ec;
+  --link: #161616;
+  --focus: #161616;
+  --serif: "IBM Plex Serif", "Liberation Serif", "DejaVu Serif", serif;
+  --sans: "IBM Plex Sans", "Liberation Sans", "DejaVu Sans", sans-serif;
+}
+
+body {
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--sans);
+  font-size: 11pt;
+  line-height: 1.48;
+  hyphens: manual;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+a { color: var(--ink); }
+
+h1, h2, h3, h4 { color: var(--ink); }
+
+h2.contest-title::before,
+h1::before,
+h2::before {
+  content: none;
+  display: none;
+  height: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+}
+
+.option-label {
+  margin: 0 0 8pt;
+  font-family: var(--sans);
+  font-size: 9.5pt;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--ink);
+}
+
+h1 {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 16pt;
+  line-height: 1.15;
+  margin: 12pt 0 4pt;
+}
+
+h1.ballot-group,
+h1.ballot-glance,
+h1.guide-title,
+h1.sources-title,
+#toc-title {
+  font-family: var(--sans);
+  font-size: 9.5pt;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  margin: 0 0 2pt;
+}
+
+h2 {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 12pt;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 12pt 0 0;
+}
+
+h2.contest-title {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 22pt;
+  line-height: 1.12;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 0 0 12pt;
+  padding: 0 0 4pt;
+  border-bottom: 2.5pt solid var(--ink);
+}
+
+h3:not(.candidate-name):not(.source-entry) {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 10pt;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 26pt 0 6pt;
+}
+
+h3.source-entry {
+  font-family: var(--sans);
+  font-size: 11pt;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 10pt 0 2pt;
+}
+
+h4 {
+  font-family: var(--sans);
+  font-size: 9.5pt;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 0 0 3pt;
+}
+
+p { margin: 0 0 7pt; }
+
+.fiction-flag {
+  display: block;
+  width: auto;
+  margin: 2pt 0 12pt;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--sans);
+  font-size: 9.5pt;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--ink);
+}
+
+.summary-box {
+  margin: 10pt 0 22pt;
+  padding: 6pt 0 0;
+  border: 0;
+  border-top: 0.6pt solid var(--ink);
+  background: transparent;
+}
+
+.summary-box p {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 11.5pt;
+  line-height: 1.38;
+}
+
+.candidate-index {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 8pt 0 20pt;
+  border: 1.25pt solid var(--ink);
+}
+
+.candidate-index > h3.candidate-name,
+.candidate-index > .nameplate {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  padding: 13pt 12pt 15pt;
+  border: 0;
+  background: var(--paper);
+}
+
+.candidate-index > h3.candidate-name + h3.candidate-name,
+.candidate-index > .nameplate + .nameplate {
+  border-left: 1.25pt solid var(--ink);
+}
+
+.candidate-index h3.candidate-name {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 14pt;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+
+.candidate-index > h3.candidate-name {
+  padding: 13pt 12pt 15pt;
+  background: var(--paper);
+}
+
+.nameplate p {
+  margin: 2pt 0 0;
+  font-family: var(--sans);
+  font-size: 10pt;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.meta-item {
+  background: transparent;
+  border-top: 1.25pt solid var(--ink);
+  padding: 5pt 8pt 7pt 0;
+}
+
+.meta-item h4 { color: var(--ink); }
+
+h3:not(.candidate-name):not(.source-entry) + .comparison,
+.comparison table,
+h2 + table,
+h2 + .landscape,
+h1 + table {
+  margin-top: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 8pt;
+  font-family: var(--sans);
+  font-size: 10.75pt;
+  line-height: 1.35;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+th, td {
+  border: 0;
+  border-bottom: 0.7pt solid var(--rule);
+  padding: 14pt 10pt;
+  background: var(--paper);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 10pt;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--band-text);
+  background: var(--band);
+  border: 0;
+  padding: 14pt 10pt;
+}
+
+th:first-child,
+td:first-child {
+  width: 1.7in;
+}
+
+.comparison table th,
+.comparison table td {
+  padding: 14pt 10pt 15pt;
+  line-height: 1.4;
+}
+
+.comparison table th {
+  padding: 9pt 10pt 8pt;
+}
+
+td:first-child {
+  font-weight: 600;
+  font-size: 10pt;
+}
+
+tbody tr:nth-child(even) td { background: var(--zebra); }
+
+tbody tr:nth-child(even) td.not-found,
+td.not-found,
+p.not-found {
+  color: var(--ink);
+  background: var(--zebra);
+  font-style: italic;
+}
+
+p.not-found {
+  margin: 6pt 0 16pt;
+  padding: 3pt 8pt;
+  font-family: var(--sans);
+  font-size: 10.5pt;
+  background: var(--zebra);
+}
+
+.vote-pair {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 8pt 0 0;
+  border: 1.25pt solid var(--ink);
+}
+
+.vote-box {
+  flex: 1 1 0;
+  width: auto;
+  margin: 0;
+  padding: 0 0 22pt;
+  border: 0;
+  background: var(--paper);
+}
+
+.vote-box + .vote-box { border-left: 1.25pt solid var(--ink); }
+
+.vote-box h4 {
+  margin: 0 0 6pt;
+  padding: 5pt 8pt 4pt;
+  border: 0;
+  background: var(--band);
+  color: var(--band-text);
+  font-family: var(--sans);
+  font-size: 9.5pt;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.vote-box p {
+  margin: 0;
+  padding: 2pt 10pt 2pt;
+  font-family: var(--sans);
+  font-size: 10.75pt;
+  line-height: 1.38;
+}
+
+blockquote {
+  margin: 8pt 0;
+  padding: 14pt 10pt;
+  border-left: 2.5pt solid var(--ink);
+  background: var(--zebra);
+}
+
+.disputed,
+blockquote.disputed {
+  background: var(--paper);
+  border: 1.25pt solid var(--ink);
+  color: var(--ink);
+  padding: 8pt 10pt;
+}
+
+sup {
+  font-family: var(--sans);
+  font-size: 8pt;
+}
+
+footer {
+  color: var(--ink);
+  font-family: var(--sans);
+}
+
+@page {
+  size: letter portrait;
+  margin: 0.42in 0.58in 0.52in 0.58in;
+  background: #fbfbfa;
+  @top-left {
+    content: string(section, first);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #f4f1ea;
+    background: #161616;
+    width: 32%;
+    vertical-align: middle;
+    padding: 0 8pt 0 10pt;
+  }
+  @top-center { content: none; background: transparent; }
+  @top-right {
+    content: string(contest, last) "   " counter(page);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #f4f1ea;
+    background: #161616;
+    width: 68%;
+    text-align: right;
+    vertical-align: middle;
+    padding: 0 10pt 0 8pt;
+  }
+  @bottom-left {
+    content: "Not an official ballot";
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 500;
+    color: #161616;
+    width: 78%;
+    vertical-align: top;
+    padding-top: 5pt;
+    border-top: 1.5pt solid #161616;
+  }
+  @bottom-center { content: none; }
+  @bottom-right {
+    content: "";
+    width: 22%;
+    vertical-align: top;
+    padding-top: 5pt;
+    border-top: 1.5pt solid #161616;
+  }
+}
+
+@page cover {
+  size: letter portrait;
+  margin: 0.7in;
+  background: #fbfbfa;
+  @top-left { content: none; background: transparent; }
+  @top-center { content: none; }
+  @top-right { content: none; background: transparent; }
+  @bottom-left { content: none; border: 0; }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; border: 0; }
+}
+
+@page toc {
+  size: letter portrait;
+  margin: 0.7in 0.58in 0.52in 0.58in;
+  background: #fbfbfa;
+  @top-left {
+    content: string(section, first);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #f4f1ea;
+    background: #161616;
+    width: 32%;
+    padding: 6pt 8pt 6pt 10pt;
+  }
+  @top-center { content: none; }
+  @top-right {
+    content: string(contest, last) "   " counter(page);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 500;
+    color: #f4f1ea;
+    background: #161616;
+    width: 68%;
+    text-align: right;
+    padding: 6pt 10pt 6pt 8pt;
+  }
+  @bottom-left {
+    content: "Not an official ballot";
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    color: #161616;
+    width: 78%;
+    padding-top: 5pt;
+    border-top: 1.5pt solid #161616;
+  }
+  @bottom-center { content: none; }
+  @bottom-right {
+    content: "";
+    width: 22%;
+    border-top: 1.5pt solid #161616;
+    padding-top: 5pt;
+  }
+}
+
+@page landscape {
+  size: letter landscape;
+  margin: 0.62in 0.48in 0.48in 0.48in;
+  background: #fbfbfa;
+  @top-left {
+    content: string(section, first);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #f4f1ea;
+    background: #161616;
+    width: 28%;
+    padding: 6pt 8pt 6pt 10pt;
+  }
+  @top-center { content: none; }
+  @top-right {
+    content: string(contest, last) "   " counter(page);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 500;
+    color: #f4f1ea;
+    background: #161616;
+    width: 72%;
+    text-align: right;
+    padding: 6pt 10pt 6pt 8pt;
+  }
+  @bottom-left {
+    content: "Not an official ballot";
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    color: #161616;
+    width: 78%;
+    padding-top: 4pt;
+    border-top: 1.5pt solid #161616;
+  }
+  @bottom-center { content: none; }
+  @bottom-right {
+    content: "";
+    width: 22%;
+    border-top: 1.5pt solid #161616;
+    padding-top: 4pt;
+  }
+}
+
+@media print {
+  body {
+    font-size: 11pt;
+    line-height: 1.48;
+    background: #fbfbfa;
+  }
+  main, footer { max-width: none; padding-left: 0; padding-right: 0; }
+  h1 { font-size: 16pt; }
+  h1.ballot-group,
+  h1.ballot-glance,
+  h1.guide-title,
+  h1.sources-title,
+  #toc-title { font-size: 9.5pt; }
+  h2 { font-size: 12pt; }
+  h2.contest-title { font-size: 22pt; }
+  h3:not(.candidate-name):not(.source-entry) { font-size: 10pt; }
+  .candidate-index h3.candidate-name { font-size: 14pt; }
+  table, td { font-size: 10.75pt; }
+  th, td:first-child { font-size: 10pt; }
+  .cover h1 { font-size: 26pt; }
+}

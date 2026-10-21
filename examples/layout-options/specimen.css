@@ -1,0 +1,20 @@
+/* Specimen-only. Keeps one themed contest page on a single sheet.
+   Not used by scripts/build.sh. */
+
+h1,
+h1.ballot-group,
+h1.ballot-glance,
+h2.contest-title,
+.landscape > :first-child {
+  break-before: auto !important;
+  page-break-before: auto !important;
+}
+
+h1, h2, h3, .option-label, .summary-box, .candidate-index {
+  break-after: avoid;
+}
+
+.vote-pair, .comparison, table {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
