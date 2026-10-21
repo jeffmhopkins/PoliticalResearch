@@ -235,6 +235,19 @@ _FOREIGN_NAME_ORG_WORDS = {
     "temple",
     "union",
     "university",
+    # Legal-entity words. A bare personal name has none of these.
+    "co",
+    "company",
+    "corp",
+    "corporation",
+    "inc",
+    "llc",
+    "llp",
+    "ltd",
+    "pac",
+    "pc",
+    "plc",
+    "pllc",
 }
 _FIGURE_RE = re.compile(
     r"\b(?:dollars?|receipts?|disbursements?|\$|votes?\s+cast|vote\s+total|cash\s+on\s+hand)\b",
@@ -611,6 +624,8 @@ def _foreign_name(sentence: str, record: dict) -> bool:
             continue
         lowered_words = [word.lower() for word in words]
         phrase = " ".join(lowered_words)
+        # Only the full listed organization phrase is cleared. A shorter
+        # person-name span, including one stored as an organizations entry, is not.
         if phrase in _registered_organizations(record):
             continue
         # A month or an organization word is not itself a person. The words
@@ -632,8 +647,41 @@ def _foreign_name(sentence: str, record: dict) -> bool:
     return False
 
 
+def _name_tokens(text: str) -> list[str]:
+    return re.findall(r"[A-Za-z]+", (text or "").lower())
+
+
+def organization_entry_is_personal_name(name: str) -> bool:
+    """True when the entry has no organization word, so it is only a person's name."""
+    tokens = _name_tokens(name)
+    return not any(token in _FOREIGN_NAME_ORG_WORDS for token in tokens)
+
+
+def organization_list_errors(identity: dict | None) -> list[str]:
+    """Validation errors for organizations entries that are bare personal names."""
+    if not isinstance(identity, dict):
+        return []
+    raw = identity.get("organizations")
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        raw = [raw]
+    if not isinstance(raw, list):
+        return ["organizations: must be a list of organization names"]
+    errors = []
+    for index, item in enumerate(raw):
+        text = re.sub(r"\s+", " ", str(item or "")).strip()
+        if organization_entry_is_personal_name(text):
+            shown = text or "(empty)"
+            errors.append(
+                f"organizations/{index}: {shown!r} is a personal name; an organization entry needs an "
+                "organization word such as Committee, PAC, Inc, LLC, Party, Association, or Fund"
+            )
+    return errors
+
+
 def _registered_organizations(record: dict) -> set[str]:
-    """Organization names this identity record lists. They are not a second person."""
+    """Full organization phrases on this record. A bare personal name is not included."""
     raw = record.get("organizations")
     if isinstance(raw, str):
         raw = [raw]
@@ -642,11 +690,13 @@ def _registered_organizations(record: dict) -> set[str]:
     names: set[str] = set()
     for item in raw:
         text = re.sub(r"\s+", " ", str(item or "")).strip().lower()
-        if not text:
+        if not text or organization_entry_is_personal_name(text):
             continue
         names.add(text)
         if text.startswith("the "):
-            names.add(text[4:].strip())
+            rest = text[4:].strip()
+            if rest and not organization_entry_is_personal_name(rest):
+                names.add(rest)
     return names
 
 

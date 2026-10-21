@@ -14,6 +14,7 @@ from lib.quality import (
     environment_rating_sentence,
     identities_for_item,
     iter_claim_sources,
+    organization_list_errors,
     semantic_claim_errors,
     source_marker,
 )
@@ -899,6 +900,10 @@ def structural_workspace_errors(workspace: Path) -> list[str]:
                         errors.extend(
                             f"{item.name}/identity.yaml: {message}"
                             for message in instance_errors(identity, load_schema("identity.schema.yaml", str(root)))
+                        )
+                        errors.extend(
+                            f"{item.name}/identity.yaml: {message}"
+                            for message in organization_list_errors(identity if isinstance(identity, dict) else None)
                         )
         findings_path = item / "findings.yaml"
         if findings_path.exists():

@@ -20,6 +20,7 @@ from lib.quality import (
     assembled_guide_errors,
     number_quote_errors,
     official_restatement_sentences,
+    organization_list_errors,
     prose_marker_errors,
     quote_verbatim_errors,
     reader_contest_budget_errors,
@@ -28,7 +29,7 @@ from lib.quality import (
     templated_prose_errors,
 )
 from lib.util import dump_yaml
-from lib.workflow import init_workspace
+from lib.workflow import init_workspace, structural_workspace_errors
 
 
 def _person_doc(text: str = "Avery Quinn of Cedar Hollow is the incumbent.") -> dict:
@@ -340,6 +341,37 @@ def test_organization_word_does_not_hide_another_persons_name():
     alone = draft.replace("the John Smith Committee", "John Smith")
     alone_errors = semantic_claim_errors(_person_doc(), "claims", [registered], alone)
     assert any("different person" in error for error in alone_errors)
+    bare_list = {**record, "organizations": ["John Smith"]}
+    bare_errors = semantic_claim_errors(_person_doc(), "claims", [bare_list], alone)
+    assert any("different person" in error for error in bare_errors)
+    listed_errors = organization_list_errors(
+        {"organizations": ["John Smith", "the John Smith Committee", "Smith PAC", "Quinn LLC"]}
+    )
+    assert listed_errors == [
+        "organizations/0: 'John Smith' is a personal name; an organization entry needs an "
+        "organization word such as Committee, PAC, Inc, LLC, Party, Association, or Fund"
+    ]
+
+
+def test_identity_validation_rejects_a_bare_person_name(tmp_path: Path):
+    init_workspace(tmp_path, "org-demo", "household", "2026-10-20 12:00 ET")
+    item = tmp_path / "items" / "cand-a"
+    item.mkdir(parents=True)
+    dump_yaml(item / "claims.yaml", {"item_id": "cand-a", "item_type": "candidate", "claims": []})
+    dump_yaml(
+        item / "identity.yaml",
+        {
+            "item_id": "cand-a",
+            "full_legal_name": "Avery Jordan Quinn",
+            "ballot_name": "Avery Quinn",
+            "office": "Mayor",
+            "photo_included": False,
+            "organizations": ["John Smith", "John Smith Committee"],
+        },
+    )
+    errors = structural_workspace_errors(tmp_path)
+    assert any("identity.yaml: organizations/0:" in error and "personal name" in error for error in errors)
+    assert not any("organizations/1:" in error for error in errors)
 
 
 def test_a_quote_without_a_local_copy_is_not_skipped(tmp_path: Path):
