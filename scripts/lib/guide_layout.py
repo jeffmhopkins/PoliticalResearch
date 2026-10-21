@@ -31,11 +31,13 @@ from lib.quality import _bind_trailing_markers, _gap_sentence, _heading, _is_gap
 from lib.sentences import split_sentences
 from lib.util import iter_items, load_json, load_yaml, slugify
 from lib.workflow import format_work
+from check_pdf_layout import MAX_CANDIDATES_PER_TABLE, MAX_LANDSCAPE_COLUMNS, MAX_PORTRAIT_COLUMNS
 
 CELL_CHAR_CAP = 96
-TRANSPOSE_CANDIDATES = 4
-LANDSCAPE_COLUMNS = 6
-FIELD_CHUNK = 4
+# Kept so older notes still point at the same caps the layout check enforces.
+TRANSPOSE_CANDIDATES = MAX_CANDIDATES_PER_TABLE
+LANDSCAPE_COLUMNS = MAX_LANDSCAPE_COLUMNS
+FIELD_CHUNK = MAX_CANDIDATES_PER_TABLE
 
 AUDIT_HEADINGS = {
     "sources and retrieval dates",
@@ -60,6 +62,41 @@ _OUTSIDE_RE = re.compile(r"outside spending|independent expenditure", re.IGNOREC
 _REPORT_DATE_RE = re.compile(r"quarter|filed on|report date|as of", re.IGNORECASE)
 _PARTY_RE = re.compile(r"incumbent|challenger|nonpartisan|party", re.IGNORECASE)
 _RHETORIC_LABEL_RE = re.compile(r"\b(?:MATCH|CONTRADICTION|NO RECORD)\b")
+_TERM_LENGTH_RE = re.compile(r"\b(?:\d+-year\s+term|term\s+of\s+\d+)\b", re.IGNORECASE)
+_SEATS_RE = re.compile(
+    r"\b(?:number to elect|elects?\s+\d+|\d+\s+seats?\b|one seat|two seats)\b",
+    re.IGNORECASE,
+)
+_MONTHS = (
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)
+
+
+def _yaml_quote(value: str) -> str:
+    text = str(value or "").replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{text}"'
+
+
+def _display_date(value: str) -> str:
+    """Long form of a stored ISO date. Any other string is returned unchanged."""
+    match = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", (value or "").strip())
+    if not match:
+        return (value or "").strip()
+    year, month, day = (int(part) for part in match.groups())
+    if not 1 <= month <= 12 or not 1 <= day <= 31:
+        return value.strip()
+    return f"{_MONTHS[month - 1]} {day}, {year}"
 
 
 class _Row:
@@ -201,6 +238,42 @@ class _GuideModel:
         self.addendum_name = "guide-sources.md"
         self.body_name = "guide.md"
 
+    def _jurisdiction_label(self) -> str:
+        intake = self.intake if isinstance(self.intake, dict) else {}
+        label = str(intake.get("jurisdiction_label") or "").strip()
+        if label:
+            return label
+        ballot = self.ballot if isinstance(self.ballot, dict) else {}
+        election = ballot.get("election") if isinstance(ballot.get("election"), dict) else {}
+        jurisdiction = election.get("jurisdiction") if isinstance(election, dict) else {}
+        if not isinstance(jurisdiction, dict):
+            return ""
+        parts = [str(jurisdiction.get(key) or "").strip() for key in ("city", "county", "state")]
+        return ", ".join(part for part in parts if part)
+
+    def _front_matter(self, title: str, edition: str, *, sources: bool) -> list[str]:
+        ballot = self.ballot if isinstance(self.ballot, dict) else {}
+        election = ballot.get("election") if isinstance(ballot.get("election"), dict) else {}
+        fiction = bool(ballot.get("fiction"))
+        title_name = str((election or {}).get("name") or ballot.get("election_id") or "Election")
+        shown_date = _display_date(str((election or {}).get("date") or ""))
+        lines = [
+            "---",
+            f"title: {_yaml_quote(title)}",
+            f"version: {ballot.get('report_version') or 'v1.0'}",
+            f"election_id: {ballot.get('election_id')}",
+            f"build_date: {self.today}",
+            f"edition: {edition}",
+            f"fiction: {'true' if fiction else 'false'}",
+            f"election_name: {_yaml_quote(title_name)}",
+            f"election_date: {_yaml_quote(shown_date)}",
+            f"jurisdiction: {_yaml_quote(self._jurisdiction_label())}",
+            "sources_edition: true" if sources else "sources_edition: false",
+            "---",
+            "",
+        ]
+        return lines
+
     def render(self, edition: str) -> tuple[str, str]:
         self.search_log = []
         self.details = []
@@ -218,17 +291,7 @@ class _GuideModel:
         title = f"Voter guide: {title_name}"
         if fiction:
             title = f"FICTIONAL voter guide: {title_name}"
-        parts = [
-            "---",
-            f'title: "{title}"',
-            f"version: {ballot.get('report_version') or 'v1.0'}",
-            f"election_id: {ballot.get('election_id')}",
-            f"build_date: {self.today}",
-            f"edition: {edition}",
-            f"fiction: {'true' if fiction else 'false'}",
-            "---",
-            "",
-        ]
+        parts = self._front_matter(title, edition, sources=False)
         if fiction:
             parts.extend(
                 [
@@ -243,11 +306,11 @@ class _GuideModel:
                 "",
             ]
         )
-        date_bit = election.get("date")
+        date_bit = _display_date(str(election.get("date") or ""))
         heading = str(title_name)
         if date_bit:
             heading = f"{heading}, {date_bit}"
-        parts.extend([f"# {heading}", ""])
+        parts.extend([f"# {heading} {{.guide-title}}", ""])
         parts.extend(self._election_office())
         parts.extend(self._precinct_line())
         parts.extend(self._at_a_glance())
@@ -291,6 +354,10 @@ class _GuideModel:
             anchor = self._detail_anchor(anchor, title, full)
             short = f"{short} [detail]({self.addendum_name}#{anchor})"
         return short
+
+    def _show_prose(self, full: str) -> str:
+        """A cited sentence in a card. Keep the marker on the sentence."""
+        return self._rewrite(full or "").strip()
 
     def _detail_anchor(self, anchor: str, title: str, full: str) -> str:
         """One addendum heading per anchor. A second, different fact gets a new id."""
@@ -345,10 +412,10 @@ class _GuideModel:
 
     def _at_a_glance(self) -> list[str]:
         lines = [
-            "# Your ballot at a glance {#your-ballot-at-a-glance}",
+            "# Your ballot at a glance {#your-ballot-at-a-glance .ballot-glance}",
             "",
-            "| Item | Type | Choices | Incumbent | Summary | Link |",
-            "| --- | --- | --- | --- | --- | --- |",
+            "| Contest | Summary | Read |",
+            "| --- | --- | --- |",
         ]
         for contest in self._contests_raw():
             item_id = str(contest.get("item_id") or contest.get("id"))
@@ -357,21 +424,16 @@ class _GuideModel:
             if "[^" not in summary:
                 continue
             title = str(contest.get("title") or self.titles.get(item_id) or item_id)
-            kind = _contest_kind(contest)
-            incumbent = _incumbent_names(contest) or NOT_FOUND_CELL
-            link = f"[{_cell(title)}](#contest-{item_id})"
+            bits = [f"**{_cell(title)}**", _cell(_contest_kind(contest)), _cell(_choices(contest))]
+            if contest.get("type") in {"race", "primary", "local-office"}:
+                incumbent = _incumbent_names(contest) or NOT_FOUND_CELL
+                bits.append("Incumbent: " + _cell(incumbent))
             summary_cell = self._show_cell(summary, f"detail-{item_id}-summary", f"{title} summary")
-            row = [
-                _cell(title),
-                _cell(kind),
-                _cell(_choices(contest)),
-                _cell(incumbent),
-                _cell(summary_cell),
-                link,
-            ]
+            link = f"[{_cell(title)}](#contest-{item_id})"
+            row = ["<br>".join(bits), _cell(summary_cell), link]
             lines.append("| " + " | ".join(row) + " |")
         lines.append("")
-        return _with_landscape(lines, 6)
+        return lines
 
     def _how_to_read(self) -> list[str]:
         return [
@@ -495,18 +557,21 @@ class _GuideModel:
             )
             lines.append("")
             return lines
-        header = ["Issue", *offices]
-        lines.append("| " + " | ".join(header) + " |")
-        lines.append("| " + " | ".join("---" for _ in header) + " |")
-        for key in sorted(issue_rows):
-            row = [key]
-            for office in offices:
-                row.append(issue_rows[key].get(office, NOT_FOUND_CELL))
-            if all(cell == NOT_FOUND_CELL for cell in row[1:]):
-                continue
-            lines.append("| " + " | ".join(_cell(cell) for cell in row) + " |")
-        lines.append("")
-        return _with_landscape(lines, len(header))
+        # One label column plus at most five offices, so a page never holds a
+        # seven-column issue grid. Later offices repeat the issue label.
+        for group in _chunks(offices, MAX_LANDSCAPE_COLUMNS - 1):
+            header = ["Issue", *group]
+            body = []
+            for key in sorted(issue_rows):
+                row = [key]
+                for office in group:
+                    row.append(issue_rows[key].get(office, NOT_FOUND_CELL))
+                if not any("[^" in cell for cell in row[1:]):
+                    continue
+                body.append(row)
+            if body:
+                lines.extend(_emit_table(header, body))
+        return lines
 
     def _measures_across(self) -> list[str]:
         measures = [c for c in self._contests_raw() if c.get("type") == "measure"]
@@ -514,41 +579,41 @@ class _GuideModel:
         if not measures:
             lines.extend([_gap_line("measures on this ballot"), ""])
             return lines
-        headers = [
-            "Measure",
-            "Type",
-            "Threshold",
-            "What a yes vote does",
-            "What a no vote does",
-            "Fiscal impact",
-            "Sunset or renewal",
-            "Funding by side",
+        fields = [
+            ("Type", "measure type and qualification"),
+            ("Threshold", "vote threshold"),
+            ("What a yes vote does", "what a yes vote does"),
+            ("What a no vote does", "what a no vote does"),
+            ("Fiscal impact", "fiscal impact"),
+            ("Sunset or renewal", "sunset or renewal"),
+            ("Funding by side", "funding by side"),
         ]
-        lines.append("| " + " | ".join(headers) + " |")
-        lines.append("| " + " | ".join("---" for _ in headers) + " |")
+        any_row = False
         for contest in measures:
             item_id = str(contest.get("item_id") or contest.get("id"))
+            title = str(contest.get("title") or item_id)
             sections = _section_dict(self._draft(item_id))
-            raw_cells = [
-                str(contest.get("title") or item_id),
-                _first_or_not_found(sections, "measure type and qualification"),
-                _first_or_not_found(sections, "vote threshold"),
-                _first_or_not_found(sections, "what a yes vote does"),
-                _first_or_not_found(sections, "what a no vote does"),
-                _first_or_not_found(sections, "fiscal impact"),
-                _first_or_not_found(sections, "sunset or renewal"),
-                _first_or_not_found(sections, "funding by side"),
-            ]
-            if not any("[^" in cell for cell in raw_cells):
-                continue
-            shown = [raw_cells[0]]
-            for header, cell in zip(headers[1:], raw_cells[1:]):
-                shown.append(
-                    self._show_cell(cell, f"detail-{item_id}-{slugify(header)}", f"{header}: {item_id}", header)
+            rows = []
+            missing = []
+            for header, key in fields:
+                cell = _first_or_not_found(sections, key)
+                if "[^" not in cell:
+                    missing.append(header.lower())
+                    continue
+                rows.append(
+                    [header, self._show_cell(cell, f"detail-{item_id}-{slugify(header)}", f"{header}: {item_id}", header)]
                 )
-            lines.append("| " + " | ".join(_cell(cell) for cell in shown) + " |")
-        lines.append("")
-        return _with_landscape(lines, len(headers))
+            if not rows and not missing:
+                continue
+            any_row = True
+            lines.extend([f"### {title}", ""])
+            if rows:
+                lines.extend(_emit_table(["Topic", "Fact"], rows))
+            if missing:
+                lines.extend([_gap_line(", ".join(missing)), ""])
+        if not any_row:
+            lines.extend([_gap_line("measures on this ballot"), ""])
+        return lines
 
     def _judicial_across(self) -> list[str]:
         rows = [c for c in self._contests_raw() if c.get("type") == "judicial-retention" or c.get("level") == "judicial"]
@@ -576,22 +641,26 @@ class _GuideModel:
                 dropped.append(label.lower())
             else:
                 keep.append(index)
-        header = ["Judge", *[columns[index][0] for index in keep]]
-        lines.append("| " + " | ".join(header) + " |")
-        lines.append("| " + " | ".join("---" for _ in header) + " |")
-        for title, cells in built:
-            shown = [title]
-            for index in keep:
-                label = columns[index][0]
-                shown.append(self._show_cell(cells[index], f"detail-{slugify(title)}-{slugify(label)}", f"{label}: {title}", label))
-            if not any(_cell_has_marker(cell) or "[^" in cell for cell in shown):
-                continue
-            lines.append("| " + " | ".join(_cell(cell) for cell in shown) + " |")
-        lines.append("")
+        # Repeat the judge column rather than adding a seventh field column.
+        for chunk in _chunks(keep, MAX_LANDSCAPE_COLUMNS - 1):
+            header = ["Judge", *[columns[index][0] for index in chunk]]
+            body = []
+            for title, cells in built:
+                shown = [title]
+                for index in chunk:
+                    label = columns[index][0]
+                    shown.append(
+                        self._show_cell(cells[index], f"detail-{slugify(title)}-{slugify(label)}", f"{label}: {title}", label)
+                    )
+                if not any(_cell_has_marker(cell) or "[^" in cell for cell in shown):
+                    continue
+                body.append(shown)
+            if body:
+                lines.extend(_emit_table(header, body))
         if dropped:
             lines.append(_gap_line(", ".join(dropped) + " for every retention on this ballot"))
             lines.append("")
-        return _with_landscape(lines, len(header))
+        return lines
 
     def _incumbency_strip(self) -> list[str]:
         lines = [
@@ -646,7 +715,7 @@ class _GuideModel:
             contests = grouped.get(name) or []
             if not contests:
                 continue
-            lines.extend([f"# {name}", ""])
+            lines.extend([f"# {name} {{.ballot-group}}", ""])
             for contest in contests:
                 lines.extend(self._one_contest(contest))
         return lines
@@ -662,6 +731,7 @@ class _GuideModel:
         draft = self._draft(item_id)
         sections = _section_pairs(draft)
         lines = [f"## {title} {{#contest-{item_id} .contest-title}}", ""]
+        lines.extend(self._contest_opener(contest))
         lines.extend(self._preamble(draft, item_id))
         kind = contest.get("type")
         if kind in {"race", "primary", "local-office"}:
@@ -672,6 +742,33 @@ class _GuideModel:
         else:
             lines.extend(self._generic_sections(item_id, title, sections, level=3))
         lines.extend([BACK_LINK, ""])
+        return lines
+
+    def _contest_opener(self, contest: dict) -> list[str]:
+        item_id = str(contest.get("item_id") or contest.get("id"))
+        draft = self._draft(item_id)
+        sections = _section_dict(draft)
+        slots = _opener_slots(contest, sections, draft)
+        lines = ["::: contest-open", ""]
+        for label, sentence in slots:
+            if sentence and "[^" in sentence:
+                body = self._show_prose(sentence)
+            else:
+                body = _gap_line(label)
+            lines.extend(["::: meta-item", "", f"#### {label}", "", body, "", ":::", ""])
+        lines.extend([":::", ""])
+        return lines
+
+    def _candidate_index(self, contest: dict) -> list[str]:
+        people = _people(contest)
+        if not people:
+            return []
+        lines = ["::: candidate-index", ""]
+        for candidate in people:
+            item_id = str(candidate.get("item_id") or candidate.get("id") or "")
+            name = str(candidate.get("name") or self.titles.get(item_id) or item_id)
+            lines.extend([f"### {name} {{#candidate-{item_id} .candidate-name}}", ""])
+        lines.extend([":::", ""])
         return lines
 
     def _reader_contest(self, contest: dict) -> list[str]:
@@ -687,9 +784,12 @@ class _GuideModel:
                 lines.append(line.rstrip())
         if lines[-1] != "":
             lines.append("")
+        lines.extend(self._contest_opener(contest))
+        if contest.get("type") in {"race", "primary", "local-office"}:
+            lines.extend(self._candidate_index(contest))
         summary = _cap_summary(_summary_paragraph(draft))
         if summary:
-            lines.extend(["<!-- summary -->", summary, ""])
+            lines.extend(_boxed_summary(summary))
         lines.extend(
             [
                 f"[Sources, quotes, and the search log]({self.addendum_name}#addendum-{item_id}).",
@@ -724,40 +824,72 @@ class _GuideModel:
         lines.append("")
         return lines
 
+    def _or_gap(self, sentence: str, anchor: str, title: str, hint: str) -> str:
+        if sentence and "[^" in sentence:
+            return self._show_prose(sentence)
+        return _gap_line(hint)
+
     def _reader_measure(self, item_id: str, title: str, sections: list[tuple[str, str, str]]) -> list[str]:
         lines: list[str] = []
         rows = []
         by_name = {name: (raw, body) for raw, name, body in sections}
+        shown_up_front = {
+            "official title",
+            "measure type and qualification",
+            "vote threshold",
+            "sunset or renewal",
+            "plain-language summary",
+            "what a yes vote does",
+            "what a no vote does",
+            "arguments for",
+            "arguments against",
+        }
+        plain_body = by_name.get("plain-language summary", ("Plain-language summary", ""))[1]
+        plain = _first_cited(plain_body) or ""
+        lines.extend(
+            [
+                "::: summary-box",
+                "",
+                "#### In plain language",
+                "",
+                self._or_gap(plain, f"detail-{item_id}-plain-language", f"{title}: plain language", "plain-language summary"),
+                "",
+                ":::",
+                "",
+            ]
+        )
+        yes_body = by_name.get("what a yes vote does", ("What a yes vote does", ""))[1]
+        no_body = by_name.get("what a no vote does", ("What a no vote does", ""))[1]
+        lines.extend(
+            _vote_pair(
+                "A YES vote means",
+                self._or_gap(_first_cited(yes_body) or "", f"detail-{item_id}-yes", f"{title}: yes", "what a yes vote does"),
+                "A NO vote means",
+                self._or_gap(_first_cited(no_body) or "", f"detail-{item_id}-no", f"{title}: no", "what a no vote does"),
+            )
+        )
         for raw, name, body in sections:
-            if name in AUDIT_HEADINGS or name in {"arguments for", "arguments against"}:
+            if name in AUDIT_HEADINGS or name in shown_up_front:
                 continue
             sentence = _first_cited(body)
             if not sentence:
                 continue
             rows.append((raw, self._show_cell(sentence, f"detail-{item_id}-{slugify(name)}", f"{title}: {raw}", raw)))
         if rows:
-            lines.extend(_emit_table(["", "Fact"], [[label, cell] for label, cell in rows]))
+            lines.extend(_emit_table(["Topic", "Fact"], [[label, cell] for label, cell in rows]))
         for_body = by_name.get("arguments for", ("Arguments for", ""))[1]
         against_body = by_name.get("arguments against", ("Arguments against", ""))[1]
         if for_body or against_body:
-            for_text = _first_cited(for_body) or NOT_FOUND_CELL
-            against_text = _first_cited(against_body) or NOT_FOUND_CELL
+            for_text = _first_cited(for_body) or ""
+            against_text = _first_cited(against_body) or ""
             lines.extend(
-                _emit_table(
-                    ["Arguments for", "Arguments against"],
-                    [[
-                        self._show_cell(for_text, f"detail-{item_id}-arguments-for", f"{title}: arguments for", "Arguments for"),
-                        self._show_cell(against_text, f"detail-{item_id}-arguments-against", f"{title}: arguments against", "Arguments against"),
-                    ]],
+                _vote_pair(
+                    "Arguments for",
+                    self._or_gap(for_text, f"detail-{item_id}-arguments-for", f"{title}: arguments for", "arguments for"),
+                    "Arguments against",
+                    self._or_gap(against_text, f"detail-{item_id}-arguments-against", f"{title}: arguments against", "arguments against"),
                 )
             )
-            missing = []
-            if for_text == NOT_FOUND_CELL:
-                missing.append("arguments for")
-            if against_text == NOT_FOUND_CELL:
-                missing.append("arguments against")
-            if missing:
-                lines.extend([_gap_line(", ".join(missing)), ""])
         return lines
 
     def _reader_facts(self, item_id: str, title: str, sections: list[tuple[str, str, str]]) -> list[str]:
@@ -846,7 +978,7 @@ class _GuideModel:
             lines.append("")
         summary = _summary_paragraph(draft)
         if summary:
-            lines.extend(["<!-- summary -->", summary, ""])
+            lines.extend(_boxed_summary(summary))
         return lines
 
     def _race_body(self, contest: dict, sections: list[tuple[str, str, str]]) -> list[str]:
@@ -946,7 +1078,9 @@ class _GuideModel:
                 shown_rows.append((label, short_cells))
             block = [f"### {heading}", ""]
             for headers, body in comparison_tables(names, shown_rows):
+                block.extend(["::: comparison", ""])
                 block.extend(_emit_table(headers, body))
+                block.extend([":::", ""])
             if dropped:
                 block.append(_gap_line(", ".join(dropped)))
                 block.append("")
@@ -966,7 +1100,16 @@ class _GuideModel:
                 continue
             name = str(candidate.get("name") or self.titles.get(item_id) or item_id)
             draft = draft_path.read_text(encoding="utf-8")
-            lines.extend([f"### {name} {{#profile-{item_id}}}", ""])
+            lines.extend(
+                [
+                    "::: candidate-name",
+                    "",
+                    f"### {name} {{#profile-{item_id}}}",
+                    "",
+                    ":::",
+                    "",
+                ]
+            )
             quotes = []
             for line in draft.splitlines():
                 if line.startswith("## "):
@@ -1001,8 +1144,17 @@ class _GuideModel:
     def _measure_body(self, item_id: str, title: str, sections: list[tuple[str, str, str]]) -> list[str]:
         lines: list[str] = []
         by_name = {name: (raw, body) for raw, name, body in sections}
+        boxed = {
+            "plain-language summary",
+            "what a yes vote does",
+            "what a no vote does",
+            "arguments for",
+            "arguments against",
+        }
         for raw, name, body in sections:
-            if name in AUDIT_HEADINGS or name in {"arguments for", "arguments against"}:
+            if name in AUDIT_HEADINGS or name in boxed:
+                rendered, gaps = prepare_section(self._rewrite(body))
+                self._log_gaps(title, raw, gaps)
                 continue
             rendered, gaps = prepare_section(self._rewrite(body))
             self._log_gaps(title, raw, gaps)
@@ -1010,30 +1162,45 @@ class _GuideModel:
                 lines.extend([_gap_line(raw), ""])
                 continue
             lines.extend([f"### {raw}", "", rendered, ""])
+        plain_body = by_name.get("plain-language summary", ("Plain-language summary", ""))[1]
+        plain_rendered, _plain_gaps = prepare_section(self._rewrite(plain_body))
+        lines.extend(
+            [
+                "::: summary-box",
+                "",
+                "#### In plain language",
+                "",
+                plain_rendered or _gap_line("plain-language summary"),
+                "",
+                ":::",
+                "",
+            ]
+        )
+        yes_body = by_name.get("what a yes vote does", ("What a yes vote does", ""))[1]
+        no_body = by_name.get("what a no vote does", ("What a no vote does", ""))[1]
+        yes_rendered, _yes_gaps = prepare_section(self._rewrite(yes_body))
+        no_rendered, _no_gaps = prepare_section(self._rewrite(no_body))
+        lines.extend(
+            _vote_pair(
+                "A YES vote means",
+                yes_rendered or _gap_line("what a yes vote does"),
+                "A NO vote means",
+                no_rendered or _gap_line("what a no vote does"),
+            )
+        )
         for_body = by_name.get("arguments for", ("Arguments for", ""))[1]
         against_body = by_name.get("arguments against", ("Arguments against", ""))[1]
         if for_body or against_body:
-            self._log_gaps(title, "Arguments for", prepare_section(for_body)[1])
-            self._log_gaps(title, "Arguments against", prepare_section(against_body)[1])
-            for_text = " ".join(_cited_sentences(for_body)) or NOT_FOUND_CELL
-            against_text = " ".join(_cited_sentences(against_body)) or NOT_FOUND_CELL
+            for_rendered, _for_gaps = prepare_section(self._rewrite(for_body))
+            against_rendered, _against_gaps = prepare_section(self._rewrite(against_body))
             lines.extend(
-                [
-                    "### Arguments side by side",
-                    "",
-                    "| Arguments for | Arguments against |",
-                    "| --- | --- |",
-                    f"| {_cell(for_text)} | {_cell(against_text)} |",
-                    "",
-                ]
+                _vote_pair(
+                    "Arguments for",
+                    for_rendered or _gap_line("arguments for"),
+                    "Arguments against",
+                    against_rendered or _gap_line("arguments against"),
+                )
             )
-            if for_text == NOT_FOUND_CELL or against_text == NOT_FOUND_CELL:
-                missing = []
-                if for_text == NOT_FOUND_CELL:
-                    missing.append("arguments for")
-                if against_text == NOT_FOUND_CELL:
-                    missing.append("arguments against")
-                lines.extend([_gap_line(", ".join(missing)), ""])
         return lines
 
     def _generic_sections(self, item_id: str, title: str, sections: list[tuple[str, str, str]], level: int) -> list[str]:
@@ -1055,17 +1222,40 @@ class _GuideModel:
 
     def _glossary(self) -> list[str]:
         return [
-            "# Glossary",
+            "# Glossary {#glossary .back-matter}",
             "",
-            "A levy is a tax or charge put on a ballot for voters to accept or reject. "
-            "Nonpartisan means the ballot does not list a party for that office. "
-            "Cash on hand is the money a campaign reported still having at the end of a filing period. "
-            "A filing period is the date range a finance report covers. "
-            "Tier T1 is a primary or official source. T2 is an established nonpartisan reference. "
-            "T3 is named journalism. T4 is an advocacy source and is quoted only as that group's view. "
-            "A single source means the sentence rests on one record. "
-            "An allegation is a claim someone has made that this guide has not confirmed. "
-            "Not found means the listed places were searched and the fact was not in them.",
+            "Levy",
+            ": A levy is a tax or charge put on a ballot for voters to accept or reject.",
+            "",
+            "Nonpartisan",
+            ": The ballot does not list a party for that office.",
+            "",
+            "Cash on hand",
+            ": Cash on hand is the money a campaign reported still having at the end of a filing period.",
+            "",
+            "Filing period",
+            ": A filing period is the date range a finance report covers.",
+            "",
+            "Tier T1",
+            ": Tier T1 is a primary or official source.",
+            "",
+            "Tier T2",
+            ": Tier T2 is an established nonpartisan reference.",
+            "",
+            "Tier T3",
+            ": Tier T3 is named journalism.",
+            "",
+            "Tier T4",
+            ": Tier T4 is an advocacy source and is quoted only as that group's view.",
+            "",
+            "Single source",
+            ": A single source means the sentence rests on one record.",
+            "",
+            "Allegation",
+            ": An allegation is a claim someone has made that this guide has not confirmed.",
+            "",
+            "Not found",
+            ": Not found means the listed places were searched and the fact was not in them.",
             "",
         ]
 
@@ -1080,7 +1270,7 @@ class _GuideModel:
                 flagged += 1
         subagents = "available" if intake.get("parallel_subagents") else "not used; roles run one at a time in fresh contexts"
         lines = [
-            "# Methodology",
+            "# How we researched {#methodology .back-matter}",
             "",
             f"Version {ballot.get('report_version') or 'v1.0'} assembled on {self.today}. {env_line}",
             f"Sources flagged suspected_injection: {flagged}.",
@@ -1124,7 +1314,7 @@ class _GuideModel:
         return lines
 
     def _disputed(self, edition: str) -> list[str]:
-        lines = ["# Disputed claims", ""]
+        lines = ["# Disputed claims {#disputed-claims .back-matter}", ""]
         any_row = False
         for item in iter_items(self.workspace):
             findings = load_yaml(item / "findings.yaml") or []
@@ -1156,7 +1346,7 @@ class _GuideModel:
 
     def _corrections(self) -> list[str]:
         corrections = load_yaml(self.workspace / "corrections.yaml") or []
-        lines = ["# Corrections", ""]
+        lines = ["# Corrections {#corrections .back-matter}", ""]
         if not corrections:
             lines.extend(["No corrections have been issued.", ""])
             return lines
@@ -1191,17 +1381,7 @@ class _GuideModel:
         title = f"Sources: {title_name}"
         if fiction:
             title = f"FICTIONAL sources: {title_name}"
-        parts = [
-            "---",
-            f'title: "{title}"',
-            f"version: {ballot.get('report_version') or 'v1.0'}",
-            f"election_id: {ballot.get('election_id')}",
-            f"build_date: {self.today}",
-            f"edition: {self.edition}-sources",
-            f"fiction: {'true' if fiction else 'false'}",
-            "---",
-            "",
-        ]
+        parts = self._front_matter(title, f"{self.edition}-sources", sources=True)
         if fiction:
             parts.extend(
                 [
@@ -1214,7 +1394,7 @@ class _GuideModel:
             [
                 "> **Not an official ballot and not voting instructions:** confirm contests, deadlines, and polling places with the election office linked in the guide.",
                 "",
-                f"# Works cited",
+                "# Works cited {.back-matter}",
                 "",
                 "Each marker in the guide links to an entry here. Each entry links back. "
                 "Quotes are the archived words. The search log lists places that were checked.",
@@ -1251,7 +1431,7 @@ class _GuideModel:
                 continue
             parts.extend(
                 [
-                    f"## {title_bit} {{#addendum-{item_id}}}",
+                    f"## {title_bit} {{#addendum-{item_id} .source-group}}",
                     "",
                     f"[Back to {title_bit}]({self.body_name}#contest-{item_id})",
                     "",
@@ -1288,7 +1468,7 @@ class _GuideModel:
     def _source_entry(self, number: int) -> list[str]:
         _item, claim, source = self.index[number]
         lines = [
-            f"### Source {number} {{#source-{number}}}",
+            f"### Source {number} {{#source-{number} .source-entry}}",
             "",
             format_work(number, source),
             "",
@@ -1433,9 +1613,70 @@ def _cell_has_marker(text: str) -> bool:
     return "[^" in (text or "") or "#source-" in (text or "")
 
 
+def _boxed_summary(summary: str) -> list[str]:
+    return ["::: summary-box", "", "<!-- summary -->", summary, "", ":::", ""]
+
+
+def _vote_pair(left_label: str, left_body: str, right_label: str, right_body: str) -> list[str]:
+    return [
+        "::: vote-pair",
+        "",
+        "::: vote-box",
+        "",
+        f"#### {left_label}",
+        "",
+        left_body,
+        "",
+        ":::",
+        "",
+        "::: vote-box",
+        "",
+        f"#### {right_label}",
+        "",
+        right_body,
+        "",
+        ":::",
+        "",
+        ":::",
+        "",
+    ]
+
+
+def _opener_slots(contest: dict, sections: dict, draft: str) -> list[tuple[str, str]]:
+    kind = str(contest.get("type") or "")
+
+    def sentence(name: str) -> str:
+        found = sections.get(name)
+        if not found:
+            return ""
+        return _first_cited(found[1]) or ""
+
+    if kind == "measure":
+        return [
+            ("Measure", sentence("official title")),
+            ("Type", sentence("measure type and qualification")),
+            ("Threshold", sentence("vote threshold")),
+            ("Sunset", sentence("sunset or renewal")),
+        ]
+    office = sentence("contest") or sentence("court and term") or sentence("what the office controls")
+    duties = sentence("what the office controls")
+    if duties and office and _sentence_key(duties) == _sentence_key(office):
+        duties = ""
+    term = _matching_cited(draft, _TERM_LENGTH_RE) or ""
+    if term and office and _sentence_key(term) == _sentence_key(office):
+        term = ""
+    seats = _matching_cited(draft, _SEATS_RE) or ""
+    return [
+        ("Office", office),
+        ("What it does", duties),
+        ("Term", term),
+        ("Number to elect", seats),
+    ]
+
+
 def _with_landscape(lines: list[str], columns: int) -> list[str]:
-    """Wide tables use a landscape page, and their heading stays on that page."""
-    if columns < LANDSCAPE_COLUMNS:
+    """Five or six columns use a landscape page. Their heading stays on that page."""
+    if columns <= MAX_PORTRAIT_COLUMNS:
         return lines
     out: list[str] = []
     index = 0
@@ -1462,21 +1703,33 @@ def _with_landscape(lines: list[str], columns: int) -> list[str]:
     return out
 
 
-def comparison_tables(names: list[str], labeled_rows: list[tuple[str, list[str]]]) -> list[tuple[list[str], list[list[str]]]]:
-    """Candidates stay as columns until a race has many of them, then they become rows."""
-    if not labeled_rows:
+def _chunks(items: list, size: int) -> list[list]:
+    """Split a list into groups of `size`. An empty list stays empty."""
+    width = max(int(size), 1)
+    if not items:
         return []
-    if len(names) < TRANSPOSE_CANDIDATES:
-        headers = ["", *names]
-        rows = [[label, *cells] for label, cells in labeled_rows]
-        return [(headers, rows)]
+    return [list(items[start : start + width]) for start in range(0, len(items), width)]
+
+
+def comparison_tables(names: list[str], labeled_rows: list[tuple[str, list[str]]]) -> list[tuple[list[str], list[list[str]]]]:
+    """Same rows for every candidate. At most three candidates share a table.
+
+    Further candidates continue, in ballot order, on the next table. The row
+    labels are repeated. Candidates are not sorted and are not turned into rows.
+    """
+    if not labeled_rows or not names:
+        return []
     tables = []
-    for start in range(0, len(labeled_rows), FIELD_CHUNK):
-        chunk = labeled_rows[start : start + FIELD_CHUNK]
-        headers = ["Candidate", *[label for label, _cells in chunk]]
+    width = MAX_CANDIDATES_PER_TABLE
+    for start in range(0, len(names), width):
+        group = list(names[start : start + width])
+        headers = ["Topic", *group]
         body = []
-        for index, name in enumerate(names):
-            body.append([name, *[cells[index] if index < len(cells) else NOT_FOUND_CELL for _label, cells in chunk]])
+        for label, cells in labeled_rows:
+            sliced = list(cells[start : start + width])
+            if len(sliced) < len(group):
+                sliced.extend([NOT_FOUND_CELL] * (len(group) - len(sliced)))
+            body.append([label, *sliced])
         tables.append((headers, body))
     return tables
 

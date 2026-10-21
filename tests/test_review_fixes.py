@@ -593,6 +593,15 @@ def test_small_screen_css_uses_a_max_width_query():
     assert "@media screen" not in css
     assert "font-size: 1.05rem" in narrow
     assert 'media="(max-width: 40rem)"' in template
+    assert "Liberation Serif" in css
+    assert "font-size: 10.75pt" in css
+    assert "bookmark-level" in css
+    assert "party-democrat" not in css
+    assert "party-republican" not in css
+    from check_pdf_layout import MAX_CANDIDATES_PER_TABLE, MIN_COLUMN_PT
+
+    assert MAX_CANDIDATES_PER_TABLE == 3
+    assert MIN_COLUMN_PT >= 108
 
 
 def test_banner_exemption_is_the_exact_sentence():

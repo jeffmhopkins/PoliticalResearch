@@ -281,6 +281,8 @@ GAP_NOT_FOUND_RE = re.compile(r"^not found \(searched: (.+)\)\.$", re.IGNORECASE
 EXEMPT_HEADINGS = {
     "how to use this guide",
     "how to read this guide",
+    "how we researched",
+    "in plain language",
     "methodology",
     "changelog",
     "corrections",
@@ -1219,7 +1221,7 @@ def marker_collision_errors(workspace) -> list[str]:
 
 
 _HTML_ID_RE = re.compile(r"""\bid\s*=\s*["']([^"']+)["']""")
-_HEADING_ANCHOR_RE = re.compile(r"\{#([^}\s]+)\}")
+_HEADING_ANCHOR_RE = re.compile(r"\{#([A-Za-z0-9_-]+)")
 _FRAGMENT_RE = re.compile(r"#([A-Za-z0-9_-]+)")
 
 

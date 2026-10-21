@@ -162,6 +162,10 @@ install_a11y() {
 need_apt=()
 if [[ "$MODE" == "install" ]]; then
   command -v pandoc >/dev/null 2>&1 || need_apt+=(pandoc)
+  # Liberation Serif and Liberation Sans are the faces named in assets/guide.css.
+  if ! fc-list "Liberation Serif" file 2>/dev/null | grep -q .; then
+    need_apt+=(fonts-liberation)
+  fi
   command -v pdftotext >/dev/null 2>&1 || need_apt+=(poppler-utils)
   command -v curl >/dev/null 2>&1 || need_apt+=(curl)
   command -v jq >/dev/null 2>&1 || need_apt+=(jq)

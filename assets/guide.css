@@ -1,14 +1,21 @@
+/* Printed voter guide. Neutral ink on warm paper. No party colors.
+   Body type is Liberation Serif at 10.75pt. Liberation Sans is the heading face.
+   Both are SIL Open Font License faces installed by bootstrap and CI (fonts-liberation).
+   DejaVu is the fallback when those packages are absent. */
+
 :root {
-  --text: #1a1a1a;
-  --bg: #ffffff;
-  --muted: #333333;
-  --link: #0b3d91;
-  --banner-bg: #1b1b1b;
-  --banner-fg: #ffffff;
-  --disputed-bg: #fff6d8;
-  --disputed-border: #6b5300;
-  --line: #4a4a4a;
-  --focus: #0b3d91;
+  --ink: #1c1917;
+  --paper: #fffcf7;
+  --muted: #44403c;
+  --rule: #c8c2b8;
+  --shade: #e7e1d6;
+  --zebra: #f7f4ef;
+  --not-found: #5c564e;
+  --not-found-bg: #efeae3;
+  --link: #1e3a34;
+  --focus: #1e3a34;
+  --serif: "Liberation Serif", "DejaVu Serif", "Times New Roman", Times, serif;
+  --sans: "Liberation Sans", "DejaVu Sans", Helvetica, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -17,10 +24,11 @@ html { font-size: 100%; }
 
 body {
   margin: 0;
-  color: var(--text);
-  background: var(--bg);
-  font-family: "DejaVu Sans", "Segoe UI", Helvetica, Arial, sans-serif;
-  line-height: 1.55;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  line-height: 1.5;
 }
 
 .skip {
@@ -39,115 +47,514 @@ body {
   outline: 3px solid var(--focus);
 }
 
-.banner {
-  background: var(--banner-bg);
-  color: var(--banner-fg);
-  padding: 0.8rem 1rem;
+a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
 }
-
-.banner p { margin: 0; }
-
-main {
-  max-width: 48rem;
-  margin: 0 auto;
-  padding: 1rem 1rem 3rem;
-}
-
-h1, h2, h3 { line-height: 1.25; }
-
-a { color: var(--link); }
 
 a:focus, button:focus, summary:focus {
   outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
+
+main {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 3rem;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--sans);
+  line-height: 1.25;
+  font-weight: 700;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+h1 { font-size: 1.7rem; margin: 1.4rem 0 0.6rem; }
+h2 { font-size: 1.28rem; margin: 1.3rem 0 0.45rem; }
+h3 { font-size: 1.08rem; margin: 1.05rem 0 0.35rem; }
+h4 {
+  font-size: 0.82rem;
+  margin: 0 0 0.3rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+p { margin: 0.45rem 0 0.7rem; }
+
+/* Cover */
+
+.cover {
+  page: cover;
+  break-after: page;
+  page-break-after: always;
+  min-height: 9.2in;
+  padding: 0.4in 0.15in 0.3in;
+}
+
+.cover h1 {
+  string-set: running content();
+  font-size: 2.15rem;
+  line-height: 1.15;
+  margin: 0.35rem 0 0.45rem;
+  max-width: 16ch;
+}
+
+.fiction-flag {
+  display: inline-block;
+  margin: 0 0 0.8rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--ink);
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+}
+
+.cover-kicker {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cover-date,
+.cover-place {
+  margin: 0.15rem 0;
+  font-family: var(--sans);
+  font-size: 1.05rem;
+}
+
+.cover-place { color: var(--muted); }
+
+.notice {
+  margin: 1.1rem 0 1.15rem;
+  padding: 0.75rem 0.85rem;
+  border: 2px solid var(--ink);
+  background: #f3efe6;
+}
+
+.notice p { margin: 0; }
+
+.cover h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.45rem;
+  bookmark-level: 2;
+}
+
+.how-to {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.how-to li { margin: 0.28rem 0; }
+
+.cover-version {
+  margin-top: 1.4rem;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Contents */
+
+#TOC {
+  page: toc;
+  break-after: page;
+  page-break-after: always;
+}
+
+#toc-title {
+  margin-top: 0;
+  bookmark-level: none;
+}
+
+#TOC ul {
+  list-style: none;
+  margin: 0.2rem 0;
+  padding: 0;
+}
+
+#TOC > ul > li { margin: 0.38rem 0 0.2rem; }
+
+#TOC ul ul {
+  margin: 0.12rem 0 0.25rem 1rem;
+}
+
+#TOC a { color: var(--ink); }
+
+/* Section openers */
+
+h1.guide-title,
+h1.ballot-glance,
+h1.ballot-group,
+h1.back-matter,
+h2.contest-title {
+  string-set: running content();
+}
+
+h1.ballot-glance { break-before: page; page-break-before: always; }
+
+h1.ballot-group { break-before: page; page-break-before: always; }
+
+h2.contest-title {
+  break-before: page;
+  page-break-before: always;
+  font-size: 1.45rem;
+  padding-top: 0.15rem;
+  bookmark-level: 2;
+}
+
+h1.ballot-group + h2.contest-title {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+h2.contest-title::before {
+  content: "";
+  display: block;
+  height: 7px;
+  background: var(--ink);
+  margin: 0 0 0.5rem;
+}
+
+h1#glossary { break-before: page; page-break-before: always; }
+
+h1.back-matter {
+  border-top: 4px solid var(--ink);
+  padding-top: 0.4rem;
+}
+
+.contest-open {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0.85rem;
+}
+
+.meta-item {
+  flex: 1 1 46%;
+  margin: 0;
+  padding: 0.4rem 0.55rem 0.55rem;
+  background: var(--zebra);
+  border-top: 3px solid var(--ink);
+}
+
+.meta-item p { margin: 0; }
+
+.summary-box {
+  margin: 0.4rem 0 0.9rem;
+  padding: 0.6rem 0.75rem 0.45rem;
+  background: var(--zebra);
+  border-left: 4px solid var(--ink);
+}
+
+.summary-box p:last-child { margin-bottom: 0.2rem; }
+
+.candidate-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.2rem 0 0.9rem;
+}
+
+.candidate-index h3.candidate-name {
+  flex: 1 1 0;
+  min-width: 2.1in;
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  font-size: 1rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  bookmark-level: 3;
+}
+
+h3.candidate-name,
+.candidate-name h3 { bookmark-level: 3; }
+
+h3 { bookmark-level: none; }
+
+h4 { bookmark-level: none; }
+
+.vote-pair {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin: 0.45rem 0 0.95rem;
+}
+
+.vote-box {
+  flex: 1 1 0;
+  width: 48%;
+  margin: 0;
+  padding: 0.55rem 0.65rem 0.65rem;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.vote-box h4 {
+  color: var(--ink);
+  letter-spacing: 0.03em;
+}
+
+.vote-box p:last-child { margin-bottom: 0.15rem; }
+
+blockquote {
+  margin: 0.7rem 0;
+  padding: 0.35rem 0.75rem;
+  border-left: 3px solid var(--rule);
+  background: var(--zebra);
+}
+
+.disputed, blockquote.disputed {
+  background: #fbf3dd;
+  border: 2px solid #6b5300;
+  color: #3d2e00;
+  padding: 0.6rem 0.8rem;
+}
+
+/* Tables */
 
 table {
   width: 100%;
   border-collapse: collapse;
-  margin: 1rem 0;
+  margin: 0.7rem 0 1rem;
   table-layout: fixed;
-  font-size: 9pt;
+  font-size: 1rem;
 }
-
-th, td {
-  border: 1px solid var(--line);
-  padding: 0.35rem 0.4rem;
-  text-align: left;
-  vertical-align: top;
-  overflow-wrap: anywhere;
-  word-wrap: break-word;
-  hyphens: auto;
-  font-size: 9pt;
-  min-width: 0.9in;
-  line-height: 1.35;
-}
-
-th { background: #f2f2f2; }
 
 thead { display: table-header-group; }
 
+th, td {
+  border: 1px solid var(--rule);
+  padding: 0.38rem 0.45rem;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: normal;
+  hyphens: manual;
+  min-width: 0;
+  line-height: 1.38;
+}
+
+th {
+  background: var(--shade);
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+tbody tr:nth-child(even) td { background: var(--zebra); }
+
+.comparison table th,
+.comparison table td {
+  padding: 0.55rem 0.65rem;
+  line-height: 1.45;
+  hyphens: manual;
+}
+
 tr { break-inside: avoid; page-break-inside: avoid; }
 
-blockquote {
-  margin: 1rem 0;
-  padding: 0.2rem 0 0.2rem 1rem;
-  border-left: 4px solid var(--line);
+td.not-found,
+p.not-found {
+  color: var(--not-found);
+  background: var(--not-found-bg);
+  font-style: italic;
 }
 
-.disputed, blockquote.disputed {
-  background: var(--disputed-bg);
-  border: 2px solid var(--disputed-border);
-  padding: 0.6rem 0.8rem;
+tbody tr:nth-child(even) td.not-found { background: var(--not-found-bg); }
+
+a[href^="http"] { overflow-wrap: anywhere; }
+
+sup {
+  font-size: 0.72em;
+  line-height: 0;
+  vertical-align: super;
 }
+
+code { font-size: 0.92em; }
+
+/* Sources addendum */
+
+h2.source-group {
+  break-before: page;
+  page-break-before: always;
+  bookmark-level: 2;
+}
+
+h1.back-matter + h2.source-group,
+h1 + h2.source-group {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+h3.source-entry {
+  font-family: var(--sans);
+  font-size: 1.02rem;
+  margin: 0.9rem 0 0.15rem;
+  break-after: avoid;
+  bookmark-level: none;
+}
+
+h3.source-entry + p { margin-top: 0.15rem; }
+
+.back-matter dt {
+  font-family: var(--sans);
+  font-weight: 700;
+  margin-top: 0.7rem;
+}
+
+.back-matter dd { margin: 0.12rem 0 0; }
 
 footer {
-  max-width: 48rem;
+  max-width: 46rem;
   margin: 0 auto;
-  padding: 0 1rem 2rem;
+  padding: 0 1.25rem 2rem;
   color: var(--muted);
-  font-size: 0.95rem;
+  font-family: var(--sans);
+  font-size: 0.9rem;
 }
 
-code { font-size: 0.95em; }
+/* Pages */
 
 @page {
   size: letter portrait;
-  margin: 0.6in;
-  @top-center {
-    content: string(contest);
-    font-family: "DejaVu Sans", Helvetica, Arial, sans-serif;
+  margin: 0.68in 0.65in 0.7in 0.65in;
+  @top-left {
+    content: string(running);
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
     font-size: 9pt;
+    color: #44403c;
+  }
+  @bottom-left {
+    content: "Not an official ballot";
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-size: 9pt;
+    color: #44403c;
+  }
+  @bottom-right {
+    content: counter(page);
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-size: 9pt;
+    color: #1c1917;
+  }
+}
+
+@page cover {
+  size: letter portrait;
+  margin: 0.75in;
+  background: #f7f4ef;
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+
+@page toc {
+  size: letter portrait;
+  margin: 0.7in 0.7in 0.72in;
+  @top-left {
+    content: "Contents";
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-size: 9pt;
+    color: #44403c;
+  }
+  @top-center { content: none; }
+  @top-right { content: none; }
+  @bottom-left {
+    content: "Not an official ballot";
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-size: 9pt;
+    color: #44403c;
+  }
+  @bottom-right {
+    content: counter(page);
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-size: 9pt;
+    color: #1c1917;
   }
 }
 
 @page landscape {
   size: letter landscape;
-  margin: 0.5in;
+  margin: 0.55in 0.5in 0.62in 0.5in;
+  @top-left {
+    content: string(running);
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-size: 9pt;
+    color: #44403c;
+  }
+  @top-center { content: none; }
+  @top-right { content: none; }
+  @bottom-left {
+    content: "Not an official ballot";
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-size: 9pt;
+    color: #44403c;
+  }
+  @bottom-right {
+    content: counter(page);
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-size: 9pt;
+    color: #1c1917;
+  }
 }
 
-.landscape {
-  page: landscape;
-}
+.landscape { page: landscape; }
 
 .landscape > :first-child {
   break-before: page;
   page-break-before: always;
 }
 
-h2, h3 { break-after: avoid; page-break-after: avoid; }
-
-h2.contest-title {
-  string-set: contest content();
-}
+h1 { bookmark-level: 1; }
+h2 { bookmark-level: 2; }
 
 @media print {
-  main, footer { max-width: none; }
+  main, footer { max-width: none; padding-left: 0; padding-right: 0; }
   .skip { display: none; }
-  .banner { background: #ffffff; color: #000000; border: 2px solid #000000; }
-  a { color: #000000; text-decoration: underline; }
-  table { display: table; font-size: 9pt; }
-  th, td { font-size: 9pt; }
-  h2.contest-title { break-before: page; }
-  thead { display: table-header-group; }
-  tr { break-inside: avoid; }
+  body {
+    font-size: 10.75pt;
+    line-height: 1.45;
+    background: #ffffff;
+  }
+  h1 { font-size: 18pt; }
+  h2 { font-size: 14.5pt; }
+  h3 { font-size: 12pt; }
+  h4 { font-size: 10pt; }
+  .cover h1 { font-size: 26pt; }
+  .cover { min-height: 0; padding: 0; }
+  table, th, td { font-size: 10.5pt; }
+  th { font-size: 10pt; }
+  .comparison table th,
+  .comparison table td {
+    padding: 8pt 9pt;
+    line-height: 1.45;
+  }
+  .comparison table th:first-child,
+  .comparison table td:first-child {
+    width: 1.7in;
+  }
+  #TOC { font-size: 11pt; }
+  #TOC a::after {
+    content: leader(".") target-counter(attr(href), page);
+  }
+  a[href="#your-ballot-at-a-glance"] {
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-weight: 700;
+  }
+  h2.contest-title { font-size: 16pt; }
+  .candidate-index h3.candidate-name { font-size: 11pt; }
 }

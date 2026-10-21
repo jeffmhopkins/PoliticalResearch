@@ -6,13 +6,14 @@ from pathlib import Path
 
 import yaml
 
-from check_pdf_layout import errors_from_bbox
+from check_pdf_layout import errors_from_bbox, html_layout_errors
 from lib.guide_layout import (
     CELL_CHAR_CAP,
     NOT_FOUND_CELL,
-    TRANSPOSE_CANDIDATES,
     _GuideModel,
+    _chunks,
     _duplicate_issue_row,
+    _emit_table,
     _short_fact,
     comparison_tables,
 )
@@ -167,12 +168,32 @@ def test_duplicate_issue_text_is_not_a_second_row():
     assert _duplicate_issue_row(different, positions) is False
 
 
-def test_many_candidates_become_rows_and_cells_stay_short():
-    names = [f"Candidate {index}" for index in range(TRANSPOSE_CANDIDATES)]
-    rows = [("Receipts", ["10 dollars[^1]"] * len(names)), ("Cash on hand", ["2 dollars[^2]"] * len(names))]
+def test_many_candidates_stay_in_short_columns_and_cells_stay_short():
+    two = comparison_tables(
+        ["Ada", "Bo"],
+        [("Receipts", ["1[^1]", "2[^2]"]), ("Cash on hand", ["3[^3]", "4[^4]"])],
+    )
+    assert len(two) == 1
+    assert two[0][0] == ["Topic", "Ada", "Bo"]
+    assert two[0][1][0] == ["Receipts", "1[^1]", "2[^2]"]
+    names = [f"Candidate {index}" for index in range(9)]
+    rows = [("Receipts", [f"{index} dollars[^1]" for index in range(9)]), ("Cash on hand", ["2 dollars[^2]"] * 9)]
     tables = comparison_tables(names, rows)
-    assert tables[0][0][0] == "Candidate"
-    assert tables[0][1][0][0] == "Candidate 0"
+    assert len(tables) == 3
+    assert [headers[0] for headers, _body in tables] == ["Topic", "Topic", "Topic"]
+    assert [headers[1:] for headers, _body in tables] == [
+        ["Candidate 0", "Candidate 1", "Candidate 2"],
+        ["Candidate 3", "Candidate 4", "Candidate 5"],
+        ["Candidate 6", "Candidate 7", "Candidate 8"],
+    ]
+    assert all(body[0][0] == "Receipts" for _headers, body in tables)
+    assert tables[0][1][0][1:] == ["0 dollars[^1]", "1 dollars[^1]", "2 dollars[^1]"]
+    assert tables[2][1][0][1:] == ["6 dollars[^1]", "7 dollars[^1]", "8 dollars[^1]"]
+    assert _chunks(list(range(6)), 5) == [[0, 1, 2, 3, 4], [5]]
+    portrait = "\n".join(_emit_table(["Topic", "A", "B", "C"], [["Receipts", "1", "2", "3"]]))
+    assert "::: landscape" not in portrait
+    landscape = "\n".join(_emit_table(["A", "B", "C", "D", "E", "F"], [["1", "2", "3", "4", "5", "6"]]))
+    assert "::: landscape" in landscape
     short = _short_fact(
         "Avery Quinn of Cedar Hollow reported 48200 dollars in receipts and a long explanation of the filing period[^5].",
         "Receipts",
@@ -282,6 +303,48 @@ def test_bbox_check_flags_overflow_and_tiny_type():
     tiny_errors = errors_from_bbox(tiny)
     assert any("Receipts" in error and "below" in error for error in tiny_errors)
     assert any("48200" in error and "below" in error for error in tiny_errors)
+    narrow = ['<doc><page width="792" height="612">']
+    for index in range(8):
+        x_min = 36 + index * 60
+        narrow.append(f'<word xMin="{x_min}" yMin="100" xMax="{x_min + 40}" yMax="112">Name{index}</word>')
+    narrow.append("</page></doc>")
+    assert any("columns" in error for error in errors_from_bbox("".join(narrow)))
+    stack = ["<doc><page width=\"612\" height=\"792\">"]
+    for index, word in enumerate(("Alpha", "Bravo", "Charlie", "Delta")):
+        y_min = 100 + index * 14
+        stack.append(f'<word xMin="40" yMin="{y_min}" xMax="80" yMax="{y_min + 10}">{word}</word>')
+    stack.append("</page></doc>")
+    assert any("column" in error for error in errors_from_bbox("".join(stack)))
+    leaders = (
+        '<doc><page width="612" height="792">'
+        '<word xMin="72" yMin="100" xMax="140" yMax="112">Mayor</word>'
+        '<word xMin="160" yMin="100" xMax="168" yMax="112">.</word>'
+        '<word xMin="190" yMin="100" xMax="198" yMax="112">.</word>'
+        '<word xMin="220" yMin="100" xMax="228" yMax="112">.</word>'
+        '<word xMin="400" yMin="100" xMax="420" yMax="112">4</word>'
+        "</page></doc>"
+    )
+    assert errors_from_bbox(leaders) == []
+    wide_candidates = (
+        "<div class='comparison'><table><tr>"
+        + "".join(f"<th>H{index}</th>" for index in range(5))
+        + "</tr></table></div>"
+    )
+    assert any("candidates" in error for error in html_layout_errors(wide_candidates))
+    portrait_wide = "<table><tr>" + "".join(f"<td>{index}</td>" for index in range(5)) + "</tr></table>"
+    assert any("portrait" in error for error in html_layout_errors(portrait_wide))
+    landscape_wide = (
+        "<div class='landscape'><table><tr>"
+        + "".join(f"<td>{index}</td>" for index in range(7))
+        + "</tr></table></div>"
+    )
+    assert any("landscape" in error for error in html_layout_errors(landscape_wide))
+    fits = (
+        "<div class='comparison'><table><tr>"
+        "<th>Topic</th><th>Ada</th><th>Bo</th><th>Cara</th>"
+        "</tr></table></div>"
+    )
+    assert html_layout_errors(fits) == []
 
 
 def test_reader_budget_flags_a_long_contest():

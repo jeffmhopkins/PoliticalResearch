@@ -84,6 +84,7 @@ build_one() {
       --variable content-hash="$hash" \
       -o "$html_out"
   )
+  "$PY" "$ROOT/scripts/polish_html.py" "$html_out"
   "$PY" "$ROOT/scripts/a11y_check.py" "$html_out"
   if command -v weasyprint >/dev/null 2>&1; then
     timeout -k 15 120 weasyprint "$html_out" "$pdf_out"
