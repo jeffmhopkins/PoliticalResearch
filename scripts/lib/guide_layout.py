@@ -1,9 +1,11 @@
 """Reader and full editions of the guide.
 
-The reader opens with the ballot, then one contest at a time. The full edition
-adds the marker index and the changelog. Both editions cite every factual
-sentence. A table row is kept only when a cell carries a marker, or the row is
-replaced by one official gap sentence.
+The reader opens with the ballot, then one contest at a time, inside a word
+budget. Comparison cells are short facts. Per-candidate prose stays in the full
+edition. Works cited, quotes, search logs, and cell detail move to a sources
+addendum. Markers in the body link to that addendum and back. A table row is
+kept only when a cell carries a marker, or the row is replaced by one official
+gap sentence.
 """
 
 from __future__ import annotations
@@ -14,14 +16,26 @@ from pathlib import Path
 from lib.quality import (
     HTML_COMMENT_RE,
     MARKER_RE,
+    READER_CONTEST_WORD_BUDGET,
     claim_index,
     environment_rating_sentence,
     marker_numbers,
+    reader_visible_word_count,
+    official_restatement_sentences,
+    precinct_restatement,
+    unmarked_logistics_lines,
+    word_count,
+    _is_navigation_sentence,
 )
 from lib.quality import _bind_trailing_markers, _gap_sentence, _heading, _is_gap_text
 from lib.sentences import split_sentences
-from lib.util import iter_items, load_json, load_yaml
-from lib.workflow import footnote_line, format_work
+from lib.util import iter_items, load_json, load_yaml, slugify
+from lib.workflow import format_work
+
+CELL_CHAR_CAP = 96
+TRANSPOSE_CANDIDATES = 4
+LANDSCAPE_COLUMNS = 6
+FIELD_CHUNK = 4
 
 AUDIT_HEADINGS = {
     "sources and retrieval dates",
@@ -161,9 +175,12 @@ RACE_SKIP = AUDIT_HEADINGS | {
 }
 
 
-def build_editions(workspace: Path, today: str) -> tuple[str, str]:
+def build_editions(workspace: Path, today: str) -> tuple[str, str, str, str]:
+    """Reader body, reader sources, full body, full sources."""
     model = _GuideModel(workspace, today)
-    return model.render("reader"), model.render("full")
+    reader, reader_sources = model.render("reader")
+    full, full_sources = model.render("full")
+    return reader, reader_sources, full, full_sources
 
 
 class _GuideModel:
@@ -176,9 +193,21 @@ class _GuideModel:
         self.titles = _titles(self.ballot, workspace)
         self.candidate_ids = _candidate_ids(self.ballot)
         self.search_log: list[tuple[str, str, str]] = []
+        self.details: list[tuple[str, str, str]] = []
+        self.edition = "reader"
+        self.addendum_name = "guide-sources.md"
+        self.body_name = "guide.md"
 
-    def render(self, edition: str) -> str:
+    def render(self, edition: str) -> tuple[str, str]:
         self.search_log = []
+        self.details = []
+        self.edition = edition
+        if edition == "full":
+            self.addendum_name = "guide-full-sources.md"
+            self.body_name = "guide-full.md"
+        else:
+            self.addendum_name = "guide-sources.md"
+            self.body_name = "guide.md"
         ballot = self.ballot if isinstance(self.ballot, dict) else {}
         election = ballot.get("election") or {}
         fiction = bool(ballot.get("fiction"))
@@ -226,26 +255,52 @@ class _GuideModel:
         parts.extend(self._methodology(edition))
         parts.extend(self._disputed(edition))
         parts.extend(self._corrections())
-        parts.extend(self._search_log())
+        if edition == "full":
+            used_for_index = marker_numbers("\n".join(parts))
+            parts.extend(self._marker_index(used_for_index))
+            parts.extend(self._changelog())
         body = "\n".join(parts).rstrip() + "\n"
         used = marker_numbers(body)
-        tail = self._works_cited(used)
-        if edition == "full":
-            tail.extend(self._marker_index(used))
-            tail.extend(self._changelog())
-        tail.append("<!-- Pandoc footnote definitions. The reader-facing list is Works cited. -->")
-        tail.append("")
-        for number in sorted(used):
-            found = self.index.get(number)
-            if not found:
-                continue
-            _item, claim, source = found
-            if claim.get("removed"):
-                continue
-            tail.append(footnote_line(number, source))
-            tail.append("")
-        text = body.rstrip() + "\n\n" + "\n".join(tail).rstrip() + "\n"
-        return re.sub(r"\n{3,}", "\n\n", text)
+        addendum = self._sources_addendum(used)
+        linked = self._link_markers(body)
+        text = re.sub(r"\n{3,}", "\n\n", linked).rstrip() + "\n"
+        addendum_text = re.sub(r"\n{3,}", "\n\n", addendum).rstrip() + "\n"
+        return text, addendum_text
+
+    def _link_markers(self, text: str) -> str:
+        seen: set[str] = set()
+
+        def repl(match: re.Match) -> str:
+            number = match.group(1)
+            link = f"[<sup>{number}</sup>]({self.addendum_name}#source-{number})"
+            if number in seen:
+                return link
+            seen.add(number)
+            return f'<a id="cite-{number}"></a>{link}'
+
+        return MARKER_RE.sub(repl, text)
+
+    def _show_cell(self, full: str, anchor: str, title: str, hint: str = "") -> str:
+        if not _cell_found(full):
+            return NOT_FOUND_CELL
+        short = _short_fact(full, hint)
+        if _sentence_key(short) != _sentence_key(full):
+            anchor = self._detail_anchor(anchor, title, full)
+            short = f"{short} [detail]({self.addendum_name}#{anchor})"
+        return short
+
+    def _detail_anchor(self, anchor: str, title: str, full: str) -> str:
+        """One addendum heading per anchor. A second, different fact gets a new id."""
+        for existing, _label, text in self.details:
+            if existing == anchor and _sentence_key(text) == _sentence_key(full):
+                return anchor
+        if any(existing == anchor for existing, _label, _text in self.details):
+            suffix = 2
+            while any(existing == f"{anchor}-{suffix}" for existing, _label, _text in self.details):
+                suffix += 1
+            anchor = f"{anchor}-{suffix}"
+        self.details.append((anchor, title, full))
+        return anchor
 
     def _election_office(self) -> list[str]:
         logistics = self.workspace / "logistics.md"
@@ -256,13 +311,15 @@ class _GuideModel:
         rows = []
         ballot = self.ballot if isinstance(self.ballot, dict) else {}
         for entry in ballot.get("logistics") or []:
-            if not isinstance(entry, dict):
+            if not isinstance(entry, dict) or not entry.get("marker"):
                 continue
             label = str(entry.get("label") or "Election office")
             url = str(entry.get("url") or "")
             marker = entry.get("marker")
-            if url and marker:
+            if url:
                 rows.append(f"- {label}: {url}[^{marker}]")
+        for line in unmarked_logistics_lines(ballot):
+            rows.append(f"- {line}")
         if not rows:
             return [
                 "# Official election office links",
@@ -275,16 +332,13 @@ class _GuideModel:
     def _precinct_line(self) -> list[str]:
         ballot = self.ballot if isinstance(self.ballot, dict) else {}
         precinct = str(ballot.get("precinct") or "").strip()
-        districts = ballot.get("districts") if isinstance(ballot.get("districts"), list) else []
         cited = _sentence_mentioning(self.workspace, precinct) if precinct else None
         if precinct and cited:
-            lines = [cited, ""]
-        else:
-            lines = ["Not found (searched: precinct code and district list on the confirmed ballot).", ""]
-        if districts and not cited:
-            # District names stay in ballot.yaml until a sourced sentence carries them.
-            pass
-        return lines
+            return [cited, ""]
+        restatement = precinct_restatement(ballot)
+        if restatement:
+            return [restatement, ""]
+        return ["Not found (searched: precinct code and district list on the confirmed ballot).", ""]
 
     def _at_a_glance(self) -> list[str]:
         lines = [
@@ -303,22 +357,18 @@ class _GuideModel:
             kind = _contest_kind(contest)
             incumbent = _incumbent_names(contest) or NOT_FOUND_CELL
             link = f"[{_cell(title)}](#contest-{item_id})"
-            lines.append(
-                "| "
-                + " | ".join(
-                    [
-                        _cell(title),
-                        _cell(kind),
-                        _cell(_choices(contest)),
-                        _cell(incumbent),
-                        _cell(summary),
-                        link,
-                    ]
-                )
-                + " |"
-            )
+            summary_cell = self._show_cell(summary, f"detail-{item_id}-summary", f"{title} summary")
+            row = [
+                _cell(title),
+                _cell(kind),
+                _cell(_choices(contest)),
+                _cell(incumbent),
+                _cell(summary_cell),
+                link,
+            ]
+            lines.append("| " + " | ".join(row) + " |")
         lines.append("")
-        return lines
+        return _with_landscape(lines, 6)
 
     def _how_to_read(self) -> list[str]:
         return [
@@ -326,9 +376,9 @@ class _GuideModel:
             "",
             "Start with the ballot table, then read one contest at a time. "
             "Each race uses the same comparison rows for every candidate. "
-            "A cell that says Not found was searched and not found. The places searched are in the search log.",
+            "A cell that says Not found was searched and not found. The places searched are in the sources addendum.",
             "",
-            "A bracketed number points at a source in Works cited. "
+            "A small number links to the sources addendum, where the works-cited line, the quote, and the search log live. "
             "Tier T1 is an official or primary source. T2 is an established nonpartisan reference. "
             "T3 is named journalism. T4 is an advocacy source and is quoted only as that group's view.",
             "",
@@ -376,15 +426,16 @@ class _GuideModel:
                     missing.append(str(candidate.get("name") or item_id))
                     continue
                 marker_source = next((cell for cell in (receipts, cash, report) if _cell_found(cell)), "")
+                name = str(candidate.get("name") or item_id)
                 lines.append(
                     "| "
                     + " | ".join(
                         [
                             _cell(office),
-                            _cell(str(candidate.get("name") or item_id)),
-                            _cell(receipts),
-                            _cell(cash),
-                            _cell(report),
+                            _cell(name),
+                            _cell(self._show_cell(receipts, f"detail-{item_id}-receipts", f"Receipts: {name}", "Receipts")),
+                            _cell(self._show_cell(cash, f"detail-{item_id}-cash", f"Cash on hand: {name}", "Cash on hand")),
+                            _cell(self._show_cell(report, f"detail-{item_id}-report-date", f"Report date: {name}", "Report date")),
                             _cell(_tier_cell(self.index, marker_source)),
                         ]
                     )
@@ -394,14 +445,14 @@ class _GuideModel:
         if missing:
             lines.append(_gap_line("campaign receipts for " + ", ".join(missing)))
             lines.append("")
-        if not any(line.startswith("| ") and "[^" in line for line in lines):
+        if not any(line.startswith("| ") and _cell_has_marker(line) for line in lines):
             return [
                 "## Money",
                 "",
                 _gap_line("campaign receipts and cash on hand"),
                 "",
             ]
-        return lines
+        return _with_landscape(lines, 6)
 
     def _issue_matrix(self) -> list[str]:
         lines = ["## Issues addressed in a candidate's own words", ""]
@@ -418,13 +469,18 @@ class _GuideModel:
                 issues = profile.get("issues") if isinstance(profile, dict) else None
                 if not isinstance(issues, dict):
                     continue
+                sections = _section_dict(self._draft(item_id))
+                assigned = _assign_cells(sections, profile if isinstance(profile, dict) else {}, [row for _heading, rows in _COMPARISON_GROUPS for row in rows])
+                positions = assigned.get("Positions in own words", NOT_FOUND_CELL)
                 for key, value in issues.items():
                     text = str(value or "").strip()
                     if not text or text.lower() in {"not found", "none"} or "[^" not in text:
                         found_for_issue.setdefault(str(key), [])
                         continue
+                    if _sentence_key(text) == _sentence_key(positions):
+                        continue
                     name = str(candidate.get("name") or item_id)
-                    found_for_issue.setdefault(str(key), []).append(f"{name}: {_cell(text)}")
+                    found_for_issue.setdefault(str(key), []).append(f"{name}: {_cell(self._show_cell(text, f'detail-{item_id}-{slugify(str(key))}', f'{key}: {name}', str(key)))}")
             for key, cells in found_for_issue.items():
                 cited = [cell for cell in cells if "[^" in cell]
                 if len(cited) < 2:
@@ -447,7 +503,7 @@ class _GuideModel:
                 continue
             lines.append("| " + " | ".join(_cell(cell) for cell in row) + " |")
         lines.append("")
-        return lines
+        return _with_landscape(lines, len(header))
 
     def _measures_across(self) -> list[str]:
         measures = [c for c in self._contests_raw() if c.get("type") == "measure"]
@@ -470,7 +526,7 @@ class _GuideModel:
         for contest in measures:
             item_id = str(contest.get("item_id") or contest.get("id"))
             sections = _section_dict(self._draft(item_id))
-            cells = [
+            raw_cells = [
                 str(contest.get("title") or item_id),
                 _first_or_not_found(sections, "measure type and qualification"),
                 _first_or_not_found(sections, "vote threshold"),
@@ -480,11 +536,16 @@ class _GuideModel:
                 _first_or_not_found(sections, "sunset or renewal"),
                 _first_or_not_found(sections, "funding by side"),
             ]
-            if not any("[^" in cell for cell in cells):
+            if not any("[^" in cell for cell in raw_cells):
                 continue
-            lines.append("| " + " | ".join(_cell(cell) for cell in cells) + " |")
+            shown = [raw_cells[0]]
+            for header, cell in zip(headers[1:], raw_cells[1:]):
+                shown.append(
+                    self._show_cell(cell, f"detail-{item_id}-{slugify(header)}", f"{header}: {item_id}", header)
+                )
+            lines.append("| " + " | ".join(_cell(cell) for cell in shown) + " |")
         lines.append("")
-        return lines
+        return _with_landscape(lines, len(headers))
 
     def _judicial_across(self) -> list[str]:
         rows = [c for c in self._contests_raw() if c.get("type") == "judicial-retention" or c.get("level") == "judicial"]
@@ -516,15 +577,18 @@ class _GuideModel:
         lines.append("| " + " | ".join(header) + " |")
         lines.append("| " + " | ".join("---" for _ in header) + " |")
         for title, cells in built:
-            shown = [title, *[cells[index] for index in keep]]
-            if not any("[^" in cell for cell in shown):
+            shown = [title]
+            for index in keep:
+                label = columns[index][0]
+                shown.append(self._show_cell(cells[index], f"detail-{slugify(title)}-{slugify(label)}", f"{label}: {title}", label))
+            if not any(_cell_has_marker(cell) or "[^" in cell for cell in shown):
                 continue
             lines.append("| " + " | ".join(_cell(cell) for cell in shown) + " |")
         lines.append("")
         if dropped:
             lines.append(_gap_line(", ".join(dropped) + " for every retention on this ballot"))
             lines.append("")
-        return lines
+        return _with_landscape(lines, len(header))
 
     def _incumbency_strip(self) -> list[str]:
         lines = [
@@ -553,13 +617,14 @@ class _GuideModel:
             if "[^" not in incumbent_cell and "[^" not in count_cell:
                 continue
             any_row = True
+            office = str(contest.get("title") or item_id)
             lines.append(
                 "| "
                 + " | ".join(
                     [
-                        _cell(str(contest.get("title") or item_id)),
-                        _cell(incumbent_cell),
-                        _cell(count_cell),
+                        _cell(office),
+                        _cell(self._show_cell(incumbent_cell, f"detail-{item_id}-incumbent", f"Incumbent: {office}", "Incumbent")),
+                        _cell(self._show_cell(count_cell, f"detail-{item_id}-candidates", f"Candidates: {office}", "Candidates")),
                     ]
                 )
                 + " |"
@@ -584,6 +649,11 @@ class _GuideModel:
         return lines
 
     def _one_contest(self, contest: dict) -> list[str]:
+        if self.edition == "reader":
+            return self._fit_contest_budget(self._reader_contest(contest))
+        return self._full_contest(contest)
+
+    def _full_contest(self, contest: dict) -> list[str]:
         item_id = str(contest.get("item_id") or contest.get("id"))
         title = str(contest.get("title") or self.titles.get(item_id) or item_id)
         draft = self._draft(item_id)
@@ -600,6 +670,163 @@ class _GuideModel:
             lines.extend(self._generic_sections(item_id, title, sections, level=3))
         lines.extend([BACK_LINK, ""])
         return lines
+
+    def _reader_contest(self, contest: dict) -> list[str]:
+        item_id = str(contest.get("item_id") or contest.get("id"))
+        title = str(contest.get("title") or self.titles.get(item_id) or item_id)
+        draft = self._draft(item_id)
+        sections = _section_pairs(draft)
+        lines = [f"## {title} {{#contest-{item_id} .contest-title}}", ""]
+        for line in draft.splitlines():
+            if line.startswith("## "):
+                break
+            if line.strip().startswith(">"):
+                lines.append(line.rstrip())
+        if lines[-1] != "":
+            lines.append("")
+        summary = _cap_summary(_summary_paragraph(draft))
+        if summary:
+            lines.extend(["<!-- summary -->", summary, ""])
+        lines.extend(
+            [
+                f"[Sources, quotes, and the search log]({self.addendum_name}#addendum-{item_id}).",
+                "",
+            ]
+        )
+        self._log_section_gaps(title, sections)
+        kind = contest.get("type")
+        if kind in {"race", "primary", "local-office"}:
+            lines.extend(self._fixed_tables(contest))
+            lines.extend(self._reader_profile_links(contest))
+            self._log_profile_gaps(contest)
+        elif kind == "measure":
+            lines.extend(self._reader_measure(item_id, title, sections))
+        else:
+            lines.extend(self._reader_facts(item_id, title, sections))
+        lines.extend([BACK_LINK, ""])
+        return lines
+
+    def _reader_profile_links(self, contest: dict) -> list[str]:
+        lines = ["### Full edition", ""]
+        any_link = False
+        for candidate in _people(contest) + _other_people(contest):
+            item_id = str(candidate.get("item_id") or candidate.get("id") or "")
+            if not item_id or not (self.workspace / "items" / item_id / "draft.md").exists():
+                continue
+            name = str(candidate.get("name") or self.titles.get(item_id) or item_id)
+            lines.append(f"- [{name}](guide-full.md#profile-{item_id})")
+            any_link = True
+        if not any_link:
+            return []
+        lines.append("")
+        return lines
+
+    def _reader_measure(self, item_id: str, title: str, sections: list[tuple[str, str, str]]) -> list[str]:
+        lines: list[str] = []
+        rows = []
+        by_name = {name: (raw, body) for raw, name, body in sections}
+        for raw, name, body in sections:
+            if name in AUDIT_HEADINGS or name in {"arguments for", "arguments against"}:
+                continue
+            sentence = _first_cited(body)
+            if not sentence:
+                continue
+            rows.append((raw, self._show_cell(sentence, f"detail-{item_id}-{slugify(name)}", f"{title}: {raw}", raw)))
+        if rows:
+            lines.extend(_emit_table(["", "Fact"], [[label, cell] for label, cell in rows]))
+        for_body = by_name.get("arguments for", ("Arguments for", ""))[1]
+        against_body = by_name.get("arguments against", ("Arguments against", ""))[1]
+        if for_body or against_body:
+            for_text = _first_cited(for_body) or NOT_FOUND_CELL
+            against_text = _first_cited(against_body) or NOT_FOUND_CELL
+            lines.extend(
+                _emit_table(
+                    ["Arguments for", "Arguments against"],
+                    [[
+                        self._show_cell(for_text, f"detail-{item_id}-arguments-for", f"{title}: arguments for", "Arguments for"),
+                        self._show_cell(against_text, f"detail-{item_id}-arguments-against", f"{title}: arguments against", "Arguments against"),
+                    ]],
+                )
+            )
+            missing = []
+            if for_text == NOT_FOUND_CELL:
+                missing.append("arguments for")
+            if against_text == NOT_FOUND_CELL:
+                missing.append("arguments against")
+            if missing:
+                lines.extend([_gap_line(", ".join(missing)), ""])
+        return lines
+
+    def _reader_facts(self, item_id: str, title: str, sections: list[tuple[str, str, str]]) -> list[str]:
+        rows = []
+        collapsed = []
+        for raw, name, body in sections:
+            if name in AUDIT_HEADINGS:
+                continue
+            sentence = _first_cited(body)
+            if not sentence:
+                rendered, _gaps = prepare_section(self._rewrite(body))
+                if rendered is None:
+                    collapsed.append(raw)
+                continue
+            rows.append((raw, self._show_cell(sentence, f"detail-{item_id}-{slugify(name)}", f"{title}: {raw}", raw)))
+        lines: list[str] = []
+        if rows:
+            lines.extend(_emit_table(["", "Fact"], [[label, cell] for label, cell in rows]))
+        if collapsed:
+            lines.extend([_gap_line(", ".join(collapsed)), ""])
+        return lines
+
+    def _log_section_gaps(self, title: str, sections: list[tuple[str, str, str]]) -> None:
+        for raw, name, body in sections:
+            if name in AUDIT_HEADINGS:
+                continue
+            _rendered, gaps = prepare_section(self._rewrite(body))
+            self._log_gaps(title, raw, gaps)
+
+    def _log_profile_gaps(self, contest: dict) -> None:
+        for candidate in _people(contest) + _other_people(contest):
+            item_id = str(candidate.get("item_id") or candidate.get("id") or "")
+            if not item_id:
+                continue
+            name = str(candidate.get("name") or self.titles.get(item_id) or item_id)
+            for raw, _norm, body in _section_pairs(self._draft(item_id)):
+                _rendered, gaps = prepare_section(self._rewrite(body))
+                self._log_gaps(name, raw, gaps)
+
+    def _fit_contest_budget(self, lines: list[str]) -> list[str]:
+        if reader_visible_word_count("\n".join(lines)) <= READER_CONTEST_WORD_BUDGET:
+            return lines
+        blocks: list[list[str]] = [[]]
+        for line in lines:
+            if line.strip() == "":
+                if blocks[-1]:
+                    blocks.append([])
+                continue
+            blocks[-1].append(line)
+        blocks = [block for block in blocks if any(part.strip() for part in block)]
+
+        def droppable(block: list[str]) -> bool:
+            text = "\n".join(block).strip()
+            if not text or text.startswith(("#", "|", ":", ">", "<", "Not found")):
+                return False
+            if _is_navigation_sentence(text, official_restatement_sentences(self.ballot if isinstance(self.ballot, dict) else None)):
+                return False
+            return reader_visible_word_count(text) > 40
+
+        while reader_visible_word_count("\n".join(line for block in blocks for line in block)) > READER_CONTEST_WORD_BUDGET:
+            index = next((i for i in range(len(blocks) - 1, -1, -1) if droppable(blocks[i])), None)
+            if index is None:
+                break
+            del blocks[index]
+        out: list[str] = []
+        for block in blocks:
+            if out and out[-1] != "":
+                out.append("")
+            out.extend(block)
+        if out and out[-1] != "":
+            out.append("")
+        return out
 
     def _preamble(self, draft: str, item_id: str) -> list[str]:
         lines: list[str] = []
@@ -690,6 +917,7 @@ class _GuideModel:
                     continue
                 rows.append((label, cells))
             if heading == "Positions":
+                positions_cells = next((cells for label, cells in rows if label == "Positions in own words"), None)
                 for key in extra_issues:
                     cells = []
                     cited = 0
@@ -700,16 +928,20 @@ class _GuideModel:
                             cited += 1
                         else:
                             cells.append(NOT_FOUND_CELL)
-                    if cited < 2:
+                    if cited < 2 or _duplicate_issue_row(cells, positions_cells):
                         continue
                     rows.append((key, cells))
+            contest_id = str(contest.get("item_id") or contest.get("id"))
+            shown_rows = []
+            for label, cells in rows:
+                short_cells = []
+                for name, cell in zip(names, cells):
+                    anchor = f"detail-{contest_id}-{slugify(label)}-{slugify(name)}"
+                    short_cells.append(self._show_cell(cell, anchor, f"{label}: {name}", label))
+                shown_rows.append((label, short_cells))
             block = [f"### {heading}", ""]
-            if rows:
-                block.append("| | " + " | ".join(_cell(name) for name in names) + " |")
-                block.append("| " + " | ".join("---" for _ in range(len(names) + 1)) + " |")
-                for label, cells in rows:
-                    block.append("| " + " | ".join([_cell(label), *[_cell(cell) for cell in cells]]) + " |")
-                block.append("")
+            for headers, body in comparison_tables(names, shown_rows):
+                block.extend(_emit_table(headers, body))
             if dropped:
                 block.append(_gap_line(", ".join(dropped)))
                 block.append("")
@@ -850,7 +1082,9 @@ class _GuideModel:
             f"Parallel subagents: {subagents}.",
             f"Findings recorded: {counts['total']}. Accepted: {counts['accepted']}. Disputed: {counts['disputed']}.",
             "Disputed and unconfirmed claims are not used in summaries. Blockers are removed rather than left disputed.",
-            "The reader edition drops empty template sections and moves search paths to the search log. "
+            "The reader edition keeps a short summary and comparison tables for each contest. "
+            "Works cited, quotes, and the search log are in the sources addendum. "
+            "Per-candidate prose is in the full edition. "
             "The full edition adds the marker index and the changelog.",
             "",
             "## Review state",
@@ -942,6 +1176,125 @@ class _GuideModel:
                 current = owner
             lines.append(f"- {section}: {text}")
             lines.append("")
+        return lines
+
+    def _sources_addendum(self, used: set[int]) -> str:
+        ballot = self.ballot if isinstance(self.ballot, dict) else {}
+        election = ballot.get("election") or {}
+        fiction = bool(ballot.get("fiction"))
+        title_name = election.get("name") or ballot.get("election_id") or "Election"
+        title = f"Sources: {title_name}"
+        if fiction:
+            title = f"FICTIONAL sources: {title_name}"
+        parts = [
+            "---",
+            f'title: "{title}"',
+            f"version: {ballot.get('report_version') or 'v1.0'}",
+            f"election_id: {ballot.get('election_id')}",
+            f"build_date: {self.today}",
+            f"edition: {self.edition}-sources",
+            f"fiction: {'true' if fiction else 'false'}",
+            "---",
+            "",
+        ]
+        if fiction:
+            parts.extend(
+                [
+                    "> **FICTIONAL EXAMPLE:** the places, people, measures, and documents in this guide are invented, "
+                    "sources on fictional.example are placeholders and not real records, and this is not a voting guide.",
+                    "",
+                ]
+            )
+        parts.extend(
+            [
+                "> **Not an official ballot and not voting instructions:** confirm contests, deadlines, and polling places with the election office linked in the guide.",
+                "",
+                f"# Works cited",
+                "",
+                "Each marker in the guide links to an entry here. Each entry links back. "
+                "Quotes are the archived words. The search log lists places that were checked.",
+                "",
+            ]
+        )
+        seen: set[int] = set()
+        used_logs: set[int] = set()
+        for contest in self._contests_raw():
+            item_id = str(contest.get("item_id") or contest.get("id"))
+            title_bit = str(contest.get("title") or item_id)
+            item_ids = [item_id]
+            owners = {title_bit}
+            for candidate in contest.get("candidates") or []:
+                if not isinstance(candidate, dict):
+                    continue
+                item_ids.append(str(candidate.get("item_id") or candidate.get("id")))
+                if candidate.get("name"):
+                    owners.add(str(candidate.get("name")))
+            markers = []
+            for number in sorted(used):
+                if number in seen:
+                    continue
+                found = self.index.get(number)
+                if not found or found[0] not in item_ids:
+                    continue
+                _item, claim, _source = found
+                if claim.get("removed"):
+                    continue
+                markers.append(number)
+            details = [row for row in self.details if row[0].startswith(f"detail-{item_id}-") or row[0].startswith(f"detail-{slugify(title_bit)}-")]
+            logs = [(index, row) for index, row in enumerate(self.search_log) if row[0] in owners]
+            if not markers and not details and not logs:
+                continue
+            parts.extend(
+                [
+                    f"## {title_bit} {{#addendum-{item_id}}}",
+                    "",
+                    f"[Back to {title_bit}]({self.body_name}#contest-{item_id})",
+                    "",
+                ]
+            )
+            for number in markers:
+                seen.add(number)
+                parts.extend(self._source_entry(number))
+            if details:
+                parts.extend(["### Cell detail", ""])
+                for anchor, label, full in details:
+                    parts.extend([f"#### {label} {{#{anchor}}}", "", full, ""])
+            if logs:
+                parts.extend(["### Search log", ""])
+                for index, (owner, section, text) in logs:
+                    used_logs.add(index)
+                    parts.extend([f"- {owner} — {section}: {text}", ""])
+        leftovers = [number for number in sorted(used) if number not in seen and number in self.index]
+        if leftovers:
+            parts.extend(["## Other sources {#addendum-other}", ""])
+            for number in leftovers:
+                _item, claim, _source = self.index[number]
+                if claim.get("removed"):
+                    continue
+                seen.add(number)
+                parts.extend(self._source_entry(number))
+        remaining = [row for index, row in enumerate(self.search_log) if index not in used_logs]
+        if remaining:
+            parts.extend(["## Other search notes", ""])
+            for owner, section, text in remaining:
+                parts.extend([f"- {owner} — {section}: {text}", ""])
+        return "\n".join(parts).rstrip() + "\n"
+
+    def _source_entry(self, number: int) -> list[str]:
+        _item, claim, source = self.index[number]
+        lines = [
+            f"### Source {number} {{#source-{number}}}",
+            "",
+            format_work(number, source),
+            "",
+        ]
+        quote = str(source.get("quote") or "").strip()
+        if quote:
+            lines.extend(["Quote:", "", f"> {quote}", ""])
+        claim_text = str(claim.get("text") or "").strip()
+        if claim_text:
+            lines.extend([f"Claim {claim.get('id')}: {claim_text}", ""])
+        lines.extend([f"[Back to the guide]({self.body_name}#cite-{number})", ""])
         return lines
 
     def _works_cited(self, used: set[int]) -> list[str]:
@@ -1069,6 +1422,131 @@ def _gap_line(subject: str) -> str:
     inner = re.sub(r"\s+", " ", subject).strip().strip(".")
     inner = inner.replace(";", ",").replace(":", ",")
     return f"Not found (searched: {inner})."
+
+
+def _cell_has_marker(text: str) -> bool:
+    return "[^" in (text or "") or "#source-" in (text or "")
+
+
+def _with_landscape(lines: list[str], columns: int) -> list[str]:
+    """Wide tables use a landscape page, and their heading stays on that page."""
+    if columns < LANDSCAPE_COLUMNS:
+        return lines
+    out: list[str] = []
+    index = 0
+    while index < len(lines):
+        if lines[index].startswith("|"):
+            heading: list[str] = []
+            while out and out[-1].strip() == "":
+                heading.insert(0, out.pop())
+            if out and out[-1].lstrip().startswith("#"):
+                heading.insert(0, out.pop())
+            out.extend(["::: landscape", ""])
+            out.extend(heading)
+            while index < len(lines) and (lines[index].startswith("|") or lines[index].strip() == ""):
+                if lines[index].strip() == "" and index + 1 < len(lines) and not lines[index + 1].startswith("|"):
+                    break
+                out.append(lines[index])
+                index += 1
+            if out and out[-1] != "":
+                out.append("")
+            out.extend([":::", ""])
+            continue
+        out.append(lines[index])
+        index += 1
+    return out
+
+
+def comparison_tables(names: list[str], labeled_rows: list[tuple[str, list[str]]]) -> list[tuple[list[str], list[list[str]]]]:
+    """Candidates stay as columns until a race has many of them, then they become rows."""
+    if not labeled_rows:
+        return []
+    if len(names) < TRANSPOSE_CANDIDATES:
+        headers = ["", *names]
+        rows = [[label, *cells] for label, cells in labeled_rows]
+        return [(headers, rows)]
+    tables = []
+    for start in range(0, len(labeled_rows), FIELD_CHUNK):
+        chunk = labeled_rows[start : start + FIELD_CHUNK]
+        headers = ["Candidate", *[label for label, _cells in chunk]]
+        body = []
+        for index, name in enumerate(names):
+            body.append([name, *[cells[index] if index < len(cells) else NOT_FOUND_CELL for _label, cells in chunk]])
+        tables.append((headers, body))
+    return tables
+
+
+def _emit_table(headers: list[str], rows: list[list[str]]) -> list[str]:
+    if not rows:
+        return []
+    lines = ["| " + " | ".join(" " if not str(header).strip() else _cell(header) for header in headers) + " |"]
+    lines.append("| " + " | ".join("---" for _ in headers) + " |")
+    width = len(headers)
+    for row in rows:
+        padded = list(row) + [""] * (width - len(row))
+        lines.append("| " + " | ".join(_cell(cell) for cell in padded[:width]) + " |")
+    lines.append("")
+    return _with_landscape(lines, width)
+
+
+def _duplicate_issue_row(cells: list[str], positions: list[str] | None) -> bool:
+    if not positions or len(cells) != len(positions):
+        return False
+    cited = [(left, right) for left, right in zip(cells, positions) if left != NOT_FOUND_CELL]
+    if not cited:
+        return False
+    return all(_sentence_key(left) == _sentence_key(right) for left, right in cited)
+
+
+def _cap_summary(summary: str, sentences: int = 2, words: int = 60) -> str:
+    text = (summary or "").strip()
+    if not text:
+        return ""
+    kept = []
+    for sentence in split_sentences(_bind_trailing_markers(text)):
+        cleaned = sentence.strip()
+        if not cleaned:
+            continue
+        kept.append(cleaned)
+        if len(kept) >= sentences or word_count(" ".join(kept)) >= words:
+            break
+    return " ".join(kept)
+
+
+def _short_fact(sentence: str, hint: str = "") -> str:
+    """A value or a brief phrase, with the citation markers kept on the end."""
+    if not sentence or sentence == NOT_FOUND_CELL:
+        return NOT_FOUND_CELL
+    markers = "".join(f"[^{number}]" for number in MARKER_RE.findall(sentence))
+    plain = re.sub(r"\s+", " ", MARKER_RE.sub("", sentence)).strip().rstrip(".")
+    excerpt = _excerpt_for_hint(plain, hint)
+    if len(excerpt) > CELL_CHAR_CAP:
+        clipped = excerpt[: CELL_CHAR_CAP - 3].rsplit(" ", 1)[0].rstrip(",;:")
+        excerpt = (clipped or excerpt[: CELL_CHAR_CAP - 3]) + "..."
+    return f"{excerpt}{markers}" if excerpt else NOT_FOUND_CELL
+
+
+def _excerpt_for_hint(plain: str, hint: str) -> str:
+    lowered = (hint or "").lower()
+    if "receipt" in lowered:
+        match = re.search(r"\d[\d,]*(?:\.\d+)?\s+dollars in receipts", plain, re.IGNORECASE)
+        if match:
+            return match.group(0)
+    if "cash" in lowered:
+        match = re.search(r"\d[\d,]*(?:\.\d+)?\s+dollars in cash on hand", plain, re.IGNORECASE)
+        if match:
+            return match.group(0)
+    if "report date" in lowered:
+        match = re.search(
+            r"(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}"
+            r"|20\d{2}-\d{2}-\d{2}"
+            r"|quarter that ended [^.]{0,48}",
+            plain,
+            re.IGNORECASE,
+        )
+        if match:
+            return match.group(0).strip()
+    return plain
 
 
 def _cell(text: str) -> str:

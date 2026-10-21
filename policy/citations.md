@@ -32,7 +32,7 @@ Example:
 [12] Federal Election Commission. "Form 3 Quarterly Report, Q3 2026." Campaign filing, filed 2026-10-15. https://example.test/filing — Archived: https://web.archive.org/web/example. Retrieved 2026-10-20 10:14 ET. Tier T1. Locator: Summary page, line 6.
 ```
 
-The assembler also writes a Pandoc footnote definition (`[^12]: ...`) so the marker becomes a linked superscript in HTML and PDF.
+Drafts keep the `[^12]` marker. The assembler renders that marker as a small link to the sources addendum (`guide-sources.md` for the reader, `guide-full-sources.md` for the full edition) and writes the works-cited line, the quote, and the claim text there. The addendum entry links back to the first use of the marker. Per-contest sections in the addendum hold that contest's sources, cell detail, and search log. `scripts/check_citations.py` still resolves markers from the drafts and from the body plus the addendum together. A missing addendum entry fails the guide check.
 
 ## Required source fields
 
@@ -40,7 +40,7 @@ The assembler also writes a Pandoc footnote definition (`[^12]: ...`) so the mar
 
 ## Quotes
 
-Quotes are verbatim, with a locator and a link to the original recording or document. Do not put a paraphrase in quotation marks. Label a translation with the translator.
+Quotes are verbatim, with a locator and a link to the original recording or document. Do not put a paraphrase in quotation marks. Label a translation with the translator. A quote needs a readable `local_copy`, and the quote must appear in that saved file. A source with no saved copy must set `archive_failed` and a reason. An unarchived verified dollar or vote total still needs a second independent source. Do not append tokens to a quote so a number from somewhere else on the page will match. A figure in a sentence must appear in the quote or in the text of that local copy. The filename does not count. The addendum check compares whole ids, so source 1 and source 10 are different entries.
 
 A forum or debate transcript from `scripts/transcribe.py` is an unreviewed import under `items/<id>/imports/transcripts/`. It is not a claim until you check it against the recording and copy `suggested_source` into `claims.yaml`. Use a verbatim excerpt of at most two sentences. The locator looks like `Timestamp HH:MM:SS` or `Timestamp HH:MM:SS-HH:MM:SS`. Link the original recording. Whisper is opt-in. If it is not installed, the script exits with a message to run `./bootstrap.sh --with-transcription`, and you cite the recording page yourself.
 

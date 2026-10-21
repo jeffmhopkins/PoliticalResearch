@@ -125,6 +125,7 @@ claims:
     tier: T1
     locator: Summary page, lines 1 through 4
     quote: Receipts 30100, disbursements 18400, cash on hand 11700, debt 0.
+    local_copy: saved/okonkwo-q3.html
     confidence: verified
   confidence: verified
   drives_summary: true

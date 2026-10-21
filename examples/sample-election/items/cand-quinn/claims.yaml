@@ -124,6 +124,7 @@ claims:
     tier: T1
     locator: Summary page, lines 1 through 4
     quote: Receipts 48200, disbursements 31000, cash on hand 17200, debt 0.
+    local_copy: saved/quinn-q3.html
     confidence: verified
   confidence: verified
   drives_summary: true

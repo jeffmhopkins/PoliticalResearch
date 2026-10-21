@@ -99,6 +99,7 @@ build_one() {
       echo "PDF is missing the not-an-official-ballot banner: $pdf_out" >&2
       exit 1
     fi
+    "$PY" "$ROOT/scripts/check_pdf_layout.py" "$pdf_out"
   fi
   echo "Built $html_out"
   if [[ -f "$pdf_out" ]]; then
@@ -108,8 +109,17 @@ build_one() {
 }
 
 build_one "$GUIDE" "$WORKSPACE/final/guide.html" "$WORKSPACE/final/guide.pdf"
+if [[ -f "$WORKSPACE/final/guide.pdf" ]] && command -v pdfinfo >/dev/null 2>&1; then
+  pdfinfo "$WORKSPACE/final/guide.pdf" | awk '/^Pages:/ { print "Reader pages: " $2 }'
+fi
+if [[ -f "$WORKSPACE/final/guide-sources.md" ]]; then
+  build_one "$WORKSPACE/final/guide-sources.md" "$WORKSPACE/final/guide-sources.html" "$WORKSPACE/final/guide-sources.pdf"
+fi
 if [[ -f "$WORKSPACE/final/guide-full.md" ]]; then
   build_one "$WORKSPACE/final/guide-full.md" "$WORKSPACE/final/guide-full.html" "$WORKSPACE/final/guide-full.pdf"
+fi
+if [[ -f "$WORKSPACE/final/guide-full-sources.md" ]]; then
+  build_one "$WORKSPACE/final/guide-full-sources.md" "$WORKSPACE/final/guide-full-sources.html" "$WORKSPACE/final/guide-full-sources.pdf"
 fi
 
 mkdir -p "$WORKSPACE/versions"

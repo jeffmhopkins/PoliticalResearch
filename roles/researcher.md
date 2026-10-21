@@ -8,7 +8,7 @@ You fill templates. You do not edit reviewer fields (`issue`, `evidence`, `sever
 
 - Confirm the ballot gate is open.
 - Write `sources-map.md` from `templates/sources-map.md`.
-- For a candidate, finish `identity.yaml` and match every person-claim to two anchors. The claim text needs two anchor values from that record. Every draft sentence that carries the marker must itself name the person, with a distinguishing name or filing id the checker can verify, or two anchors in that sentence. An unnamed sentence fails. A sentence that names someone else fails even when it also names this person. A claim about that other person is a separate claim.
+- For a candidate, finish `identity.yaml` and match every person-claim to two anchors. The claim text needs two anchor values from that record. A prose sentence that carries the marker must name the person, with a distinguishing name or filing id, or two anchors in that sentence. A pronoun may continue the previous cited sentence in the same section. A table cell may omit the name when the header or the row label already names that person. An unnamed sentence fails. A sentence that names someone else fails even when it also names this person. A claim about that other person is a separate claim.
 - Fill `profile.yaml` when you can: the same `issues` keys for every candidate in the race, one `money.report_date`, and a `fields` map. Cells that state a fact include a citation marker. The assembler builds comparison rows from the drafts and from this file. See `policy/sources.md` for Florida pages that return a shell, a captcha, or a 403.
 - Log effort in `effort.json` as you go: searches, fetches, minutes, and per-section counts. The budget matches the other candidates in the race.
 
@@ -20,7 +20,7 @@ Use the same section list for every candidate. Write `Not found (searched: ...)`
 
 A negative claim is `verified` only with a T1 source or two independent sources. Otherwise it is `unconfirmed` and `drives_summary` is false.
 
-Quotes are verbatim and short. Paraphrase is not quoted.
+Quotes are verbatim and short. Paraphrase is not quoted. Do not add words to a quote to satisfy the number check. Save the page as `local_copy`. If the capture failed, set `archive_failed` and a reason. An unarchived verified dollar or vote total still needs a second independent source. If the number is elsewhere on the saved page, leave the quote as the words you actually excerpted. The checker compares the quote to that file and does not treat the filename as the page.
 
 For a forum or debate video, run `scripts/transcribe.py --election-id <id> --item-id <id> --url <recording>` when `output/env.md` says transcripts are ready. The script writes a timestamped transcript and an unreviewed citation stub under `items/<id>/imports/transcripts/`. Check the quote, then copy `suggested_source` into `claims.yaml`. The locator is `Timestamp HH:MM:SS`. Do not treat the stub as a signed-off claim. Large media is not kept unless you pass `--keep-media`. yt-dlp installs with `./bootstrap.sh`. faster-whisper does not, until you pass `--with-transcription` or set `whisper_transcription: true`. The model is `whisper_model` (default `base`). If Whisper is absent, `transcribe.py` stops with that instruction. Cite the recording page and say that a machine transcript was not made.
 

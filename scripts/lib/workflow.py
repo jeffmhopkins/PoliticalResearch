@@ -14,6 +14,7 @@ from lib.quality import (
     environment_rating_sentence,
     identities_for_item,
     iter_claim_sources,
+    organization_list_errors,
     semantic_claim_errors,
     source_marker,
 )
@@ -811,16 +812,24 @@ def assemble_guide(workspace: Path, today: str) -> list[str]:
         return blocked
     from lib.guide_layout import build_editions
 
-    reader, full = build_editions(workspace, today)
+    reader, reader_sources, full, full_sources = build_editions(workspace, today)
     index = claim_index(workspace)
-    guide_problems = assembled_guide_errors(reader, index)
-    guide_problems.extend(assembled_guide_errors(full, index))
+    ballot = load_yaml(workspace / "ballot.yaml") if (workspace / "ballot.yaml").exists() else {}
+    if not isinstance(ballot, dict):
+        ballot = {}
+    guide_problems = assembled_guide_errors(reader, index, reader_sources, reader=True, ballot=ballot)
+    guide_problems.extend(assembled_guide_errors(full, index, full_sources, reader=False, ballot=ballot))
     if guide_problems:
         return guide_problems
     final = workspace / "final"
     final.mkdir(parents=True, exist_ok=True)
     versions = workspace / "versions"
-    for name, text in (("guide.md", reader), ("guide-full.md", full)):
+    for name, text in (
+        ("guide.md", reader),
+        ("guide-sources.md", reader_sources),
+        ("guide-full.md", full),
+        ("guide-full-sources.md", full_sources),
+    ):
         guide = final / name
         if guide.exists():
             previous = guide.read_text(encoding="utf-8")
@@ -891,6 +900,10 @@ def structural_workspace_errors(workspace: Path) -> list[str]:
                         errors.extend(
                             f"{item.name}/identity.yaml: {message}"
                             for message in instance_errors(identity, load_schema("identity.schema.yaml", str(root)))
+                        )
+                        errors.extend(
+                            f"{item.name}/identity.yaml: {message}"
+                            for message in organization_list_errors(identity if isinstance(identity, dict) else None)
                         )
         findings_path = item / "findings.yaml"
         if findings_path.exists():
