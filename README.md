@@ -1,29 +1,39 @@
+<div align="center">
+
+# PoliticalResearch
+
+A reusable kit an AI coding agent follows to research one voter's upcoming ballot and write a nonpartisan, cited guide.
+
+[![CI](https://github.com/jeffmhopkins/PoliticalResearch/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/tests-pytest-blue)](tests) [![Nonpartisan](https://img.shields.io/badge/guide-nonpartisan-blue)](policy/neutrality.md)
+
+</div>
+
+The kit covers candidates (including judicial retention, primaries, and local offices), ballot measures, and, when you ask, specific bills. Finished guides are Markdown, HTML, and PDF under git-ignored `output/`. This repository does not upload them.
+
 # Are you a human? Start here
 
-PoliticalResearch is a reusable kit an AI coding agent follows to research **your** upcoming ballot and write a **nonpartisan, cited** guide. It covers candidates, ballot measures, and, if you ask, specific bills. It does not tell you how to vote.
+> [!TIP]
+> Tell your agent: "Read AGENTS.md and start a guide for this election." Give it the election date and your county, or a sample ballot. Reports land in `output/<election-id>/`.
 
 **What it will do**
 
-- Ask a short intake (election, place, how deep, whether you want an offline copy of sources).
+- Ask a short intake: election, place, depth (`quick`, `standard`, or `deep`), formats, and whether you want an offline copy of cited sources.
 - Build a contest list from your sample ballot or from official pages, then ask you to confirm it before research starts.
 - Write the same sections for every candidate, with sources, dates, and visible gaps where a fact was not found.
-- Run a review loop that can mark a claim disputed instead of dropping it.
-- Save a reader edition and a full audit edition as Markdown, HTML, and PDF under `output/`. Those files are git-ignored and are not uploaded by this repo. The reader opens with what is on the ballot.
+- Run a review loop that can mark a claim disputed and leave both positions in the guide.
+- Save a reader edition and a full audit edition. The reader opens with what is on the ballot.
 
-**What it will not do**
+> [!CAUTION]
+> **This is not an official ballot and not voting instructions.** Confirm contests, deadlines, and polling places with the election office linked in the guide. The guide does not endorse, rank, score, or recommend a vote. It does not ask your party or your values. There is no values-matching mode.
 
-- Endorse, rank, score, or recommend a vote.
-- Act as an official ballot or as the source for registration deadlines and polling places. Those stay as links to your election office.
-- Ask your party or your values. There is no "match my views" mode.
-- Store your street address or ballot photo in git.
+> [!WARNING]
+> **Addresses and reports stay off git.** A street address, if you provide one, is stored only with `scripts/intake.py set-address` in `output/<election-id>/private/address.txt`. `intake.yaml` keeps a label and the path, and does not store the address. `scripts/intake.py confirm` deletes ballot images and PDFs under that `private/` directory after the contest list is extracted. Do not commit `output/`, `private/`, or `.env`. Do not paste a home address, a ballot photo, or a finished guide into a commit, an issue, or a pull request. An offline source bundle, when you asked for one, is for your own reference. Pages in that bundle can be copyrighted. Do not republish them.
 
 **Run it**
 
 ```bash
 ./bootstrap.sh
 ```
-
-Then tell your agent: "Read AGENTS.md and start a guide for this election." Give it the election date and your county, or a sample ballot. Reports land in `output/<election-id>/`. Your address, if you provide one, stays in `output/<election-id>/private/`.
 
 You can practice on the fictional fixture without touching a real ballot:
 
@@ -33,46 +43,61 @@ You can practice on the fictional fixture without touching a real ballot:
 ./scripts/build.sh --workspace examples/sample-election
 ```
 
-Open `examples/sample-election/final/guide.md`. It is fiction. Cedar Hollow, Westland, Avery Quinn, and Blake Okonkwo are not real.
-
-**Privacy.** Do not commit `output/` or `private/`. An offline source bundle, if you asked for one, is for your own reference. Pages in that bundle can be copyrighted. Do not republish them.
-
-**Not an official ballot. Not voting instructions.**
-
-Prior art that shaped the workflow is credited below. The license is MIT, copyright Jeffrey Hopkins.
+Open [examples/sample-election/final/guide.md](examples/sample-election/final/guide.md). It is fiction. Cedar Hollow, Westland, Avery Quinn, and Blake Okonkwo are not real. See [examples/sample-election/README.md](examples/sample-election/README.md).
 
 # Are you an AI agent? Start here
 
-Stop. Read [AGENTS.md](AGENTS.md) and follow it. The checklist at the top of that file is mandatory before you research a ballot. Then read [REVIEW.md](REVIEW.md) and the files in `policy/` that match the role you are playing.
+> [!IMPORTANT]
+> Stop. Read [AGENTS.md](AGENTS.md) and follow it. The checklist at the top of that file is mandatory before you research a ballot. Then read [REVIEW.md](REVIEW.md) and the files in [policy/](policy/) for the role you are playing. [CLAUDE.md](CLAUDE.md) only adds notes for Claude Code. Do not recommend a vote, a ranking, or a score. Do not invent ballot contents, dates, deadlines, or polling places. Do not commit or push `output/`, `private/`, or `.env`. Do not write to this upstream repository as part of a voter-guide run.
 
-Do not recommend a vote. Do not invent ballot contents. Do not commit `output/`, `private/`, or `.env`.
+## Requirements
 
-# What this repository is
+Verify this before research. `./bootstrap.sh` writes the tooling rating to `output/env.md` as **Full**, **Reduced**, or **Minimal**.
 
-Instructions, policies, templates, schemas, and small scripts. The agent does the research. The scripts keep the files valid: schemas, citation markers, symmetry, the review cap, resume, and the HTML/PDF build.
+- **Environment.** You are in a Linux sandbox with a shell. You can install packages, or they are already installed.
+- **Required capabilities.** You can search the web and fetch pages, read and write local files, run shell commands and Python 3, and read PDFs (`pdftotext` from poppler-utils).
+- **Separate contexts.** Spawn parallel subagents so researchers and reviewers work separately. If you cannot, run each role one at a time in a fresh context and say that in the methodology. A sign-off in the same context that drafted the claims is a process gap (`scripts/loop.py signoff --same-context`).
+- **Bootstrap.** Run `./bootstrap.sh` (see the flags below). If an install fails, continue. The environment report keeps the tooling rating and marks that sandbox capability reduced.
+- **Optional API keys.** Copy [.env.example](.env.example) to `.env` if bootstrap did not. Keys: OpenFEC, Google Civic, Democracy Works (key plus URL), Open States, Congress.gov, and LegiScan. Missing keys are disclosed in `output/env.md` and do not lower a Full rating. Scripts exit successfully and tell you to use official pages. Do not invent the data the API would have returned. LegiScan has no client script in v1. Democracy Works is called only when both its key and its URL are set.
+- **Behavior.** Ask the intake questions in [roles/intake.md](roles/intake.md). Get ballot confirmation before research. Cite every factual claim using [policy/citations.md](policy/citations.md). Apply the same template and effort to every candidate. There is no values-matching mode.
+- **Gaps.** If something is missing, tell the requester what the report will lack. Continue only if they say to continue. Record the rating and the gaps in the methodology.
+- **Resume.** If `output/<election-id>/` already exists, run `python3 scripts/resume.py --election-id <election-id>` before any other step.
 
-```bash
-./bootstrap.sh                      # core tools plus yt-dlp, monolith, Chromium, and pa11y
-./bootstrap.sh --with-transcription # also faster-whisper and the Whisper model
-./bootstrap.sh --minimal            # core tools only; skip ffmpeg, yt-dlp, monolith, Chromium, and pa11y
-./bootstrap.sh --check              # report only; exit 2 unless the rating is Full
-```
+Policies in `policy/` are binding. If `AGENTS.md` and a policy disagree, the stricter citation, privacy, or neutrality rule wins. The twelve hard rules, the phase gates, and who may write which file are in [AGENTS.md](AGENTS.md). The correction loop is in [REVIEW.md](REVIEW.md).
 
-`--check` never installs. Whisper stays off unless you pass `--with-transcription` or set `whisper_transcription: true` in `config.yaml`. `whisper_model` (default `base`) is what that opt-in downloads. `--minimal` skips ffmpeg, yt-dlp, monolith, Chromium, and pa11y, and does not cancel `--with-transcription`. A heavy install that fails is reported and bootstrap continues. The tooling rating can stay **Full** while a sandbox capability is **reduced**. `scripts/transcribe.py` tells you how to turn Whisper on when it is not installed.
+> [!IMPORTANT]
+> **Neutrality.** The guide describes the ballot. It does not choose a side. Every candidate in a race gets the same sections, the same questions, and a comparable search. A missing fact stays `Not found (searched: ...)`. `scripts/symmetry_check.py` rejects a missing core section, thin effort, and prose that only swaps a name. Each candidate gets one strongest-case sentence tied to the record. Measure and bill arguments stay close in length. Interest-group ratings appear only as a pair from opposite sides, or they are omitted. The neutrality reviewer reads a blinded draft from `scripts/swap.py` and does not open intake notes. Do not ask what the requester believes. Details: [policy/neutrality.md](policy/neutrality.md).
 
-Ratings:
+> [!IMPORTANT]
+> **Citations.** Every factual sentence, number, quote, date, vote, dollar figure, legal status, and characterization of a position carries a marker such as `[^12]`. The marker resolves to one source on one claim in `claims.yaml`. A `verified` claim needs a T1 source or two independent sources. `single-source` is labeled. `unconfirmed` and `disputed` claims stay out of summaries. Uncited factual text fails the build. `scripts/check_citations.py` enforces [policy/citations.md](policy/citations.md).
 
-- **Full** — Python, pandoc, a PDF engine, poppler, jq, and the virtualenv packages are present.
-- **Reduced** — you can still draft Markdown, but build or schema tools are missing.
-- **Minimal** — the sandbox cannot run the scripts reliably.
+> [!NOTE]
+> **Reader edition, full edition, and the source bundle.** `scripts/assemble.py` writes `final/guide.md` (reader) and `final/guide-full.md` (full). The reader opens with the ballot table, then one contest at a time. It omits template sections that are empty for everyone, collapses a comparison row that is empty for every candidate into one gap sentence, and moves search paths to the search log. Works cited stays in both editions and lists only the markers that edition uses. The full edition adds the marker index and the changelog. `scripts/build.sh` writes HTML and PDF for the reader and, when `guide-full.md` exists, for the full edition.
+>
+> An offline copy of cited pages is a separate bundle. Intake records `offline_archive` (default no). `pending` does not capture anything. When it is `true`, `scripts/archive_sources.py` writes `archive/` and `final/guide-with-sources.zip` (the guide files plus the local copies and `archive/manifest.csv`). The default `archive_tier` is `html-pdf` (HTTP body and a PDF print). `full` also saves a monolith mirror and a screenshot when those tools are installed. A failed fetch is `capture_failed`, with a Wayback copy when one exists.
 
-API keys are optional. The environment report lists them as set or unset and never prints the values. Missing keys do not lower a Full tooling rating; they are disclosed separately because live finance and ballot lookups will be skipped.
+> [!TIP]
+> **Bootstrap flags.** `./bootstrap.sh` installs pandoc, a PDF engine (weasyprint, then wkhtmltopdf), poppler-utils, a virtualenv, the packages in [requirements.txt](requirements.txt), and the sandbox tools: ffmpeg, yt-dlp, monolith, headless Chromium or Chrome, and pa11y. It does not install Whisper.
+>
+> - `./bootstrap.sh --with-transcription` also installs faster-whisper and downloads the model named by `whisper_model` in [config.yaml](config.yaml) (default `base`). The same opt-in is `whisper_transcription: true`. `scripts/transcribe.py` exits with a short message when Whisper is not installed.
+> - `./bootstrap.sh --minimal` skips ffmpeg, yt-dlp, monolith, Chromium, and pa11y. Core build tools still install. `--minimal` does not cancel `--with-transcription`. Built-in HTML checks, HTTP archive copies, and PDF prints still run.
+> - `./bootstrap.sh --check` reports only and exits 2 unless the rating is Full. It never installs.
+>
+> A heavy install that fails is reported and bootstrap continues. The tooling rating can stay **Full** while a sandbox capability is **reduced**.
+
+**Ratings**
+
+`scripts/env_report.py` sets the rating:
+
+- **Full** — bash, git, Python 3.10 or newer, curl, jq, pandoc, poppler (`pdftotext`), a PDF engine, the virtualenv packages, and a `.gitignore` that ignores `output/` and `private/`.
+- **Reduced** — bash, git, Python, and curl are present, and jq, pandoc, pdftotext, a PDF engine, the virtualenv packages, or the `.gitignore` check for `output/` and `private/` is missing.
+- **Minimal** — bash, git, Python, or curl is missing.
 
 # First test session
 
 1. `./bootstrap.sh`
 2. `git check-ignore -v output/private-test private/address.txt` should show those paths ignored. Do not create them in git.
-3. Run the fixture checks:
+3. Run the fixture checks. Continuous integration runs the same pytest suite and the fixture gate on every pull request ([.github/workflows/ci.yml](.github/workflows/ci.yml)). The gate date is pinned to the fixture.
 
 ```bash
 .venv/bin/python -m pytest
@@ -96,25 +121,27 @@ Without `GOOGLE_CIVIC_API_KEY`, lookup writes `skipped_no_api_key` and does not 
 .venv/bin/python scripts/resume.py --election-id demo-session
 ```
 
-`output/demo-session/` stays uncommitted.
+`output/demo-session/` stays uncommitted. Record sharing approval with `scripts/intake.py approve-sharing` before a guide is sent to anyone else. Approval is required before sharing, and it is not required before assembly.
 
 # Layout
 
 | Path | Purpose |
 | --- | --- |
-| `AGENTS.md` | Agent contract, phases, hard rules |
-| `CLAUDE.md` | Pointer for Claude Code |
-| `REVIEW.md` | Correction loop |
-| `policy/` | Sources, citations, neutrality, privacy, legal risk, untrusted content |
-| `roles/` | Who may write which files |
-| `templates/` | Section outlines and JSON Schemas |
-| `scripts/` | Deterministic helpers |
-| `examples/sample-election/` | Fictional worked example |
+| [AGENTS.md](AGENTS.md) | Agent contract, phases, hard rules |
+| [CLAUDE.md](CLAUDE.md) | Pointer for Claude Code |
+| [REVIEW.md](REVIEW.md) | Correction loop |
+| [policy/](policy/) | Sources, citations, neutrality, privacy, legal risk, truth-seeking, untrusted content |
+| [roles/](roles/) | Who may write which files |
+| [templates/](templates/) | Section outlines and JSON Schemas |
+| [scripts/](scripts/) | Deterministic helpers |
+| [examples/sample-election/](examples/sample-election/) | Fictional worked example |
+| [config.yaml](config.yaml) | Defaults for rounds, staleness, effort parity, and the choices below |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to change the tool. Guides are not pull requests |
 | `output/` | Git-ignored run directory |
 
 # Defaults for open choices
 
-These match `config.yaml`.
+These match [config.yaml](config.yaml). Python 3.10 or newer ([pyproject.toml](pyproject.toml)).
 
 | Topic | Choice |
 | --- | --- |
@@ -125,11 +152,11 @@ These match `config.yaml`.
 | Legislation | Off unless intake says `include_legislation: true` and lists topics |
 | PDF engine | weasyprint, then wkhtmltopdf |
 | Transcripts | Opt-in via `--with-transcription` or `whisper_transcription: true`. Model is `whisper_model` (default `base`) |
-| Offline captures | HTTP body and PDF always. Monolith and a screenshot install by default; `--minimal` skips them |
-| Accessibility | Built-in HTML checks always. pa11y installs by default; `--minimal` skips it |
+| Offline captures | HTTP body and PDF always when `offline_archive` is true. Monolith and a screenshot install by default; `--minimal` skips them |
+| Accessibility | Built-in HTML checks always. pa11y installs by default; `--minimal` skips it. An installed checker that reports errors fails the build |
 | Languages | English in v1 |
 | Human sign-off | Required before sharing, not before assembly |
-| Strongest case | One cited sentence per candidate, plus equal-length arguments on measures and bills |
+| Strongest case | One cited sentence per candidate. Measure and bill arguments stay close in length |
 | Interest-group ratings | A pair from opposite sides, or omit |
 
 # Credits

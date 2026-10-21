@@ -1,0 +1,50 @@
+# README badge: https://github.com/jeffmhopkins/PoliticalResearch/actions/workflows/ci.yml/badge.svg
+# The filename is the badge path. Keep this file at .github/workflows/ci.yml.
+# Draft pull requests run these jobs. The badge on main updates after a run on the default branch.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install core build tools
+        # Matches a non-browser bootstrap: pandoc, poppler, and the apt weasyprint
+        # package. No Chromium, pa11y, monolith, ffmpeg, or yt-dlp.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pandoc poppler-utils weasyprint
+
+      - name: Install Python dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -r requirements.txt
+
+      - name: Run pytest
+        run: .venv/bin/python -m pytest
+
+      - name: Run the sample-election fixture gate
+        # Pinned to the fixture's assembly date so staleness does not follow the runner clock.
+        run: .venv/bin/python scripts/validate.py --workspace examples/sample-election --gate --today 2026-10-20
