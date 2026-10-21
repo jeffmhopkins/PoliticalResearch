@@ -719,7 +719,7 @@ Blake Okonkwo of Cedar Hollow spoke at the September 20, 2026 library forum[^16]
 
 #### Attendance: Avery Quinn {#detail-race-mayor-attendance-avery-quinn}
 
-The clerk roll does not give a reason for the meeting Avery Quinn of Cedar Hollow missed[^60].
+Avery Quinn of Cedar Hollow attended 11 of 12 council meetings in 2025, and the council median was 10 of 12[^60].
 
 #### Eligible through: Avery Quinn {#detail-race-mayor-eligible-through-avery-quinn}
 

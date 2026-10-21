@@ -1314,6 +1314,101 @@ def _is_gap_text(text: str) -> bool:
     return all(_gap_sentence(part) for part in sentences)
 
 
+def _has_gap_line(text: str) -> bool:
+    """True when a sentence is the structured gap line, not merely the words "not found"."""
+    if _is_gap_text(text):
+        return bool(_sentences(text))
+    for sentence in split_sentences(_bind_trailing_markers((text or "").replace("\n", " "))):
+        if _gap_sentence(MARKER_RE.sub("", sentence)):
+            return True
+    return False
+
+
+def _factual_markers(text: str) -> set[int]:
+    """Markers on sentences that are not structured gap lines."""
+    found: set[int] = set()
+    body = HTML_COMMENT_RE.sub("", text or "")
+    for sentence in split_sentences(_bind_trailing_markers(body.replace("\n", " "))):
+        if _gap_sentence(MARKER_RE.sub("", sentence)):
+            continue
+        found.update(int(number) for number in MARKER_RE.findall(sentence))
+    return found
+
+
+_MONTH_NAMES = (
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)
+
+
+def iso_date_appears(iso: str, text: str) -> bool:
+    """The full calendar day is in the text. The year alone does not count."""
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", iso or ""):
+        return False
+    if re.search(rf"(?<!\d){re.escape(iso)}(?!\d)", text or ""):
+        return True
+    year, month, day = (int(part) for part in iso.split("-"))
+    if not 1 <= month <= 12 or not 1 <= day <= 31:
+        return False
+    month_name = _MONTH_NAMES[month - 1]
+    long_form = rf"\b{month_name}\s+0?{day}\b,\s+{year}\b"
+    return re.search(long_form, text or "", re.IGNORECASE) is not None
+
+
+def _sources_for_markers(doc: dict, markers: set[int]) -> list[dict]:
+    if not markers:
+        return []
+    found = []
+    for claim, source in iter_claim_sources(doc):
+        marker = source_marker(claim, source)
+        if marker in markers:
+            found.append(source)
+    return found
+
+
+def _source_blob(source: dict) -> str:
+    return " ".join(str(source.get(key) or "") for key in ("doc_type", "title", "publisher")).lower()
+
+
+def _is_newspaper_source(source: dict) -> bool:
+    return re.search(r"\b(?:newspaper|news article)\b", _source_blob(source)) is not None
+
+
+def _is_official_party_source(source: dict) -> bool:
+    """A T1 ballot, elections office, filing, or voter-registration record. Not a news source."""
+    if str(source.get("tier") or "") != "T1":
+        return False
+    if _is_newspaper_source(source):
+        return False
+    return re.search(r"\b(?:ballot|elections?|filing|registration|voter)\b", _source_blob(source)) is not None
+
+
+def _is_staff_analysis_source(source: dict) -> bool:
+    blob = f"{source.get('doc_type') or ''} {source.get('title') or ''}".lower()
+    return "staff analysis" in blob
+
+
+def _money_value_ok(value: str) -> bool:
+    """A finance bucket is a number with a citation, or a structured gap. Filler is neither."""
+    text = str(value or "").strip()
+    if not text:
+        return False
+    if _has_gap_line(text) or _is_gap_text(text):
+        return True
+    plain = MARKER_RE.sub("", text)
+    return "[^" in text and re.search(r"\d", plain) is not None
+
+
 def _banner_key(sentence: str) -> str:
     text = re.sub(r"[*_>`]", "", sentence).lower()
     text = re.sub(r"[^a-z0-9]+", " ", text)
@@ -2724,22 +2819,39 @@ def party_record_errors(workspace) -> list[str]:
                 if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", when):
                     errors.append(f"{item.name}: a party change needs an ISO date")
                     continue
-                if when not in body and when[:4] not in body:
+                if not iso_date_appears(when, body):
                     errors.append(f"{item.name}: party change on {when} is not in the party section")
-            if not (party.get("changes") or []) and "not found" not in body.lower() and "party change" not in body.lower():
+            if not (party.get("changes") or []) and not _has_gap_line(body) and "party change" not in body.lower():
                 errors.append(
                     f"{item.name}: party changes in the last 10 years need a cited change or a not-found line"
                 )
             if "[^" not in display and not _is_gap_text(body):
                 errors.append(f"{item.name}: party.display needs the citation marker for the ballot label")
-        claims = _party_claims(doc)
-        if claims and not any(
-            source.get("tier") == "T1"
-            for claim in claims
-            for source in (claim.get("sources") or [])
-            if isinstance(source, dict)
-        ):
-            errors.append(f"{item.name}: party needs an official T1 source from the ballot, elections office, filing, or registration")
+        errors.extend(_party_official_source_errors(item.name, doc, body, party if isinstance(party, dict) else {}))
+    return errors
+
+
+def _party_official_source_errors(item_name: str, doc: dict, body: str, party: dict) -> list[str]:
+    """The party section's own citations must be official. A source_kind or display line is not that citation."""
+    errors = []
+    cited = _sources_for_markers(doc, _factual_markers(body))
+    display = str(party.get("display") or "")
+    display_sources = _sources_for_markers(doc, _factual_markers(display))
+    tagged = []
+    for claim in _party_claims(doc):
+        for source in claim.get("sources") or []:
+            if isinstance(source, dict):
+                tagged.append(source)
+    for source in cited + display_sources + tagged:
+        if str(source.get("tier") or "") == "T3" or _is_newspaper_source(source):
+            errors.append(
+                f"{item_name}: party cites a T3 or newspaper source; the party section needs an official T1 citation from the ballot, elections office, filing, or registration"
+            )
+            break
+    if not _is_gap_text(body) and not any(_is_official_party_source(source) for source in cited):
+        errors.append(
+            f"{item_name}: party section needs an official T1 citation from the ballot, elections office, filing, or registration"
+        )
     return errors
 
 
@@ -2765,7 +2877,7 @@ def endorsement_record_errors(workspace) -> list[str]:
             if str(record.get("endorser") or "").strip() and str(record.get("endorser")) not in str(claim.get("text") or ""):
                 errors.append(f"{item.name}: {claim.get('id')} does not name the endorser in the claim text")
             when = str(record.get("date") or "")
-            if when and when[:4] not in draft and when not in draft:
+            if when and not iso_date_appears(when, draft):
                 errors.append(f"{item.name}: {claim.get('id')} endorsement date {when} is not in the draft")
         endorsements_body = sections.get("endorsements", "")
         if endorsements_body and _is_gap_text(endorsements_body):
@@ -2810,7 +2922,7 @@ def measure_side_errors(workspace) -> list[str]:
             if role in roles:
                 continue
             body = gaps.get(role, "")
-            if body and (_is_gap_text(body) or "not found" in body.lower()):
+            if _has_gap_line(body):
                 continue
             errors.append(f"{item.name}: measure side '{role}' needs a cited organization or a not-found line")
     return errors
@@ -2827,6 +2939,10 @@ def legislation_depth_errors(workspace) -> list[str]:
         if not draft_path.exists():
             continue
         sections = section_map(draft_path.read_text(encoding="utf-8"))
+        model = sections.get("drafting and model legislation", "")
+        if model and not _is_gap_text(model) and re.search(r"\b(?:ALEC|model bill)\b", model, re.IGNORECASE):
+            if "[^" not in model:
+                errors.append(f"{item.name}: a model-legislation origin needs a citation")
         sponsors = sections.get("sponsors and cosponsors", "")
         if not sponsors or _section_is_scaffold(sponsors) or _is_gap_text(sponsors):
             continue
@@ -2838,11 +2954,18 @@ def legislation_depth_errors(workspace) -> list[str]:
             re.IGNORECASE,
         ):
             errors.append(f"{item.name}: sponsors need a party or a not-found line")
-        model = sections.get("drafting and model legislation", "")
-        if model and not _is_gap_text(model) and re.search(r"\b(?:ALEC|model bill)\b", model, re.IGNORECASE):
-            if "[^" not in model:
-                errors.append(f"{item.name}: a model-legislation origin needs a citation")
     return errors
+
+
+_PARTY_COLOR_RE = re.compile(
+    r"party[-_\s]?(?:democrat(?:ic)?|republican|dem|rep|blue|red|d|r)\b"
+    r"|(?:democrat(?:ic)?|republican)[-_\s](?:red|blue)\b"
+    r"|color\s*:\s*(?:#(?:ff0000|0000ff|0000ee|f00|00f)\b|red\b|blue\b|darkred\b|darkblue\b|crimson\b|navy\b)"
+    r"|#(?:ff0000|0000ff|0000ee)\b"
+    r"|rgb\(\s*255\s*,\s*0\s*,\s*0\s*\)"
+    r"|rgb\(\s*0\s*,\s*0\s*,\s*(?:238|255)\s*\)",
+    re.IGNORECASE,
+)
 
 
 def rendered_party_errors(workspace) -> list[str]:
@@ -2852,7 +2975,7 @@ def rendered_party_errors(workspace) -> list[str]:
         return []
     text = guide_path.read_text(encoding="utf-8")
     errors = []
-    if re.search(r"party-(?:democrat|republican)|color:\s*#(?:ff0000|0000ff|0000ee)\b", text, re.IGNORECASE):
+    if _PARTY_COLOR_RE.search(text):
         errors.append("final/guide.md: party is colored or classed by party")
     ballot = load_yaml(workspace / "ballot.yaml") or {}
     contests = [contest for contest in (ballot.get("contests") or []) if isinstance(contest, dict)] if isinstance(ballot, dict) else []
@@ -2935,6 +3058,8 @@ def _candidate_depth_errors(item_name: str, item: Path, doc: dict, sections: dic
         )
         lowered = funding.lower()
         for needle, label in needed:
+            if needle == "pac":
+                continue
             if needle == "self-fund":
                 if "self-fund" not in lowered and "loan" not in lowered:
                     errors.append(f"{item_name}: campaign funding is missing {label}")
@@ -2951,8 +3076,17 @@ def _candidate_depth_errors(item_name: str, item: Path, doc: dict, sections: dic
         errors.append(f"{item_name}: profile.yaml money needs the shared finance breakdown")
     else:
         for key in FINANCE_KEYS:
-            if not str(money.get(key) or "").strip():
+            raw = str(money.get(key) or "").strip()
+            if not raw:
                 errors.append(f"{item_name}: profile.yaml money.{key} is empty")
+            elif not _money_value_ok(raw):
+                errors.append(
+                    f"{item_name}: profile.yaml money.{key} must be a number with a source, or a gap"
+                )
+    if funding and not _is_gap_text(funding):
+        pac_field = str(money.get("pac_money") or "") if isinstance(money, dict) else ""
+        if not re.search(r"\bpac\b|political action committee", funding, re.IGNORECASE) and not _money_value_ok(pac_field):
+            errors.append(f"{item_name}: campaign funding is missing PAC money")
     outside = _require_real_section(errors, item_name, sections, "outside spending", True)
     if outside and not _is_gap_text(outside):
         if "independent expenditure" not in outside.lower() and "outside spending" not in outside.lower():
@@ -3035,19 +3169,11 @@ def _legislation_depth_fields(item_name: str, doc: dict, sections: dict, distric
         "staff analysis",
     ):
         _require_real_section(errors, item_name, sections, name, True)
-    staff_sources = False
-    for claim in doc.get("claims") or []:
-        if not isinstance(claim, dict):
-            continue
-        for source in claim.get("sources") or []:
-            if not isinstance(source, dict):
-                continue
-            blob = f"{source.get('doc_type') or ''} {source.get('title') or ''}".lower()
-            if "staff analysis" in blob:
-                staff_sources = True
     staff_body = sections.get("staff analysis", "")
-    if not staff_sources and not (_is_gap_text(staff_body) or "not found" in staff_body.lower()):
-        errors.append(f"{item_name}: a bill needs a House or Senate staff analysis source, or a not-found line")
+    if staff_body and not _section_is_scaffold(staff_body) and not _is_gap_text(staff_body):
+        cited = _sources_for_markers(doc, _factual_markers(staff_body))
+        if not any(_is_staff_analysis_source(source) for source in cited):
+            errors.append(f"{item_name}: a bill needs a House or Senate staff analysis source, or a not-found line")
     changes = sections.get("section-by-section changes", "")
     if changes and not _is_gap_text(changes) and not _section_is_scaffold(changes):
         if "section" not in changes.lower():
@@ -3072,7 +3198,7 @@ def _legislation_depth_fields(item_name: str, doc: dict, sections: dict, distric
         lowered = similar.lower()
         if "ncsl" not in lowered and "oppaga" not in lowered:
             errors.append(f"{item_name}: similar laws cite NCSL or OPPAGA, or a not-found line")
-        if len(re.findall(r"\[\^\d+\]", similar)) < 2:
+        if len(set(re.findall(r"\[\^(\d+)\]", similar))) < 2:
             errors.append(f"{item_name}: a similar-law outcome needs two independent sources")
     legal = sections.get("legal and constitutional challenges", "")
     if legal and not _is_gap_text(legal) and re.search(r"\b(?:likely|probably)\b", legal, re.IGNORECASE):

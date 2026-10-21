@@ -10,7 +10,7 @@ import re
 from urllib.parse import quote
 
 from portals.base import PortalResult
-from portals.bill_parse import is_session_picker, links_matching, plain, table_with_headers
+from portals.bill_parse import bill_code, is_session_picker, links_matching, plain, table_with_headers
 from portals.fetch import PortalFetchError
 
 DEFAULT_BASE = "https://www.flsenate.gov"
@@ -27,9 +27,8 @@ _PARTY = {
 
 
 def bill_url(session: str, bill: str, base_url: str = DEFAULT_BASE) -> str:
-    number = re.sub(r"\s+", "", bill or "")
-    number = re.sub(r"^(?:SB|HB|CS/SB|CS/HB)", "", number, flags=re.IGNORECASE)
-    return f"{base_url.rstrip('/')}/Session/Bill/{quote(str(session))}/{quote(number)}"
+    """Keep HB or SB in the path. A bare number would open the other chamber's bill."""
+    return f"{base_url.rstrip('/')}/Session/Bill/{quote(str(session))}/{quote(bill_code(bill))}"
 
 
 def parse_senate_bill(page: str, url: str = "") -> dict:

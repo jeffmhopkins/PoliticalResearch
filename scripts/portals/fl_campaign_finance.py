@@ -15,7 +15,22 @@ from portals.fetch import PortalFetchError
 DEFAULT_BASE = "https://dos.elections.myflorida.com"
 CONTRIBUTIONS_PATH = "/campaign-finance/contributions/"
 _MARKERS = ("contributor", "amount")
-_ADDRESS = re.compile(r"\b(?:street|avenue|boulevard|road|drive|lane|p\.?\s*o\.?\s*box)\b", re.IGNORECASE)
+# The whole street span, not the suffix word. "12 Oak Street" leaves the name.
+_STREET_ADDRESS = re.compile(
+    r",?\s*\b(?:\d+[A-Za-z]?)\s+(?:[A-Za-z0-9.'#-]+\s+){0,8}"
+    r"(?:street|st|avenue|ave|boulevard|blvd|road|rd|drive|dr|lane|ln|court|ct|"
+    r"circle|cir|place|pl|terrace|ter|parkway|pkwy|highway|hwy|way|trail|trl)\b\.?",
+    re.IGNORECASE,
+)
+_PO_BOX = re.compile(r",?\s*\bP\.?\s*O\.?\s*Box\s+\d+\b", re.IGNORECASE)
+
+
+def strip_street_address(value: str) -> str:
+    """Drop a street address from a contributor cell. The person's name stays."""
+    text = _STREET_ADDRESS.sub(" ", value or "")
+    text = _PO_BOX.sub(" ", text)
+    text = re.sub(r"\s+,", ",", text)
+    return re.sub(r"\s+", " ", text).strip(" ,")
 
 
 def contributions_url(base_url: str = DEFAULT_BASE) -> str:
@@ -26,12 +41,9 @@ def parse_contributions(page: str, url: str = "") -> dict:
     record = {"source": "Florida Division of Elections", "url": url, "contributions": [], "notes": []}
     rows = table_with_headers(page, ("contributor", "amount"))
     for row in rows:
-        contributor = row.get("contributor") or ""
-        if _ADDRESS.search(contributor):
-            contributor = _ADDRESS.sub("", contributor).strip(" ,")
         record["contributions"].append(
             {
-                "contributor": contributor,
+                "contributor": strip_street_address(row.get("contributor") or ""),
                 "candidate": row.get("candidate") or row.get("recipient") or "",
                 "date": row.get("date") or "",
                 "amount": row.get("amount") or "",

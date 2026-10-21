@@ -11,7 +11,7 @@ import re
 from urllib.parse import urlencode
 
 from portals.base import PortalResult
-from portals.bill_parse import is_session_picker, plain, table_with_headers
+from portals.bill_parse import bill_chamber, bill_number, is_session_picker, plain, table_with_headers
 from portals.fetch import PortalFetchError
 
 DEFAULT_BASE = "https://www.myfloridahouse.gov"
@@ -28,8 +28,10 @@ _PARTY = {
 
 
 def search_url(session: str, bill: str, base_url: str = DEFAULT_BASE) -> str:
-    number = re.sub(r"\D", "", bill or "")
-    query = urlencode({"SessionId": session, "BillNumber": number, "BillType": "HB"})
+    """BillType follows the requested chamber. An SB lookup must not ask for HB."""
+    query = urlencode(
+        {"SessionId": session, "BillNumber": bill_number(bill), "BillType": bill_chamber(bill)}
+    )
     return f"{base_url.rstrip('/')}/Sections/Bills/billsdetail.aspx?{query}"
 
 

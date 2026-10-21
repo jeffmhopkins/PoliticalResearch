@@ -42,21 +42,65 @@ def html_tables(page: str) -> list[list[list[str]]]:
     return tables
 
 
+def bill_code(bill: str) -> str:
+    """Chamber prefix plus number, such as HB18 or CS/SB18. A bare number stays numeric."""
+    compact = re.sub(r"\s+", "", bill or "").upper()
+    match = re.search(r"((?:CS/)?(?:HB|SB)\d+[A-Z]?)", compact)
+    if match:
+        return match.group(1)
+    return re.sub(r"\D", "", compact)
+
+
+def bill_chamber(bill: str) -> str:
+    """HB or SB from the bill id. Empty when the text does not name a chamber."""
+    code = bill_code(bill)
+    if re.search(r"HB\d", code):
+        return "HB"
+    if re.search(r"SB\d", code):
+        return "SB"
+    return ""
+
+
+def bill_number(bill: str) -> str:
+    match = re.search(r"(\d+[A-Z]?)$", bill_code(bill))
+    return match.group(1) if match else ""
+
+
+def title_chamber(title: str) -> str:
+    """HB or SB printed on a bill title. Empty when the title does not name one."""
+    match = re.search(r"\b(HB|SB)\s*\d", title or "", re.IGNORECASE)
+    return match.group(1).upper() if match else ""
+
+
+def bill_token(value: str) -> str:
+    """Comparable id: HB18 and 'HB 18' are the same token. The other chamber is not."""
+    compact = re.sub(r"[^A-Za-z0-9]", "", value or "").upper()
+    match = re.search(r"((?:HB|SB)\d+)", compact)
+    return match.group(1) if match else ""
+
+
 def table_with_headers(page: str, required: tuple[str, ...]) -> list[dict[str, str]]:
-    """Rows from the first table whose header contains every required label."""
+    """Rows from the first table whose header contains every required label.
+
+    Every column is kept. A caller that asks for contributor and amount still
+    receives date, candidate, bill, and position when those headers are present.
+    """
     wanted = tuple(label.lower() for label in required)
     for table in html_tables(page):
         header = [cell.lower() for cell in table[0]]
         if not all(any(label in cell for cell in header) for label in wanted):
             continue
-        indexes = []
-        for label in wanted:
-            indexes.append(next(index for index, cell in enumerate(header) if label in cell))
         found = []
         for row in table[1:]:
-            record = {}
-            for label, index in zip(wanted, indexes):
-                record[label] = row[index] if index < len(row) else ""
+            record: dict[str, str] = {}
+            for index, cell in enumerate(header):
+                value = row[index] if index < len(row) else ""
+                key = re.sub(r"\s+", " ", cell).strip()
+                if key:
+                    record[key] = value
+                for label in wanted:
+                    if label in cell:
+                        record.setdefault(label, value)
             if any(record.values()):
                 found.append(record)
         return found

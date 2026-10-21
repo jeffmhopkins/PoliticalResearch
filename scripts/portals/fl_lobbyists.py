@@ -10,7 +10,7 @@ from __future__ import annotations
 from urllib.parse import quote
 
 from portals.base import PortalResult, classify_search_page
-from portals.bill_parse import is_session_picker, table_with_headers
+from portals.bill_parse import bill_token, is_session_picker, table_with_headers
 from portals.fetch import PortalFetchError
 
 SENATE_BASE = "https://www.flsenate.gov"
@@ -22,6 +22,22 @@ def senate_lobbyist_url(session: str, base_url: str = SENATE_BASE) -> str:
     return f"{base_url.rstrip('/')}/Session/Lobbyist/{quote(str(session))}"
 
 
+def _column(row: dict, *names: str) -> str:
+    for name in names:
+        for key, value in row.items():
+            if name in key:
+                return value
+    return ""
+
+
+def lobbyists_for_bill(rows: list[dict], bill: str) -> list[dict]:
+    """Keep the registration that names this bill. Other bills in the index stay out."""
+    target = bill_token(bill)
+    if not target:
+        return []
+    return [row for row in rows if bill_token(str(row.get("bill") or "")) == target]
+
+
 def parse_lobbyist_page(page: str, url: str = "") -> dict:
     record = {"source": "Florida lobbyist registration", "url": url, "lobbyists": [], "notes": []}
     if is_session_picker(page):
@@ -29,13 +45,12 @@ def parse_lobbyist_page(page: str, url: str = "") -> dict:
         return record
     rows = table_with_headers(page, ("lobbyist", "principal"))
     for row in rows:
-        position = row.get("position") or row.get("stance") or ""
         record["lobbyists"].append(
             {
-                "lobbyist": row.get("lobbyist") or "",
-                "principal": row.get("principal") or "",
-                "bill": row.get("bill") or "",
-                "position": position,
+                "lobbyist": _column(row, "lobbyist"),
+                "principal": _column(row, "principal"),
+                "bill": _column(row, "bill"),
+                "position": _column(row, "position", "stance"),
             }
         )
     if not record["lobbyists"]:

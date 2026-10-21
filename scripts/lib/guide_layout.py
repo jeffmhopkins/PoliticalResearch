@@ -65,12 +65,18 @@ _DISTRICT_SHARE_RE = re.compile(r"in-district|in district", re.IGNORECASE)
 _PAC_RE = re.compile(r"\bPAC\b|political action committee", re.IGNORECASE)
 _PARTY_MONEY_RE = re.compile(r"party committee|party money", re.IGNORECASE)
 _OUTSIDE_RE = re.compile(r"outside spending|independent expenditure", re.IGNORECASE)
-_ATTENDANCE_RE = re.compile(r"\b(?:median|missed|attended)\b", re.IGNORECASE)
+_ATTENDANCE_RE = re.compile(
+    r"\b\d+\s+of\s+\d+\b[\s\S]{0,160}?\bmedian\b|\bmedian\b[\s\S]{0,160}?\b\d+\s+of\s+\d+\b",
+    re.IGNORECASE,
+)
 _ELIGIBLE_RE = re.compile(r"eligible through", re.IGNORECASE)
 _PROMISE_RE = re.compile(r"status is", re.IGNORECASE)
 _REPORT_DATE_RE = re.compile(r"quarter|filed on|report date|as of", re.IGNORECASE)
 _PARTY_RE = re.compile(r"incumbent|challenger|nonpartisan|party", re.IGNORECASE)
-_PARTY_CHANGE_RE = re.compile(r"party change|changed party|from Republican|from Democratic", re.IGNORECASE)
+_PARTY_CHANGE_RE = re.compile(
+    r"party change|changed party|(?:from|to)\s+(?!the\b|a\b|an\b|that\b|this\b|his\b|her\b|their\b|its\b)[A-Za-z][\w'-]+",
+    re.IGNORECASE,
+)
 _RHETORIC_LABEL_RE = re.compile(r"\b(?:MATCH|CONTRADICTION|NO RECORD)\b")
 _TERM_LENGTH_RE = re.compile(r"\b(?:\d+-year\s+term|term\s+of\s+\d+)\b", re.IGNORECASE)
 _SEATS_RE = re.compile(
@@ -2174,7 +2180,22 @@ def _excerpt_for_hint(plain: str, hint: str) -> str:
         )
         if match:
             return match.group(0).strip()
+    if "attendance" in lowered:
+        excerpt = _attendance_excerpt(plain)
+        if excerpt:
+            return excerpt
     return plain
+
+
+def _attendance_excerpt(plain: str) -> str | None:
+    """The count and the chamber median. A shorter absence sentence is not this fact."""
+    counts = list(re.finditer(r"\d+\s+of\s+\d+", plain or "", re.IGNORECASE))
+    median = re.search(r"\bmedian\b", plain or "", re.IGNORECASE)
+    if not counts or not median:
+        return None
+    start = min(median.start(), min(match.start() for match in counts))
+    end = max(median.end(), max(match.end() for match in counts))
+    return plain[start:end].strip(" ,;")
 
 
 def _cell(text: str) -> str:

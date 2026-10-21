@@ -6,9 +6,10 @@ Open States and Congress.gov stay in their own scripts and run only with a key.
 
 from __future__ import annotations
 
+from portals.bill_parse import bill_chamber, title_chamber
 from portals.fl_campaign_finance import FloridaCampaignFinance
 from portals.fl_house import FloridaHouseBills
-from portals.fl_lobbyists import FloridaLobbyistRegistration
+from portals.fl_lobbyists import FloridaLobbyistRegistration, lobbyists_for_bill
 from portals.fl_senate import FloridaSenateBills
 
 
@@ -59,11 +60,27 @@ def collect_legislation(state: str, bill: str, session: str, fetcher, *, base_ur
     bases = base_urls or {}
     record = empty_import("FL", bill, session)
     record["status"] = "unreviewed_import"
+    kind = bill_chamber(bill)
     senate, senate_result = FloridaSenateBills(bases.get("senate", "")).fetch_bill(fetcher, session, bill)
     house, house_result = FloridaHouseBills(bases.get("house", "")).fetch_bill(fetcher, session, bill)
-    chosen = senate if (senate.get("sponsors") or senate.get("actions") or senate.get("title")) else house
-    if not (chosen.get("sponsors") or chosen.get("actions") or chosen.get("title")):
-        chosen = senate if senate.get("notes") else house
+    # HB comes from the House page and SB from the Senate page. A page whose
+    # title names the other chamber is not stored, even when that page loaded.
+    if kind == "HB":
+        chosen = house
+    elif kind == "SB":
+        chosen = senate
+    else:
+        chosen = {}
+        record["notes"].append(
+            "The bill id needs an HB or SB prefix. Neither chamber's bill was stored."
+        )
+    found = title_chamber(str(chosen.get("title") or ""))
+    if kind and found != kind:
+        if chosen.get("title") or chosen.get("sponsors"):
+            record["notes"].append(
+                "The fetched page was the other chamber's bill and was not stored."
+            )
+        chosen = {}
     record["title"] = chosen.get("title") or ""
     record["sponsors"] = list(chosen.get("sponsors") or [])
     record["actions"] = list(chosen.get("actions") or [])
@@ -76,7 +93,7 @@ def collect_legislation(state: str, bill: str, session: str, fetcher, *, base_ur
     )
     record["notes"].extend(chosen.get("notes") or [])
     lobby, lobby_result = FloridaLobbyistRegistration(bases.get("lobbyists", "")).fetch_session(fetcher, session)
-    record["lobbyists"] = list(lobby.get("lobbyists") or [])
+    record["lobbyists"] = lobbyists_for_bill(list(lobby.get("lobbyists") or []), bill)
     record["notes"].extend(lobby.get("notes") or [])
     record["sources"].append(
         {"adapter": "fl_lobbyists", "status": lobby_result.status, "note": lobby_result.note, "citations": list(lobby_result.citations)}
