@@ -5,13 +5,17 @@ election_id: fictional-cedar-hollow-2026
 build_date: 2026-10-20
 edition: full
 fiction: true
+election_name: "Cedar Hollow general election"
+election_date: "November 3, 2026"
+jurisdiction: "Cedar Hollow, Oak County, Westland"
+sources_edition: false
 ---
 
 > **FICTIONAL EXAMPLE:** the places, people, measures, and documents in this guide are invented, sources on fictional.example are placeholders and not real records, and this is not a voting guide.
 
 > **Not an official ballot and not voting instructions:** confirm contests, deadlines, and polling places with the election office linked below.
 
-# Cedar Hollow general election, 2026-11-03
+# Cedar Hollow general election, November 3, 2026 {.guide-title}
 
 # Official election office links
 
@@ -21,16 +25,12 @@ Use the official election office, not this guide, for dates, deadlines, and poll
 
 Not found (searched: precinct code and district list on the confirmed ballot).
 
-::: landscape
+# Your ballot at a glance {#your-ballot-at-a-glance .ballot-glance}
 
-# Your ballot at a glance {#your-ballot-at-a-glance}
-
-| Item | Type | Choices | Incumbent | Summary | Link |
-| --- | --- | --- | --- | --- | --- |
-| Mayor of Cedar Hollow | nonpartisan race | Avery Quinn (nonpartisan, incumbent), Blake Okonkwo (nonpartisan) | Avery Quinn | Two people are running for mayor of Cedar Hollow. Avery Quinn of Cedar Hollow is the current...<a id="cite-32"></a>[<sup>32</sup>](guide-full-sources.md#source-32)<a id="cite-33"></a>[<sup>33</sup>](guide-full-sources.md#source-33)<a id="cite-34"></a>[<sup>34</sup>](guide-full-sources.md#source-34)<a id="cite-35"></a>[<sup>35</sup>](guide-full-sources.md#source-35) [detail](guide-full-sources.md#detail-race-mayor-summary) | [Mayor of Cedar Hollow](#contest-race-mayor) |
-| Measure H, Cedar Hollow parks levy | measure | Yes or No | Not found | Measure H asks Cedar Hollow voters about a parks levy. A levy is a tax the ballot asks...<a id="cite-20"></a>[<sup>20</sup>](guide-full-sources.md#source-20)[<sup>20</sup>](guide-full-sources.md#source-20)<a id="cite-23"></a>[<sup>23</sup>](guide-full-sources.md#source-23)<a id="cite-24"></a>[<sup>24</sup>](guide-full-sources.md#source-24) [detail](guide-full-sources.md#detail-measure-h-summary) | [Measure H, Cedar Hollow parks levy](#contest-measure-h) |
-
-:::
+| Contest | Summary | Read |
+| --- | --- | --- |
+| **Mayor of Cedar Hollow**<br>nonpartisan race<br>Avery Quinn (nonpartisan, incumbent), Blake Okonkwo (nonpartisan)<br>Incumbent: Avery Quinn | Two people are running for mayor of Cedar Hollow. Avery Quinn of Cedar Hollow is the current...<a id="cite-32"></a>[<sup>32</sup>](guide-full-sources.md#source-32)<a id="cite-33"></a>[<sup>33</sup>](guide-full-sources.md#source-33)<a id="cite-34"></a>[<sup>34</sup>](guide-full-sources.md#source-34)<a id="cite-35"></a>[<sup>35</sup>](guide-full-sources.md#source-35) [detail](guide-full-sources.md#detail-race-mayor-summary) | [Mayor of Cedar Hollow](#contest-race-mayor) |
+| **Measure H, Cedar Hollow parks levy**<br>measure<br>Yes or No | Measure H asks Cedar Hollow voters about a parks levy. A levy is a tax the ballot asks...<a id="cite-20"></a>[<sup>20</sup>](guide-full-sources.md#source-20)[<sup>20</sup>](guide-full-sources.md#source-20)<a id="cite-23"></a>[<sup>23</sup>](guide-full-sources.md#source-23)<a id="cite-24"></a>[<sup>24</sup>](guide-full-sources.md#source-24) [detail](guide-full-sources.md#detail-measure-h-summary) | [Measure H, Cedar Hollow parks levy](#contest-measure-h) |
 
 # How to read this guide
 
@@ -59,15 +59,20 @@ One source means one record supports the sentence. An allegation stays labeled a
 
 Not found (searched: shared issue rows recorded for at least two candidates in profile.yaml).
 
-::: landscape
-
 ## Measures side by side
 
-| Measure | Type | Threshold | What a yes vote does | What a no vote does | Fiscal impact | Sunset or renewal | Funding by side |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Measure H, Cedar Hollow parks levy | Measure H is a referral<a id="cite-21"></a>[<sup>21</sup>](guide-full-sources.md#source-21) [detail](guide-full-sources.md#detail-measure-h-type) | Westland's 2019 levy rule says the measure passes with more than half the votes cast on it<a id="cite-26"></a>[<sup>26</sup>](guide-full-sources.md#source-26) [detail](guide-full-sources.md#detail-measure-h-threshold) | A yes vote replaces the expiring parks levy at the same rate[<sup>23</sup>](guide-full-sources.md#source-23) [detail](guide-full-sources.md#detail-measure-h-what-a-yes-vote-does) | A no vote lets the current parks levy expire after the 2026 tax year[<sup>24</sup>](guide-full-sources.md#source-24) [detail](guide-full-sources.md#detail-measure-h-what-a-no-vote-does) | The Westland fiscal office note, dated August 1, 2026, estimates 1.2 million dollars a year...<a id="cite-25"></a>[<sup>25</sup>](guide-full-sources.md#source-25)<a id="cite-31"></a>[<sup>31</sup>](guide-full-sources.md#source-31) [detail](guide-full-sources.md#detail-measure-h-fiscal-impact) | Not found | Yes on H reported 20000 dollars in receipts for the quarter that ended September 30, 2026<a id="cite-27"></a>[<sup>27</sup>](guide-full-sources.md#source-27) [detail](guide-full-sources.md#detail-measure-h-funding-by-side) |
+### Measure H, Cedar Hollow parks levy
 
-:::
+| Topic | Fact |
+| --- | --- |
+| Type | Measure H is a referral<a id="cite-21"></a>[<sup>21</sup>](guide-full-sources.md#source-21) [detail](guide-full-sources.md#detail-measure-h-type) |
+| Threshold | Westland's 2019 levy rule says the measure passes with more than half the votes cast on it<a id="cite-26"></a>[<sup>26</sup>](guide-full-sources.md#source-26) [detail](guide-full-sources.md#detail-measure-h-threshold) |
+| What a yes vote does | A yes vote replaces the expiring parks levy at the same rate[<sup>23</sup>](guide-full-sources.md#source-23) [detail](guide-full-sources.md#detail-measure-h-what-a-yes-vote-does) |
+| What a no vote does | A no vote lets the current parks levy expire after the 2026 tax year[<sup>24</sup>](guide-full-sources.md#source-24) [detail](guide-full-sources.md#detail-measure-h-what-a-no-vote-does) |
+| Fiscal impact | The Westland fiscal office note, dated August 1, 2026, estimates 1.2 million dollars a year...<a id="cite-25"></a>[<sup>25</sup>](guide-full-sources.md#source-25)<a id="cite-31"></a>[<sup>31</sup>](guide-full-sources.md#source-31) [detail](guide-full-sources.md#detail-measure-h-fiscal-impact) |
+| Funding by side | Yes on H reported 20000 dollars in receipts for the quarter that ended September 30, 2026<a id="cite-27"></a>[<sup>27</sup>](guide-full-sources.md#source-27) [detail](guide-full-sources.md#detail-measure-h-funding-by-side) |
+
+Not found (searched: sunset or renewal).
 
 ## Judicial retentions side by side
 
@@ -81,14 +86,54 @@ Not found (searched: judicial retention contests on this ballot).
 
 [Back to ballot](#your-ballot-at-a-glance)
 
-# Races
+# Races {.ballot-group}
 
 ## Mayor of Cedar Hollow {#contest-race-mayor .contest-title}
 
+::: contest-open
+
+::: meta-item
+
+#### Office
+
+The fictional sample ballot lists the office of mayor of Cedar Hollow[<sup>32</sup>](guide-full-sources.md#source-32).
+
+:::
+
+::: meta-item
+
+#### What it does
+
+Not found (searched: What it does).
+
+:::
+
+::: meta-item
+
+#### Term
+
+Not found (searched: Term).
+
+:::
+
+::: meta-item
+
+#### Number to elect
+
+Not found (searched: Number to elect).
+
+:::
+
+:::
+
 > **FICTIONAL EXAMPLE:** this race is invented.
+
+::: summary-box
 
 <!-- summary -->
 Two people are running for mayor of Cedar Hollow[<sup>32</sup>](guide-full-sources.md#source-32). Avery Quinn of Cedar Hollow is the current mayor[<sup>33</sup>](guide-full-sources.md#source-33). Blake Okonkwo of Cedar Hollow is a city parks planner appointed in 2016[<sup>34</sup>](guide-full-sources.md#source-34). Both filed a campaign finance report for the quarter that ended in September 2026[<sup>35</sup>](guide-full-sources.md#source-35).
+
+:::
 
 ### Contest
 
@@ -96,44 +141,64 @@ The fictional sample ballot lists the office of mayor of Cedar Hollow[<sup>32</s
 
 ### At a glance
 
-|   | Avery Quinn | Blake Okonkwo |
+::: comparison
+
+| Topic | Avery Quinn | Blake Okonkwo |
 | --- | --- | --- |
 | Ballot status | The ballot lists Avery Quinn of Cedar Hollow as the nonpartisan incumbent<a id="cite-1"></a>[<sup>1</sup>](guide-full-sources.md#source-1) [detail](guide-full-sources.md#detail-race-mayor-ballot-status-avery-quinn) | The ballot lists Blake Okonkwo of Cedar Hollow as a nonpartisan challenger and does not mark...<a id="cite-10"></a>[<sup>10</sup>](guide-full-sources.md#source-10) [detail](guide-full-sources.md#detail-race-mayor-ballot-status-blake-okonkwo) |
 | Current or most recent office | Avery Quinn of Cedar Hollow was elected to the city council for a four-year term that began...<a id="cite-2"></a>[<sup>2</sup>](guide-full-sources.md#source-2) [detail](guide-full-sources.md#detail-race-mayor-current-or-most-recent-office-avery-quinn) | Not found |
+
+:::
 
 Not found (searched: years in elected office).
 
 ### Money
 
-|   | Avery Quinn | Blake Okonkwo |
+::: comparison
+
+| Topic | Avery Quinn | Blake Okonkwo |
 | --- | --- | --- |
 | Receipts | 48200 dollars in receipts[<sup>5</sup>](guide-full-sources.md#source-5) [detail](guide-full-sources.md#detail-race-mayor-receipts-avery-quinn) | 30100 dollars in receipts[<sup>14</sup>](guide-full-sources.md#source-14) [detail](guide-full-sources.md#detail-race-mayor-receipts-blake-okonkwo) |
 | Cash on hand | Cash on hand for Avery Quinn of Cedar Hollow means money the report still showed at the end...[<sup>5</sup>](guide-full-sources.md#source-5) [detail](guide-full-sources.md#detail-race-mayor-cash-on-hand-avery-quinn) | Not found |
 | Report date | October 15, 2026[<sup>5</sup>](guide-full-sources.md#source-5) [detail](guide-full-sources.md#detail-race-mayor-report-date-avery-quinn) | October 15, 2026[<sup>14</sup>](guide-full-sources.md#source-14) [detail](guide-full-sources.md#detail-race-mayor-report-date-blake-okonkwo) |
 
+:::
+
 Not found (searched: self-funding or loans, share from small donors, outside spending).
 
 ### Experience and background
 
-|   | Avery Quinn | Blake Okonkwo |
+::: comparison
+
+| Topic | Avery Quinn | Blake Okonkwo |
 | --- | --- | --- |
 | Prior offices | The 2018 certificate says the voters elected Avery Quinn of Cedar Hollow, rather than an...[<sup>2</sup>](guide-full-sources.md#source-2) [detail](guide-full-sources.md#detail-race-mayor-prior-offices-avery-quinn) | Not found |
 | Occupation | Before that council term, Avery Quinn of Cedar Hollow worked as a classroom teacher from...<a id="cite-3"></a>[<sup>3</sup>](guide-full-sources.md#source-3) [detail](guide-full-sources.md#detail-race-mayor-occupation-avery-quinn) | A city personnel notice says the parks director appointed Blake Okonkwo of Cedar Hollow as a...<a id="cite-11"></a>[<sup>11</sup>](guide-full-sources.md#source-11) [detail](guide-full-sources.md#detail-race-mayor-occupation-blake-okonkwo) |
 | Education | The State University of Westland registrar says Avery Quinn of Cedar Hollow received a...<a id="cite-4"></a>[<sup>4</sup>](guide-full-sources.md#source-4) [detail](guide-full-sources.md#detail-race-mayor-education-avery-quinn) | Westland State College says Blake Okonkwo of Cedar Hollow received a master of public...<a id="cite-12"></a>[<sup>12</sup>](guide-full-sources.md#source-12) [detail](guide-full-sources.md#detail-race-mayor-education-blake-okonkwo) |
 
+:::
+
 ### Positions
 
-|   | Avery Quinn | Blake Okonkwo |
+::: comparison
+
+| Topic | Avery Quinn | Blake Okonkwo |
 | --- | --- | --- |
 | Positions in own words | The Cedar Hollow League of Voters asked Avery Quinn of Cedar Hollow the same parks question<a id="cite-7"></a>[<sup>7</sup>](guide-full-sources.md#source-7) [detail](guide-full-sources.md#detail-race-mayor-positions-in-own-words-avery-quinn) | The Cedar Hollow League of Voters asked Blake Okonkwo of Cedar Hollow the same parks question<a id="cite-15"></a>[<sup>15</sup>](guide-full-sources.md#source-15) [detail](guide-full-sources.md#detail-race-mayor-positions-in-own-words-blake-okonkwo) |
 
+:::
+
 ### Record
 
-|   | Avery Quinn | Blake Okonkwo |
+::: comparison
+
+| Topic | Avery Quinn | Blake Okonkwo |
 | --- | --- | --- |
 | Record | On June 4, 2024, Avery Quinn of Cedar Hollow voted yes on the city parks budget<a id="cite-6"></a>[<sup>6</sup>](guide-full-sources.md#source-6) [detail](guide-full-sources.md#detail-race-mayor-record-avery-quinn) | A 2025 parks department report names Blake Okonkwo of Cedar Hollow as the lead on the river...<a id="cite-13"></a>[<sup>13</sup>](guide-full-sources.md#source-13) [detail](guide-full-sources.md#detail-race-mayor-record-blake-okonkwo) |
 | Endorsements | The Cedar Hollow Firefighters Association said on September 2, 2026 that it endorses Avery...<a id="cite-9"></a>[<sup>9</sup>](guide-full-sources.md#source-9) [detail](guide-full-sources.md#detail-race-mayor-endorsements-avery-quinn) | Friends of the River Path said on September 5, 2026 that it endorses Blake Okonkwo of Cedar...<a id="cite-17"></a>[<sup>17</sup>](guide-full-sources.md#source-17) [detail](guide-full-sources.md#detail-race-mayor-endorsements-blake-okonkwo) |
 | Debates and forums | Avery Quinn of Cedar Hollow spoke at the September 20, 2026 library forum<a id="cite-8"></a>[<sup>8</sup>](guide-full-sources.md#source-8) [detail](guide-full-sources.md#detail-race-mayor-debates-and-forums-avery-quinn) | Blake Okonkwo of Cedar Hollow spoke at the September 20, 2026 library forum<a id="cite-16"></a>[<sup>16</sup>](guide-full-sources.md#source-16) [detail](guide-full-sources.md#detail-race-mayor-debates-and-forums-blake-okonkwo) |
+
+:::
 
 Not found (searched: legal issues, interest-group ratings).
 
@@ -141,7 +206,11 @@ Not found (searched: legal issues, interest-group ratings).
 
 Not found (searched: competitiveness).
 
+::: candidate-name
+
 ### Avery Quinn {#profile-cand-quinn}
+
+:::
 
 > **FICTIONAL EXAMPLE:** Avery Quinn is not a real person, and Cedar Hollow and Westland are not real places.
 
@@ -187,7 +256,11 @@ The Cedar Hollow Firefighters Association said on September 2, 2026 that it endo
 
 Not found (searched: Legal issues, Interest-group ratings).
 
+::: candidate-name
+
 ### Blake Okonkwo {#profile-cand-okonkwo}
+
+:::
 
 > **FICTIONAL EXAMPLE:** Blake Okonkwo is not a real person, and Cedar Hollow and Westland are not real places.
 
@@ -233,14 +306,54 @@ Not found (searched: Legal issues, Prior offices and public service, Interest-gr
 
 [Back to ballot](#your-ballot-at-a-glance)
 
-# Measures
+# Measures {.ballot-group}
 
 ## Measure H, Cedar Hollow parks levy {#contest-measure-h .contest-title}
 
+::: contest-open
+
+::: meta-item
+
+#### Measure
+
+The official label is Measure H, a parks levy, and it asks whether Cedar Hollow should replace the expiring parks levy[<sup>20</sup>](guide-full-sources.md#source-20).
+
+:::
+
+::: meta-item
+
+#### Type
+
+Measure H is a referral[<sup>21</sup>](guide-full-sources.md#source-21).
+
+:::
+
+::: meta-item
+
+#### Threshold
+
+Westland's 2019 levy rule says the measure passes with more than half the votes cast on it[<sup>26</sup>](guide-full-sources.md#source-26).
+
+:::
+
+::: meta-item
+
+#### Sunset
+
+Not found (searched: Sunset).
+
+:::
+
+:::
+
 > **FICTIONAL EXAMPLE:** this measure is invented.
+
+::: summary-box
 
 <!-- summary -->
 Measure H asks Cedar Hollow voters about a parks levy[<sup>20</sup>](guide-full-sources.md#source-20). A levy is a tax the ballot asks voters to accept or reject[<sup>20</sup>](guide-full-sources.md#source-20). A yes vote would replace the expiring levy at the same rate[<sup>23</sup>](guide-full-sources.md#source-23). A no vote would let that levy expire[<sup>24</sup>](guide-full-sources.md#source-24).
+
+:::
 
 ### Official title
 
@@ -250,21 +363,9 @@ The official label is Measure H, a parks levy, and it asks whether Cedar Hollow 
 
 Measure H is a referral[<sup>21</sup>](guide-full-sources.md#source-21). The Cedar Hollow council sent it to the ballot by Resolution 2026-14 on July 9, 2026[<sup>21</sup>](guide-full-sources.md#source-21).
 
-### Plain-language summary
-
-The measure would replace a parks levy that is set to end, the one adopted in 2020<a id="cite-22"></a>[<sup>22</sup>](guide-full-sources.md#source-22). It does not add a second levy on top of the 2020 levy that continues[<sup>22</sup>](guide-full-sources.md#source-22)[<sup>23</sup>](guide-full-sources.md#source-23).
-
 ### Current law and proposed change
 
-The city code says the current parks levy, adopted in 2020, expires after the 2026 tax year[<sup>22</sup>](guide-full-sources.md#source-22). A yes vote replaces it at the same rate[<sup>23</sup>](guide-full-sources.md#source-23). A no vote lets it expire[<sup>24</sup>](guide-full-sources.md#source-24).
-
-### What a yes vote does
-
-A yes vote replaces the expiring parks levy at the same rate[<sup>23</sup>](guide-full-sources.md#source-23). The official fiscal note ties that rate to about 1.2 million dollars a year for parks[<sup>25</sup>](guide-full-sources.md#source-25).
-
-### What a no vote does
-
-A no vote lets the current parks levy expire after the 2026 tax year[<sup>24</sup>](guide-full-sources.md#source-24). The code section on the 2020 levy's expiration is the same one cited for current law[<sup>22</sup>](guide-full-sources.md#source-22).
+The city code says the current parks levy, adopted in 2020, expires after the 2026 tax year<a id="cite-22"></a>[<sup>22</sup>](guide-full-sources.md#source-22). A yes vote replaces it at the same rate[<sup>23</sup>](guide-full-sources.md#source-23). A no vote lets it expire[<sup>24</sup>](guide-full-sources.md#source-24).
 
 ### Fiscal impact
 
@@ -282,19 +383,92 @@ Yes on H reported 20000 dollars in receipts for the quarter that ended September
 
 The parks board and the library board signed the argument for the measure<a id="cite-29"></a>[<sup>29</sup>](guide-full-sources.md#source-29). A homeowners association and a grocer signed the argument against it<a id="cite-30"></a>[<sup>30</sup>](guide-full-sources.md#source-30).
 
-### Arguments side by side
+::: summary-box
 
-| Arguments for | Arguments against |
-| --- | --- |
-| The pamphlet argument for Measure H says the levy keeps the current parks hours and repair work going[<sup>29</sup>](guide-full-sources.md#source-29). The parks board and the library board signed that argument[<sup>29</sup>](guide-full-sources.md#source-29). Supporters point to the fiscal note's yearly amount as the scale of the work[<sup>25</sup>](guide-full-sources.md#source-25). | The pamphlet argument against Measure H says the city should let the levy end and pay for parks from the existing budget[<sup>30</sup>](guide-full-sources.md#source-30). A homeowners association and a grocer signed that argument[<sup>30</sup>](guide-full-sources.md#source-30). Opponents also point to the fiscal note so readers can see the yearly amount[<sup>25</sup>](guide-full-sources.md#source-25). |
+#### In plain language
+
+The measure would replace a parks levy that is set to end, the one adopted in 2020[<sup>22</sup>](guide-full-sources.md#source-22). It does not add a second levy on top of the 2020 levy that continues[<sup>22</sup>](guide-full-sources.md#source-22)[<sup>23</sup>](guide-full-sources.md#source-23).
+
+:::
+
+::: vote-pair
+
+::: vote-box
+
+#### A YES vote means
+
+A yes vote replaces the expiring parks levy at the same rate[<sup>23</sup>](guide-full-sources.md#source-23). The official fiscal note ties that rate to about 1.2 million dollars a year for parks[<sup>25</sup>](guide-full-sources.md#source-25).
+
+:::
+
+::: vote-box
+
+#### A NO vote means
+
+A no vote lets the current parks levy expire after the 2026 tax year[<sup>24</sup>](guide-full-sources.md#source-24). The code section on the 2020 levy's expiration is the same one cited for current law[<sup>22</sup>](guide-full-sources.md#source-22).
+
+:::
+
+:::
+
+::: vote-pair
+
+::: vote-box
+
+#### Arguments for
+
+The pamphlet argument for Measure H says the levy keeps the current parks hours and repair work going[<sup>29</sup>](guide-full-sources.md#source-29). The parks board and the library board signed that argument[<sup>29</sup>](guide-full-sources.md#source-29). Supporters point to the fiscal note's yearly amount as the scale of the work[<sup>25</sup>](guide-full-sources.md#source-25).
+
+:::
+
+::: vote-box
+
+#### Arguments against
+
+The pamphlet argument against Measure H says the city should let the levy end and pay for parks from the existing budget[<sup>30</sup>](guide-full-sources.md#source-30). A homeowners association and a grocer signed that argument[<sup>30</sup>](guide-full-sources.md#source-30). Opponents also point to the fiscal note so readers can see the yearly amount[<sup>25</sup>](guide-full-sources.md#source-25).
+
+:::
+
+:::
 
 [Back to ballot](#your-ballot-at-a-glance)
 
-# Glossary
+# Glossary {#glossary .back-matter}
 
-A levy is a tax or charge put on a ballot for voters to accept or reject. Nonpartisan means the ballot does not list a party for that office. Cash on hand is the money a campaign reported still having at the end of a filing period. A filing period is the date range a finance report covers. Tier T1 is a primary or official source. T2 is an established nonpartisan reference. T3 is named journalism. T4 is an advocacy source and is quoted only as that group's view. A single source means the sentence rests on one record. An allegation is a claim someone has made that this guide has not confirmed. Not found means the listed places were searched and the fact was not in them.
+Levy
+: A levy is a tax or charge put on a ballot for voters to accept or reject.
 
-# Methodology
+Nonpartisan
+: The ballot does not list a party for that office.
+
+Cash on hand
+: Cash on hand is the money a campaign reported still having at the end of a filing period.
+
+Filing period
+: A filing period is the date range a finance report covers.
+
+Tier T1
+: Tier T1 is a primary or official source.
+
+Tier T2
+: Tier T2 is an established nonpartisan reference.
+
+Tier T3
+: Tier T3 is named journalism.
+
+Tier T4
+: Tier T4 is an advocacy source and is quoted only as that group's view.
+
+Single source
+: A single source means the sentence rests on one record.
+
+Allegation
+: An allegation is a claim someone has made that this guide has not confirmed.
+
+Not found
+: Not found means the listed places were searched and the fact was not in them.
+
+# How we researched {#methodology .back-matter}
 
 Version v1.0 assembled on 2026-10-20. Environment rating is not recorded in env.md.
 Sources flagged suspected_injection: 0.
@@ -305,10 +479,10 @@ The reader edition keeps a short summary and comparison tables for each contest.
 
 ## Review state
 
-- cand-okonkwo: status capped-disputed, round 3, mode initial
-- cand-quinn: status signed-off, round 1, mode initial
-- measure-h: status signed-off, round 1, mode initial
-- race-mayor: status signed-off, round 1, mode initial
+- status capped-disputed, round 3, mode initial — cand-okonkwo
+- status signed-off, round 1, mode initial — cand-quinn
+- status signed-off, round 1, mode initial — measure-h
+- status signed-off, round 1, mode initial — race-mayor
 
 ## Effort
 
@@ -323,7 +497,7 @@ The reader edition keeps a short summary and comparison tables for each contest.
 
 - None recorded in loop state.
 
-# Disputed claims
+# Disputed claims {#disputed-claims .back-matter}
 
 ## cand-okonkwo.funding.002
 
@@ -335,11 +509,11 @@ Unresolved major at MAX_ROUNDS. The mailer stays attributed and disputed. It doe
 
 This disputed claim is not used in the summary.
 
-# Corrections
+# Corrections {#corrections .back-matter}
 
 No corrections have been issued.
 
-# Marker index
+# Marker index {#marker-index}
 
 | Marker | Claim ID |
 | --- | --- |
@@ -380,7 +554,7 @@ No corrections have been issued.
 | 35 | race-mayor.funding.001 |
 | 40 | race-mayor.logistics.001 |
 
-# Changelog
+# Changelog {#changelog}
 
 ## cand-okonkwo
 

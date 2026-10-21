@@ -293,6 +293,107 @@ EXEMPT_HEADINGS = {
     "disputed claims",
     "search log",
 }
+# The published "How we researched" heading is not exempt. An ordinary sentence
+# there needs a marker. Only the lines the assembler actually writes are exempt:
+# the version and count sentences, the two parallel-subagent sentences, a review
+# line that starts with the status clause, an effort row whose label is a title,
+# and the closed known-gap sentences. A title may contain a colon. A claim may not
+# stand in for that title. policy/citations.md still treats this record as
+# methodology, not as a claim about a candidate.
+_RUN_RECORD_SENTENCE_RE = re.compile(
+    r"^(?:"
+    r"Version \S+ assembled on \d{4}-\d{2}-\d{2}"
+    r"|Environment rating: (?:Full|Reduced|Minimal)"
+    r"|Environment rating is not recorded in env\.md"
+    r"|No environment rating file was found"
+    # The citation checker strips markdown emphasis, including underscores,
+    # before this match. The assembler writes suspected_injection.
+    r"|Sources flagged suspected_?injection: \d+"
+    r"|Parallel subagents: available"
+    r"|Parallel subagents: not used; roles run one at a time in fresh contexts"
+    r"|Findings recorded: \d+"
+    r"|Accepted: \d+"
+    r"|Disputed: \d+"
+    r"|Disputed and unconfirmed claims are not used in summaries"
+    r"|Blockers are removed rather than left disputed"
+    r"|The reader edition keeps a short summary and comparison tables for each contest"
+    r"|Works cited, quotes, and the search log are in the sources addendum"
+    r"|Per-candidate prose is in the full edition"
+    r"|The full edition adds the marker index and the changelog"
+    r")\.?$"
+)
+_REVIEW_STATUSES = r"researching|in-review|fixing|signed-off|capped-disputed"
+_REVIEW_MODES = r"initial|refresh"
+# Status comes first so a contest title may contain a colon. The words before
+# "status" are not a free field.
+_REVIEW_STATE_RE = re.compile(
+    rf"^status (?:{_REVIEW_STATUSES}), round \d+, mode (?:{_REVIEW_MODES}) — (?P<label>.+)$"
+)
+_EFFORT_ROW_RE = re.compile(
+    r"^\|\s*(?P<label>[^|]*)\|\s*\d*\s*\|\s*\d*\s*\|\s*\d*\s*\|$"
+)
+_PROCESS_GAP_RE = re.compile(
+    r"^(?P<label>.+): (?:factcheck|sourcing|neutrality|privacy-legal) "
+    r"signed off in the same context as the research\.?$"
+)
+_REMOVED_GAP_RE = re.compile(
+    r"^(?P<label>.+): Removed [A-Za-z0-9_.-]+ at the round cap\.?$"
+)
+_KNOWN_GAP_SENTENCES = {
+    "None recorded in loop state.",
+    "None recorded in loop state",
+    "This is a process gap, not a fresh-context review.",
+    "This is a process gap, not a fresh-context review",
+}
+
+
+def _run_record_label_ok(label: str) -> bool:
+    """A ballot title or item id. A sentence that states a fact is not a title."""
+    text = re.sub(r"\s+", " ", label or "").strip()
+    if not text:
+        return False
+    pieces = [part.strip() for part in split_sentences(text) if part.strip()]
+    if len(pieces) != 1:
+        return False
+    if pieces[0].endswith((".", "!")):
+        return False
+    if _GAP_CLAUSE_RE.search(pieces[0]):
+        return False
+    return True
+
+
+def _is_known_gap_sentence(text: str) -> bool:
+    if text in _KNOWN_GAP_SENTENCES:
+        return True
+    for pattern in (_PROCESS_GAP_RE, _REMOVED_GAP_RE):
+        match = pattern.match(text)
+        if match and _run_record_label_ok(match.group("label")):
+            return True
+    return False
+
+
+def _is_run_record_sentence(plain: str, h1: str, h2: str, kind: str) -> bool:
+    del kind
+    if h1 != "how we researched":
+        return False
+    text = re.sub(r"\s+", " ", plain or "").strip()
+    if h2 == "review state":
+        match = _REVIEW_STATE_RE.match(text)
+        return match is not None and _run_record_label_ok(match.group("label"))
+    if h2 == "known gaps":
+        return _is_known_gap_sentence(text)
+    if h2 == "":
+        return _RUN_RECORD_SENTENCE_RE.match(text) is not None
+    return False
+
+
+def _is_effort_row(row: str, h1: str, h2: str) -> bool:
+    if h1 != "how we researched" or h2 != "effort":
+        return False
+    match = _EFFORT_ROW_RE.match(row.strip())
+    return match is not None and _run_record_label_ok(match.group("label"))
+
+
 CANDIDATE_CORE = [
     "identity",
     "prior offices and public service",
@@ -920,23 +1021,26 @@ def _heading(line: str) -> tuple[int, str] | None:
     return len(match.group(1)), norm_heading(title)
 
 
-def factual_blocks(text: str) -> list[str]:
+def factual_blocks(text: str) -> list[tuple[str, str, str]]:
+    """Non-exempt blocks as (text, nearest h1, nearest h2)."""
     body = HTML_COMMENT_RE.sub("", strip_front_matter(text))
     kept: list[str] = []
     for raw in body.splitlines():
         if FOOTNOTE_DEF_RE.match(raw.strip()):
             continue
         kept.append(raw)
-    blocks: list[str] = []
+    blocks: list[tuple[str, str, str]] = []
     buf: list[str] = []
     stack: list[int] = []
+    h1 = ""
+    h2 = ""
 
     def flush(exempt: bool) -> None:
         nonlocal buf
         if buf and not exempt:
             block = "\n".join(buf).strip()
             if block:
-                blocks.append(block)
+                blocks.append((block, h1, h2))
         buf = []
 
     exempt = False
@@ -945,6 +1049,10 @@ def factual_blocks(text: str) -> list[str]:
         if heading:
             flush(exempt)
             level, title = heading
+            if level == 1:
+                h1, h2 = title, ""
+            elif level == 2:
+                h2 = title
             while stack and stack[-1] >= level:
                 stack.pop()
             if title in EXEMPT_HEADINGS:
@@ -1083,7 +1191,7 @@ def official_restatement_sentences(ballot: dict | None) -> set[str]:
 
 def prose_marker_errors(text: str, label: str, exempt: set[str] | None = None) -> list[str]:
     errors: list[str] = []
-    for block in factual_blocks(text):
+    for block, h1, h2 in factual_blocks(text):
         if block.startswith("|"):
             rows = [line for line in block.splitlines() if line.strip().startswith("|")]
             seen_separator = False
@@ -1094,7 +1202,7 @@ def prose_marker_errors(text: str, label: str, exempt: set[str] | None = None) -
                     continue
                 if not seen_separator and index == 0:
                     continue
-                if _is_gap_text(row):
+                if _is_gap_text(row) or _is_effort_row(row, h1, h2):
                     continue
                 if not _has_citation_marker(row):
                     errors.append(f"{label}: table row has no citation marker: {row.strip()[:120]}")
@@ -1103,7 +1211,16 @@ def prose_marker_errors(text: str, label: str, exempt: set[str] | None = None) -
         bullet_lines = [line for line in lines if line.strip().startswith(("- ", "* "))]
         if bullet_lines and len(bullet_lines) == len([line for line in lines if line.strip()]):
             for line in bullet_lines:
-                errors.extend(_sentence_marker_errors(line.strip()[2:].strip(), label, "list item", exempt=exempt))
+                errors.extend(
+                    _sentence_marker_errors(
+                        line.strip()[2:].strip(),
+                        label,
+                        "list item",
+                        exempt=exempt,
+                        h1=h1,
+                        h2=h2,
+                    )
+                )
             continue
         errors.extend(
             _sentence_marker_errors(
@@ -1112,6 +1229,8 @@ def prose_marker_errors(text: str, label: str, exempt: set[str] | None = None) -
                 "sentence",
                 banner_ok=block.lstrip().startswith(">"),
                 exempt=exempt,
+                h1=h1,
+                h2=h2,
             )
         )
     return errors
@@ -1145,6 +1264,8 @@ def _sentence_marker_errors(
     kind: str,
     banner_ok: bool = False,
     exempt: set[str] | None = None,
+    h1: str = "",
+    h2: str = "",
 ) -> list[str]:
     if _is_gap_text(block) and not _has_citation_marker(block):
         return []
@@ -1161,6 +1282,8 @@ def _sentence_marker_errors(
         if not plain or _is_gap_text(plain):
             continue
         if _is_navigation_sentence(plain, exempt):
+            continue
+        if _is_run_record_sentence(plain, h1, h2, kind):
             continue
         if banner_ok and _is_banner_sentence(plain):
             continue
@@ -1219,7 +1342,7 @@ def marker_collision_errors(workspace) -> list[str]:
 
 
 _HTML_ID_RE = re.compile(r"""\bid\s*=\s*["']([^"']+)["']""")
-_HEADING_ANCHOR_RE = re.compile(r"\{#([^}\s]+)\}")
+_HEADING_ANCHOR_RE = re.compile(r"\{#([A-Za-z0-9_-]+)")
 _FRAGMENT_RE = re.compile(r"#([A-Za-z0-9_-]+)")
 
 

@@ -397,6 +397,9 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "# Marker index" not in guide
     assert "# Changelog" not in guide
     assert "- cand-quinn:" not in guide
+    assert "status signed-off, round 1, mode initial — Avery Quinn" in guide
+    assert "status signed-off, round 1, mode initial — cand-quinn" in full
+    assert "Mayor of Cedar Hollow: status" not in guide
     assert "{#profile-cand-quinn}" not in guide
     assert "{#profile-cand-quinn}" in full
     assert "guide-full.md#profile-cand-quinn" in guide
@@ -429,7 +432,6 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert quinn_cells[2] != quinn_cells[3]
     assert "# Marker index" in full
     assert "# Changelog" in full
-    assert "- cand-quinn:" in full
     assert "# Works cited" not in full
     assert "# Works cited" in full_sources
     assert "Not an official ballot" in guide

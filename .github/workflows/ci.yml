@@ -32,11 +32,12 @@ jobs:
       - name: Install core build tools
         # Matches a non-browser bootstrap: pandoc, poppler, and the apt weasyprint
         # package. Poppler supplies pdftotext -bbox for scripts/check_pdf_layout.py.
-        # fonts-dejavu supplies the face named in assets/guide.css.
+        # fonts-liberation supplies Liberation Serif and Liberation Sans, the faces
+        # named in assets/guide.css. fonts-dejavu is the fallback.
         # No Chromium, pa11y, monolith, ffmpeg, or yt-dlp.
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends pandoc poppler-utils weasyprint fonts-dejavu
+          sudo apt-get install -y --no-install-recommends pandoc poppler-utils weasyprint fonts-dejavu fonts-liberation
 
       - name: Install Python dependencies
         # Some tests run `python3` with re-exec into .venv disabled, so that

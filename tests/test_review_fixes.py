@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from datetime import date
 from pathlib import Path
@@ -11,6 +12,7 @@ import yaml
 
 from lib.api_clients import contests_from_civic, scrub_civic_payload
 from lib.quality import (
+    EXEMPT_HEADINGS,
     argument_length_errors,
     citation_errors,
     content_gate_errors,
@@ -585,6 +587,110 @@ def test_confirm_deletes_nested_ballot_images(tmp_path: Path):
     assert (held / "ballot.png").exists()
 
 
+def test_plain_language_and_how_we_researched_are_citation_gated():
+    """The published summary and methodology headings are not blanket exemptions."""
+    assert "in plain language" not in EXEMPT_HEADINGS
+    assert "how we researched" not in EXEMPT_HEADINGS
+    bare_plain = "#### In plain language\n\nThe measure would raise the parks tax.\n"
+    plain_errors = prose_marker_errors(bare_plain, "guide")
+    assert any("parks tax" in error for error in plain_errors)
+    cited_plain = "#### In plain language\n\nThe measure would raise the parks tax[^3].\n"
+    assert prose_marker_errors(cited_plain, "guide") == []
+    bare_method = "# How we researched {#methodology}\n\nThe county clerk confirmed the levy rate.\n"
+    method_errors = prose_marker_errors(bare_method, "guide")
+    assert any("levy rate" in error for error in method_errors)
+    cited_method = "# How we researched {#methodology}\n\nThe county clerk confirmed the levy rate[^3].\n"
+    assert prose_marker_errors(cited_method, "guide") == []
+    nested = (
+        "# How we researched\n\n"
+        "## Review state\n\n"
+        "The mayor accepted a donation from the developer.\n"
+    )
+    assert any("donation" in error for error in prose_marker_errors(nested, "guide"))
+    record = (
+        "# How we researched\n\n"
+        "Version v1.0 assembled on 2026-10-20. Environment rating is not recorded in env.md.\n"
+        "Parallel subagents: not used; roles run one at a time in fresh contexts.\n"
+        "Parallel subagents: available.\n"
+        "Findings recorded: 2. Accepted: 1. Disputed: 1.\n\n"
+        "## Review state\n\n"
+        "- status signed-off, round 1, mode initial — Avery Quinn\n"
+        "- status signed-off, round 1, mode initial — Measure 1: Parks levy\n\n"
+        "## Effort\n\n"
+        "| Item | Searches | Fetches | Minutes |\n"
+        "| --- | --- | --- | --- |\n"
+        "| Avery Quinn | 12 | 8 | 40 |\n"
+        "| Measure 1: Parks levy | 4 | 2 | 15 |\n\n"
+        "## Known gaps\n\n"
+        "- None recorded in loop state.\n"
+        "- Measure 1: Parks levy: factcheck signed off in the same context as the research. "
+        "This is a process gap, not a fresh-context review.\n"
+        "- Measure 1: Parks levy: Removed measure-1.title.001 at the round cap.\n"
+    )
+    assert prose_marker_errors(record, "guide") == []
+    allegation = "Avery Quinn was convicted of fraud in 2019."
+    gaps = f"# How we researched\n\n## Known gaps\n\n- {allegation}\n"
+    gap_errors = prose_marker_errors(gaps, "guide")
+    assert any("convicted of fraud" in error for error in gap_errors)
+    parallel = (
+        "# How we researched\n\n"
+        "Parallel subagents: Avery Quinn was convicted of fraud in 2019.\n"
+    )
+    assert any("convicted of fraud" in error for error in prose_marker_errors(parallel, "guide"))
+    effort = (
+        "# How we researched\n\n"
+        "## Effort\n\n"
+        "| Item | Searches | Fetches | Minutes |\n"
+        "| --- | --- | --- | --- |\n"
+        f"| {allegation} | 12 | 8 | 40 |\n"
+        f"| {allegation} |  |  |  |\n"
+    )
+    effort_errors = prose_marker_errors(effort, "guide")
+    assert len([error for error in effort_errors if "convicted of fraud" in error]) == 2
+    review = (
+        "# How we researched\n\n"
+        "## Review state\n\n"
+        "- Avery Quinn was convicted of fraud: status signed-off, round 1, mode initial\n"
+        "- status signed-off, round 1, mode initial — Avery Quinn was convicted of fraud in 2019.\n"
+    )
+    review_errors = prose_marker_errors(review, "guide")
+    assert len([error for error in review_errors if "convicted of fraud" in error]) == 2
+
+
+def _relative_luminance(hex_color: str) -> float:
+    channels = [int(hex_color.lstrip("#")[index : index + 2], 16) / 255 for index in (0, 2, 4)]
+    linear = []
+    for channel in channels:
+        if channel <= 0.04045:
+            linear.append(channel / 12.92)
+        else:
+            linear.append(((channel + 0.055) / 1.055) ** 2.4)
+    red, green, blue = linear
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+
+
+def _contrast(foreground: str, background: str) -> float:
+    lighter = max(_relative_luminance(foreground), _relative_luminance(background))
+    darker = min(_relative_luminance(foreground), _relative_luminance(background))
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def test_rule_color_meets_non_text_contrast_and_flex_gaps_are_margins():
+    css = (ROOT / "assets" / "guide.css").read_text(encoding="utf-8")
+    match = re.search(r"--rule:\s*(#[0-9a-fA-F]{6})", css)
+    assert match
+    rule = match.group(1).lower()
+    assert rule != "#c8c2b8"
+    for background in ("#ffffff", "#fffcf7", "#f7f4ef", "#e7e1d6"):
+        assert _contrast(rule, background) >= 3.0, (rule, background, _contrast(rule, background))
+    assert "#c8c2b8" not in css
+    assert not re.search(r"(?m)^\s*gap\s*:", css)
+    assert ".vote-box + .vote-box" in css
+    assert ".candidate-index h3.candidate-name + h3.candidate-name" in css
+    assert "margin-left:" in css
+    assert "margin-right: 0.45rem" in css
+
+
 def test_small_screen_css_uses_a_max_width_query():
     css = (ROOT / "assets" / "guide.css").read_text(encoding="utf-8")
     narrow = (ROOT / "assets" / "guide-narrow.css").read_text(encoding="utf-8")
@@ -593,6 +699,20 @@ def test_small_screen_css_uses_a_max_width_query():
     assert "@media screen" not in css
     assert "font-size: 1.05rem" in narrow
     assert 'media="(max-width: 40rem)"' in template
+    assert "Liberation Serif" in css
+    assert "font-size: 10.75pt" in css
+    assert "bookmark-level" in css
+    assert 'section "Voter guide"' in css
+    assert "string(section, first)" in css
+    assert "string(contest, last)" in css
+    assert "element(runhead)" in css
+    assert "@page cover" in css
+    assert "party-democrat" not in css
+    assert "party-republican" not in css
+    from check_pdf_layout import MAX_CANDIDATES_PER_TABLE, MIN_COLUMN_PT
+
+    assert MAX_CANDIDATES_PER_TABLE == 3
+    assert MIN_COLUMN_PT >= 108
 
 
 def test_banner_exemption_is_the_exact_sentence():

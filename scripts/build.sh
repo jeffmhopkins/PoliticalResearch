@@ -6,14 +6,17 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WORKSPACE=""
 ELECTION=""
 
+THEME=""
+
 usage() {
-  echo "Usage: scripts/build.sh --workspace PATH | --election-id ID" >&2
+  echo "Usage: scripts/build.sh --workspace PATH | --election-id ID [--theme charter|folio]" >&2
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --workspace) WORKSPACE="${2:-}"; shift 2 ;;
     --election-id|--election) ELECTION="${2:-}"; shift 2 ;;
+    --theme) THEME="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 2 ;;
   esac
@@ -64,6 +67,21 @@ fi
 cp "$ROOT/assets/guide.css" "$WORKSPACE/final/guide.css"
 cp "$ROOT/assets/guide-narrow.css" "$WORKSPACE/final/guide-narrow.css"
 
+# Optional theme. The default stylesheet is always guide.css. A theme loads after it.
+case "$THEME" in
+  ""|charter|folio) ;;
+  docket) echo "Docket is the default guide. Omit --theme." >&2; exit 2 ;;
+  *) echo "Unknown theme: $THEME (choose charter or folio)." >&2; exit 2 ;;
+esac
+mkdir -p "$WORKSPACE/final/fonts"
+cp "$ROOT/assets/fonts/"*.ttf "$WORKSPACE/final/fonts/"
+PANDOC_CSS=(--css guide.css)
+if [[ -n "$THEME" ]]; then
+  mkdir -p "$WORKSPACE/final/themes"
+  cp "$ROOT/assets/themes/${THEME}.css" "$WORKSPACE/final/themes/${THEME}.css"
+  PANDOC_CSS+=(--css "themes/${THEME}.css")
+fi
+
 build_one() {
   local source_md="$1"
   local html_out="$2"
@@ -77,13 +95,14 @@ build_one() {
       --to html5 \
       --standalone \
       --template "$ROOT/assets/guide.html.tmpl" \
-      --css guide.css \
+      "${PANDOC_CSS[@]}" \
       --toc --toc-depth=2 \
       --metadata lang=en \
       --variable version="$VERSION" \
       --variable content-hash="$hash" \
       -o "$html_out"
   )
+  "$PY" "$ROOT/scripts/polish_html.py" "$html_out"
   "$PY" "$ROOT/scripts/a11y_check.py" "$html_out"
   if command -v weasyprint >/dev/null 2>&1; then
     timeout -k 15 120 weasyprint "$html_out" "$pdf_out"

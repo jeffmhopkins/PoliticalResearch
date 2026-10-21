@@ -2,3 +2,13 @@
 
 main, footer { padding-left: 0.8rem; padding-right: 0.8rem; }
 body { font-size: 1.05rem; }
+.vote-pair { display: block; }
+.vote-box { width: auto; margin-bottom: 0.6rem; border-top: 1.25pt solid var(--ink); }
+.vote-box + .vote-box { margin-left: 0; border-left: 0; }
+.contest-open { display: block; }
+.meta-item { width: auto; }
+.meta-item:nth-child(odd) { margin-right: 0; }
+.candidate-index { display: block; }
+.candidate-index h3.candidate-name { margin-bottom: 0; border-bottom: 1.25pt solid var(--ink); }
+.candidate-index h3.candidate-name:last-child { border-bottom: 0; }
+.candidate-index h3.candidate-name + h3.candidate-name { margin-left: 0; border-left: 0; }

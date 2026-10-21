@@ -1,0 +1,618 @@
+/* Folio. A magazine theme: Monocle, with a Bloomberg-like openness.
+   Load after assets/guide.css. Select with: scripts/build.sh --theme folio
+   The default guide is unchanged when --theme is omitted.
+
+   Type: Fraunces for titles and candidate names. Source Sans 3 for text,
+   tables, labels, and the page number. Both are SIL Open Font License.
+   Grid: asymmetric margins, wider on the left. Modules run the full measure.
+   Cards and yes/no share a center hairline instead of a gutter. Section gaps
+   are 14pt to 20pt. Prose uses old-style figures. Tables use tabular figures.
+   Color: stone paper and near-black ink. No red or blue.
+
+   The running header is a folio: a bold page number, and the section and
+   contest on one quiet line. No filled bar. Titles are size, not stripes.
+   Tables are open: a caption in italic, small-cap column heads, hairline rows. */
+
+@font-face {
+  font-family: "Fraunces";
+  src: url("../fonts/Fraunces-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Fraunces";
+  src: url("../fonts/Fraunces-MediumItalic.ttf") format("truetype");
+  font-weight: 500;
+  font-style: italic;
+}
+@font-face {
+  font-family: "Fraunces";
+  src: url("../fonts/Fraunces-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../fonts/SourceSans3-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../fonts/SourceSans3-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../fonts/SourceSans3-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../fonts/SourceSans3-Semibold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../fonts/SourceSans3-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+:root {
+  --ink: #1a1916;
+  --paper: #f4f3ef;
+  --muted: #3a3832;
+  --rule: #5a554c;
+  --link: #1a1916;
+  --focus: #1a1916;
+  --serif: "Fraunces", "Liberation Serif", "DejaVu Serif", serif;
+  --sans: "Source Sans 3", "Liberation Sans", "DejaVu Sans", sans-serif;
+}
+
+body {
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--sans);
+  font-size: 11.5pt;
+  font-weight: 400;
+  line-height: 1.45;
+  hyphens: manual;
+  font-variant-numeric: oldstyle-nums;
+}
+
+a { color: var(--ink); }
+
+h1, h2, h3, h4 { color: var(--ink); }
+
+h2.contest-title::before,
+h1::before,
+h2::before {
+  content: none;
+  display: none;
+  height: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+}
+
+.option-label {
+  margin: 0 0 6pt;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 12pt;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+
+h1 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 22pt;
+  line-height: 1.08;
+  margin: 12pt 0 6pt;
+}
+
+h1.ballot-group,
+h1.ballot-glance,
+h1.guide-title,
+h1.sources-title,
+#toc-title {
+  font-family: var(--sans);
+  font-size: 9.5pt;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  margin: 2pt 0 2pt;
+}
+
+h2 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-style: italic;
+  font-size: 16pt;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 16pt 0 2pt;
+}
+
+h2.contest-title {
+  font-family: var(--serif);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 30pt;
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  text-transform: none;
+  margin: 0 0 8pt;
+  padding: 0;
+  border: 0;
+}
+
+h3:not(.candidate-name):not(.source-entry) {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 15pt;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 26pt 0 5pt;
+}
+
+h3:not(.candidate-name):not(.source-entry):has(+ .comparison) {
+  margin-bottom: 1pt;
+}
+
+h3.source-entry {
+  font-family: var(--sans);
+  font-style: normal;
+  font-size: 11pt;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 10pt 0 2pt;
+}
+
+h4 {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 14pt;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  margin: 0 0 3pt;
+}
+
+p { margin: 0 0 8pt; }
+
+.fiction-flag {
+  display: block;
+  width: auto;
+  margin: 0 0 10pt;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--sans);
+  font-size: 10pt;
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--ink);
+}
+
+.summary-box {
+  margin: 4pt 0 20pt;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  max-width: 38em;
+}
+
+.summary-box p {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 12pt;
+  line-height: 1.4;
+  font-variant-numeric: oldstyle-nums;
+}
+
+.candidate-index {
+  display: flex;
+  align-items: stretch;
+  margin: 6pt 0 20pt;
+  border: 0;
+  border-top: 0.8pt solid var(--ink);
+  border-bottom: 0.8pt solid var(--ink);
+}
+
+.candidate-index > h3.candidate-name,
+.candidate-index > .nameplate {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  padding: 14pt 16pt 16pt 0;
+  border: 0;
+  background: transparent;
+}
+
+.candidate-index > h3.candidate-name + h3.candidate-name,
+.candidate-index > .nameplate + .nameplate {
+  border-left: 0.8pt solid var(--ink);
+  padding-left: 16pt;
+}
+
+.candidate-index h3.candidate-name {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 18pt;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+
+.candidate-index > h3.candidate-name {
+  padding: 14pt 16pt 16pt 0;
+}
+
+.nameplate p {
+  margin: 2pt 0 0;
+  font-family: var(--sans);
+  font-size: 10.5pt;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.meta-item {
+  background: transparent;
+  border: 0;
+  border-top: 0.8pt solid var(--ink);
+  padding: 6pt 0 8pt;
+}
+
+.meta-item h4 {
+  font-family: var(--sans);
+  font-style: normal;
+  font-size: 9.5pt;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+h3:not(.candidate-name):not(.source-entry) + .comparison,
+.comparison table {
+  margin-top: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 8pt;
+  font-family: var(--sans);
+  font-size: 11pt;
+  line-height: 1.38;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+th, td {
+  border: 0;
+  border-bottom: 0.45pt solid var(--rule);
+  padding: 13pt 10pt 14pt 0;
+  background: transparent;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 9.5pt;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: transparent;
+  border-top: 0.8pt solid var(--ink);
+  border-bottom: 0.8pt solid var(--ink);
+  padding-top: 7pt;
+  padding-bottom: 6pt;
+}
+
+th:first-child,
+td:first-child {
+  width: 1.7in;
+  font-weight: 600;
+}
+
+.comparison table th,
+.comparison table td {
+  padding: 12pt 10pt 13pt 0;
+  line-height: 1.4;
+}
+
+.comparison table th {
+  padding-top: 7pt;
+  padding-bottom: 6pt;
+}
+
+tbody tr:nth-child(even) td,
+tbody tr:nth-child(even) td.not-found {
+  background: transparent;
+}
+
+td.not-found,
+p.not-found {
+  color: var(--ink);
+  background: transparent;
+  font-style: italic;
+}
+
+p.not-found {
+  margin: 4pt 0 16pt;
+  font-family: var(--sans);
+  font-size: 10.5pt;
+}
+
+.vote-pair {
+  display: flex;
+  align-items: stretch;
+  margin: 4pt 0 0;
+  border: 0;
+  border-top: 0.8pt solid var(--ink);
+  border-bottom: 0.8pt solid var(--ink);
+}
+
+.vote-box {
+  flex: 1 1 0;
+  width: auto;
+  margin: 0;
+  padding: 16pt 16pt 18pt 0;
+  border: 0;
+  background: transparent;
+}
+
+.vote-box + .vote-box {
+  border-left: 0.8pt solid var(--ink);
+  padding-left: 14pt;
+}
+
+.vote-box h4 {
+  margin: 0 0 3pt;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 15pt;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.vote-box p {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 11pt;
+  line-height: 1.4;
+  font-variant-numeric: oldstyle-nums;
+}
+
+blockquote {
+  margin: 8pt 0;
+  padding: 0 0 0 12pt;
+  border-left: 0.8pt solid var(--rule);
+  background: transparent;
+  font-family: var(--serif);
+  font-style: italic;
+}
+
+.disputed,
+blockquote.disputed {
+  background: transparent;
+  border: 0.8pt solid var(--ink);
+  color: var(--ink);
+  padding: 8pt 10pt;
+  font-style: normal;
+}
+
+sup {
+  font-family: var(--sans);
+  font-size: 8pt;
+}
+
+footer {
+  color: var(--ink);
+  font-family: var(--sans);
+}
+
+@page {
+  size: letter portrait;
+  margin: 0.82in 0.62in 0.55in 0.78in;
+  background: #f4f3ef;
+  @top-left {
+    background: transparent;
+    content: string(section, first) "  ·  " string(contest, last);
+    font-family: "Source Sans 3", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    color: #1a1916;
+    width: 78%;
+    vertical-align: bottom;
+    padding-bottom: 9pt;
+  }
+  @top-center { content: none; background: transparent; }
+  @top-right {
+    background: transparent;
+    content: counter(page);
+    font-family: "Source Sans 3", "Liberation Sans", sans-serif;
+    font-size: 24pt;
+    font-weight: 700;
+    font-style: normal;
+    font-variant-numeric: lining-nums;
+    line-height: 1;
+    color: #1a1916;
+    width: 22%;
+    text-align: right;
+    vertical-align: bottom;
+    padding-bottom: 7pt;
+  }
+  @bottom-left {
+    background: transparent;
+    content: "Not an official ballot";
+    font-family: "Source Sans 3", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: #1a1916;
+    width: 100%;
+    vertical-align: top;
+    padding-top: 4pt;
+  }
+  @bottom-center { content: none; }
+  @bottom-right { background: transparent; content: none; }
+}
+
+@page cover {
+  size: letter portrait;
+  margin: 0.8in 0.7in 0.7in 0.85in;
+  background: #f4f3ef;
+  @top-left { background: transparent; content: none; }
+  @top-center { background: transparent; content: none; }
+  @top-right { background: transparent; content: none; }
+  @bottom-left { background: transparent; content: none; }
+  @bottom-center { content: none; }
+  @bottom-right { background: transparent; content: none; }
+}
+
+@page toc {
+  size: letter portrait;
+  margin: 0.82in 0.62in 0.55in 0.78in;
+  background: #f4f3ef;
+  @top-left {
+    background: transparent;
+    content: string(section, first) "  ·  " string(contest, last);
+    font-family: "Source Sans 3", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 600;
+    line-height: 1;
+    color: #1a1916;
+    width: 78%;
+    vertical-align: bottom;
+    padding-bottom: 9pt;
+  }
+  @top-center { background: transparent; content: none; }
+  @top-right {
+    background: transparent;
+    content: counter(page);
+    font-family: "Source Sans 3", "Liberation Sans", sans-serif;
+    font-size: 24pt;
+    font-weight: 700;
+    font-variant-numeric: lining-nums;
+    line-height: 1;
+    color: #1a1916;
+    width: 22%;
+    text-align: right;
+    vertical-align: bottom;
+    padding-bottom: 7pt;
+  }
+  @bottom-left {
+    background: transparent;
+    content: "Not an official ballot";
+    font-family: "Source Sans 3", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 500;
+    color: #1a1916;
+    width: 100%;
+    padding-top: 4pt;
+  }
+  @bottom-center { content: none; }
+  @bottom-right { background: transparent; content: none; }
+}
+
+@page landscape {
+  size: letter landscape;
+  margin: 0.72in 0.5in 0.5in 0.62in;
+  background: #f4f3ef;
+  @top-left {
+    background: transparent;
+    content: string(section, first) "  ·  " string(contest, last);
+    font-family: "Source Sans 3", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 600;
+    line-height: 1;
+    color: #1a1916;
+    width: 82%;
+    vertical-align: bottom;
+    padding-bottom: 8pt;
+  }
+  @top-center { background: transparent; content: none; }
+  @top-right {
+    background: transparent;
+    content: counter(page);
+    font-family: "Source Sans 3", "Liberation Sans", sans-serif;
+    font-size: 24pt;
+    font-weight: 700;
+    font-variant-numeric: lining-nums;
+    line-height: 1;
+    color: #1a1916;
+    width: 18%;
+    text-align: right;
+    vertical-align: bottom;
+    padding-bottom: 6pt;
+  }
+  @bottom-left {
+    background: transparent;
+    content: "Not an official ballot";
+    font-family: "Source Sans 3", "Liberation Sans", sans-serif;
+    font-size: 9.5pt;
+    color: #1a1916;
+    width: 100%;
+    padding-top: 4pt;
+  }
+  @bottom-center { content: none; }
+  @bottom-right { background: transparent; content: none; }
+}
+
+@media print {
+  body {
+    font-size: 11.5pt;
+    line-height: 1.45;
+    background: #f4f3ef;
+  }
+  main, footer { max-width: none; padding-left: 0; padding-right: 0; }
+  h1 { font-size: 22pt; }
+  h1.ballot-group,
+  h1.ballot-glance,
+  h1.guide-title,
+  h1.sources-title,
+  #toc-title { font-size: 9.5pt; }
+  h2 { font-size: 16pt; }
+  h2.contest-title { font-size: 30pt; }
+  h3:not(.candidate-name):not(.source-entry) { font-size: 15pt; }
+  .candidate-index h3.candidate-name { font-size: 18pt; }
+  table, td { font-size: 11pt; }
+  th { font-size: 9.5pt; }
+  .cover h1 { font-size: 28pt; }
+}

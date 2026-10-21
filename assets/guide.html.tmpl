@@ -11,12 +11,48 @@ $endfor$
 </head>
 <body>
   <a class="skip" href="#content">Skip to content</a>
-  <header class="banner" role="note">
-    <p><strong>Not an official ballot. Not voting instructions.</strong> This research guide is not from an election office. Confirm contests, deadlines, and polling places with the official office linked in the guide.</p>
-  </header>
+  <section class="cover" id="cover" aria-label="Cover">
+$if(fiction)$
+    <p class="fiction-flag"><strong>FICTIONAL EXAMPLE.</strong> The places, people, measures, and documents in this guide are invented. Sources on fictional.example are placeholders, not real records. This is not a voting guide.</p>
+$endif$
+    <p class="cover-kicker">$if(sources_edition)$Sources addendum$else$Voter guide$endif$</p>
+    <h1>$if(election_name)$$election_name$$elseif(title)$$title$$else$Voter guide$endif$</h1>
+$if(election_date)$
+    <p class="cover-date">$election_date$</p>
+$endif$
+$if(jurisdiction)$
+    <p class="cover-place">$jurisdiction$</p>
+$endif$
+    <div class="notice" role="note">
+      <p><strong>Not an official ballot. Not voting instructions.</strong> This research guide is not from an election office. Confirm contests, deadlines, and polling places with the official office linked in the guide.</p>
+    </div>
+$if(sources_edition)$
+    <h2>How to use the sources</h2>
+    <ol class="how-to">
+      <li>A small number in the guide opens the matching entry in this list.</li>
+      <li>Each entry gives the work cited, the quote, and a link back to the sentence.</li>
+      <li>Entries are grouped by contest, in ballot order.</li>
+      <li>Not found in the guide means the search log for that contest lists the places that were checked.</li>
+    </ol>
+$else$
+    <h2>How to use this guide</h2>
+    <ol class="how-to">
+      <li>Start with the ballot at a glance, then read one contest at a time.</li>
+      <li>Every candidate in a race has the same rows. Read across a row to compare, or down a column for one person.</li>
+      <li>A small number after a sentence opens the sources addendum, where the record and the quote are.</li>
+      <li>Not found means those places were searched and the fact was not in them.</li>
+      <li>This guide does not rank candidates, score them, or recommend a vote.</li>
+    </ol>
+$endif$
+$if(version)$
+    <p class="cover-version">Version $version$.</p>
+$endif$
+  </section>
   <main id="content">
+    <a class="runhead" href="$if(sources_edition)$#TOC$else$#your-ballot-at-a-glance$endif$" aria-label="$if(sources_edition)$Back to contents$else$Back to the ballot at a glance$endif$">&#8203;</a>
 $if(toc)$
     <nav id="TOC" aria-label="Table of contents">
+      <h2 id="toc-title">Contents</h2>
 $toc$
     </nav>
 $endif$
