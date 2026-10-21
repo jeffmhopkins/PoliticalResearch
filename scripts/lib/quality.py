@@ -6,12 +6,27 @@ import re
 from datetime import date
 from urllib.parse import quote
 
+from lib.sentences import split_sentences
 from lib.util import RETRIEVED_RE, dump_json, iter_items, load_config, load_yaml, norm_heading, repo_root, unsafe_fetch_target
 
 MARKER_RE = re.compile(r"\[\^(\d+)\]")
 WORK_RE = re.compile(r"^\[(\d+)\] ", re.MULTILINE)
 FOOTNOTE_DEF_RE = re.compile(r"^\[\^\d+\]:")
+HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+# Kept for callers that still import the pattern. Splitting goes through split_sentences.
 SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+# A gap note may list places. It may not smuggle a second clause with ; : or a finite verb.
+_GAP_CLAUSE_RE = re.compile(
+    r"\b(?:was|were|is|are|been|being|has|have|had|shows|showed|took|paid|received|"
+    r"convicted|guilty|sentenced|alleged|accused|indicted|arrested|admitted|pleaded|pled)\b",
+    re.IGNORECASE,
+)
+_FOREIGN_NAME_RE = re.compile(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b")
+_FIGURE_RE = re.compile(
+    r"\b(?:dollars?|receipts?|disbursements?|\$|votes?\s+cast|vote\s+total|cash\s+on\s+hand)\b",
+    re.IGNORECASE,
+)
+_NUMBER_RE = re.compile(r"\d[\d,]*(?:\.\d+)?")
 DISALLOWED_HOSTS = {
     "twitter.com",
     "www.twitter.com",
@@ -32,10 +47,12 @@ GAP_SENTENCES = {
     "limited public record.",
     "no issue positions (judicial ethics rules).",
 }
-# Sentence punctuation inside the parentheses would hide a second sentence, so it is not allowed.
-GAP_NOT_FOUND_RE = re.compile(r"^not found \(searched: [^!.?]+\)\.$", re.IGNORECASE)
+# Semicolons, colons, and finite verbs inside the parentheses are rejected in _gap_sentence.
+# Hostname dots such as congress.gov stay allowed. A glued capital after a dot does not.
+GAP_NOT_FOUND_RE = re.compile(r"^not found \(searched: (.+)\)\.$", re.IGNORECASE)
 EXEMPT_HEADINGS = {
     "how to use this guide",
+    "how to read this guide",
     "methodology",
     "changelog",
     "corrections",
@@ -46,6 +63,7 @@ EXEMPT_HEADINGS = {
     "findings and disputes",
     "works cited",
     "disputed claims",
+    "search log",
 }
 CANDIDATE_CORE = [
     "identity",
@@ -152,11 +170,7 @@ SUMMARY_TYPES = {"race", "measure", "legislation", "judicial-retention"}
 
 
 def sentence_count(text: str) -> int:
-    cleaned = text.strip()
-    if not cleaned:
-        return 0
-    parts = [part for part in SENTENCE_SPLIT_RE.split(cleaned) if part.strip()]
-    return len(parts)
+    return len(split_sentences(text or ""))
 
 
 def host_of(url: str) -> str:
@@ -255,17 +269,51 @@ def anchors_identify_person(record: dict, blob: str) -> bool:
     return len(matched) >= 2 and any(distinguishing for _value, distinguishing in matched)
 
 
+def _bind_trailing_markers(text: str) -> str:
+    """Attach a marker that sits just after the period to the sentence it closes."""
+
+    def _move(match: re.Match) -> str:
+        return f" {match.group(2)}{match.group(1)}"
+
+    return re.sub(r"([.!?])(\s*\[\^\d+\])", _move, text)
+
+
 def _marker_sentences(draft: str, markers: list[int]) -> list[str]:
     tokens = [f"[^{marker}]" for marker in markers]
     if not tokens:
         return []
     sentences: list[str] = []
-    for line in (draft or "").splitlines():
-        for part in SENTENCE_SPLIT_RE.split(line):
+    cleaned = HTML_COMMENT_RE.sub("", draft or "")
+    for line in _bind_trailing_markers(cleaned).splitlines():
+        for part in split_sentences(line):
             text = part.strip()
             if text and any(token in text for token in tokens):
                 sentences.append(text)
     return sentences
+
+
+def _draft_sections(draft: str) -> list[str]:
+    """Bodies split on headings, including the preamble before the first heading."""
+    parts: list[list[str]] = [[]]
+    for line in HTML_COMMENT_RE.sub("", draft or "").splitlines():
+        if _heading(line):
+            parts.append([line])
+        else:
+            parts[-1].append(line)
+    return ["\n".join(lines) for lines in parts if any(line.strip() for line in lines)]
+
+
+def _foreign_name(sentence: str, record: dict) -> bool:
+    """A two-word capital name in the sentence that is not this identity record."""
+    anchors = {value.lower() for value, _distinguishing in anchor_entries(record)}
+    plain = MARKER_RE.sub("", sentence)
+    for match in _FOREIGN_NAME_RE.finditer(plain):
+        phrase = match.group(0)
+        lowered = phrase.lower()
+        if any(lowered in anchor or anchor in lowered for anchor in anchors if len(anchor) >= 3):
+            continue
+        return True
+    return False
 
 
 def identities_for_item(workspace, item, doc: dict) -> list[dict]:
@@ -342,10 +390,24 @@ def semantic_claim_errors(doc: dict, label: str, identities: list | None = None,
                         f"{label}: {cid} draft sentence carrying the marker does not contain two anchor values from one identity.yaml record, including a name or filing id"
                     )
                 else:
+                    # The anchor is required once in the section that carries the marker.
+                    # A marker sentence that names a different person still fails.
+                    sections = [part for part in _draft_sections(draft) if any(f"[^{marker}]" in part for marker in markers)]
+                    if not sections:
+                        sections = sentences
+                    if not any(
+                        any(anchors_identify_person(record, section) for record in eligible) for section in sections
+                    ):
+                        shown = ", ".join(str(marker) for marker in markers)
+                        errors.append(
+                            f"{label}: {cid} draft sentence carrying the marker sits in a section that does not contain two anchor values from one identity.yaml record, including a name or filing id (markers {shown})"
+                        )
                     for sentence in sentences:
-                        if not any(anchors_identify_person(record, sentence) for record in eligible):
+                        if any(anchors_identify_person(record, sentence) for record in eligible):
+                            continue
+                        if any(_foreign_name(sentence, record) for record in eligible):
                             errors.append(
-                                f"{label}: {cid} draft sentence carrying the marker does not contain two anchor values from one identity.yaml record, including a name or filing id"
+                                f"{label}: {cid} draft sentence carrying the marker names a different person than identity.yaml"
                             )
                             break
         tiers = []
@@ -421,11 +483,13 @@ def _heading(line: str) -> tuple[int, str] | None:
     match = re.match(r"^(#{1,6})\s+(.*?)\s*$", line)
     if not match:
         return None
-    return len(match.group(1)), norm_heading(match.group(2))
+    # Pandoc header attributes ({#id .class}) are not part of the title.
+    title = re.sub(r"\s*\{[^{}]*\}\s*$", "", match.group(2)).strip()
+    return len(match.group(1)), norm_heading(title)
 
 
 def factual_blocks(text: str) -> list[str]:
-    body = strip_front_matter(text)
+    body = HTML_COMMENT_RE.sub("", strip_front_matter(text))
     kept: list[str] = []
     for raw in body.splitlines():
         if FOOTNOTE_DEF_RE.match(raw.strip()):
@@ -469,14 +533,30 @@ def _sentences(block: str) -> list[str]:
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     if not cleaned:
         return []
-    return [part.strip(" -*") for part in SENTENCE_SPLIT_RE.split(cleaned) if part.strip(" -*")]
+    return [part.strip(" -*") for part in split_sentences(cleaned) if part.strip(" -*")]
 
 
 def _gap_sentence(sentence: str) -> bool:
-    text = re.sub(r"\s+", " ", sentence).strip().strip("*").strip().lower()
+    original = re.sub(r"\s+", " ", sentence).strip().strip("*").strip()
+    text = original.lower()
     if text in GAP_SENTENCES:
         return True
-    return bool(GAP_NOT_FOUND_RE.fullmatch(text))
+    match = GAP_NOT_FOUND_RE.fullmatch(text)
+    if not match:
+        return False
+    inner = match.group(1) if match.lastindex else ""
+    if any(char in inner for char in ";:!"):
+        return False
+    if _GAP_CLAUSE_RE.search(inner):
+        return False
+    # A space after a dot is a second sentence. A capital glued to the dot is too.
+    # A lowercase letter after the dot is a hostname, such as congress.gov.
+    if re.search(r"\.\s", inner):
+        return False
+    inner_original = original[original.lower().find(inner) : original.lower().find(inner) + len(inner)] if inner else ""
+    if re.search(r"\.[A-Z]", inner_original):
+        return False
+    return True
 
 
 def _is_gap_text(text: str) -> bool:
@@ -539,14 +619,17 @@ def _sentence_marker_errors(block: str, label: str, kind: str, banner_ok: bool =
         return []
     # Drop emphasis markers so "**EXAMPLE.** Next sentence" still splits on the period.
     plain_block = re.sub(r"[*_>`]", "", block)
+    plain_block = _bind_trailing_markers(plain_block)
     protected = MARKER_RE.sub(" [M] ", plain_block)
     errors = []
-    for part in SENTENCE_SPLIT_RE.split(protected.strip()):
+    for part in split_sentences(protected.strip()):
         text = part.strip()
         if not text:
             continue
         plain = text.replace("[M]", "").strip()
         if not plain or _is_gap_text(plain):
+            continue
+        if re.fullmatch(r"\[Back to ballot\]\(#[A-Za-z0-9_-]+\)", plain):
             continue
         if banner_ok and _is_banner_sentence(plain):
             continue
@@ -714,6 +797,22 @@ def word_count(text: str) -> int:
     return len(re.findall(r"[A-Za-z0-9']+", text or ""))
 
 
+def _cited_word_count(text: str) -> int:
+    """Words in sentences that carry a marker. Gap sentences do not count."""
+    total = 0
+    for line in HTML_COMMENT_RE.sub("", text or "").splitlines():
+        if _heading(line) or FOOTNOTE_DEF_RE.match(line.strip()):
+            continue
+        for sentence in split_sentences(_bind_trailing_markers(line)):
+            if "[^" not in sentence:
+                continue
+            plain = MARKER_RE.sub("", sentence)
+            if _gap_sentence(plain):
+                continue
+            total += word_count(plain)
+    return total
+
+
 def core_for(item_type: str | None) -> list[str] | None:
     return {
         "candidate": CANDIDATE_CORE,
@@ -771,23 +870,27 @@ def symmetry_errors(workspace) -> list[str]:
             else:
                 errors.append(f"{item_id}: missing effort.json")
             efforts.append((item_id, effort))
-        for index, (left_id, left_sections) in enumerate(bodies):
-            for right_id, right_sections in bodies[index + 1 :]:
-                for name in CANDIDATE_CORE:
-                    left = left_sections.get(name, "")
-                    right = right_sections.get(name, "")
-                    if _is_gap_text(left) or _is_gap_text(right):
-                        continue
-                    left_words = word_count(left)
-                    right_words = word_count(right)
-                    peak = max(left_words, right_words)
-                    if peak == 0:
-                        continue
-                    if min(left_words, right_words) / peak < 0.5:
-                        errors.append(
-                            f"{contest.get('id')}: section '{name}' word count for {left_id} ({left_words}) "
-                            f"and {right_id} ({right_words}) is below half the longer one"
-                        )
+        for name in CANDIDATE_CORE:
+            cited_rows = []
+            for item_id, sections in bodies:
+                body = sections.get(name, "")
+                if _is_gap_text(body):
+                    continue
+                cited_rows.append((item_id, _cited_word_count(body)))
+            positive = sorted(count for _item, count in cited_rows if count > 0)
+            if len(positive) < 2:
+                continue
+            median = positive[len(positive) // 2] if len(positive) % 2 else (positive[len(positive) // 2 - 1] + positive[len(positive) // 2]) / 2
+            if median <= 0:
+                continue
+            for item_id, count in cited_rows:
+                if count <= 0:
+                    continue
+                if count / median < 0.5:
+                    errors.append(
+                        f"{contest.get('id')}: section '{name}' cited word count for {item_id} ({count}) "
+                        f"is below half the median ({median:g})"
+                    )
         scores = []
         section_rows: dict[str, list[tuple[str, int]]] = {}
         for item_id, effort in efforts:
@@ -829,6 +932,7 @@ def symmetry_errors(workspace) -> list[str]:
                     if name not in sections:
                         errors.append(f"{contest.get('id')}: race draft is missing '{name}'")
     errors.extend(argument_length_errors(workspace))
+    errors.extend(structured_symmetry_errors(workspace))
     return errors
 
 
@@ -854,8 +958,13 @@ def argument_length_errors(workspace) -> list[str]:
         sections = section_map(draft.read_text(encoding="utf-8"))
         if "arguments for" not in sections and "arguments against" not in sections:
             continue
-        for_words = word_count(sections.get("arguments for", ""))
-        against_words = word_count(sections.get("arguments against", ""))
+        for_body = sections.get("arguments for", "")
+        against_body = sections.get("arguments against", "")
+        # No organized opposition is a gap. Do not pad the empty side to match the other.
+        if _is_gap_text(for_body) or _is_gap_text(against_body):
+            continue
+        for_words = word_count(for_body)
+        against_words = word_count(against_body)
         peak = max(for_words, against_words)
         if peak and min(for_words, against_words) / peak < 0.8:
             errors.append(
@@ -972,10 +1081,11 @@ def _year_is_on_claim(claim_text: str, draft: str, marker: int | None, year: str
     if marker is None or not draft:
         return False
     token = f"[^{marker}]"
-    pattern = re.compile(rf"(?<!\d){re.escape(year)}(?!\d)")
+    # Letters count too, so 2018a and fy2018 are not the year 2018.
+    pattern = re.compile(rf"(?<![A-Za-z0-9]){re.escape(year)}(?![A-Za-z0-9])")
     found = False
-    for line in draft.splitlines():
-        for sentence in SENTENCE_SPLIT_RE.split(line):
+    for line in HTML_COMMENT_RE.sub("", draft).splitlines():
+        for sentence in split_sentences(_bind_trailing_markers(line)):
             if token not in sentence:
                 continue
             found = True
@@ -1055,6 +1165,252 @@ def environment_rating_sentence(workspace) -> str:
     return "No environment rating file was found."
 
 
+def _significant_numbers(text: str) -> set[str]:
+    found: set[str] = set()
+    for match in _NUMBER_RE.finditer(text or ""):
+        raw = match.group(0).replace(",", "")
+        if re.fullmatch(r"(?:19|20)\d{2}", raw):
+            continue
+        digits = raw.replace(".", "")
+        if "." not in raw and len(digits) < 3:
+            continue
+        found.add(raw)
+    return found
+
+
+def number_quote_errors(workspace) -> list[str]:
+    """A figure in a draft sentence must appear in a quote for a marker on that sentence."""
+    errors = []
+    for item in iter_items(workspace):
+        draft_path = item / "draft.md"
+        if not draft_path.exists():
+            continue
+        doc = load_yaml(item / "claims.yaml") or {}
+        if not isinstance(doc, dict):
+            continue
+        quotes: dict[int, str] = {}
+        for claim, source in iter_claim_sources(doc):
+            if claim.get("removed"):
+                continue
+            marker = source_marker(claim, source)
+            if marker is None:
+                continue
+            quotes[marker] = quotes.get(marker, "") + " " + str(source.get("quote") or "")
+        draft = draft_path.read_text(encoding="utf-8")
+        for sentence in _marker_sentences(draft, list(quotes)):
+            numbers = _significant_numbers(MARKER_RE.sub("", sentence))
+            if not numbers:
+                continue
+            cited = [int(value) for value in MARKER_RE.findall(sentence)]
+            quote_blob = " ".join(quotes.get(marker, "") for marker in cited)
+            quote_numbers = _significant_numbers(quote_blob)
+            missing = sorted(numbers - quote_numbers)
+            if missing:
+                errors.append(
+                    f"items/{item.name}/draft.md: {missing[0]} is in a cited sentence but not in the cited quote"
+                )
+    return errors
+
+
+def _independent_publishers(sources: list) -> set[str]:
+    found = set()
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        if source.get("tier") not in {"T1", "T2", "T3"}:
+            continue
+        publisher = str(source.get("publisher") or "").strip().lower()
+        if publisher:
+            found.add(publisher)
+    return found
+
+
+def figure_source_errors(workspace) -> list[str]:
+    """Dollar and vote totals need a T1 filing or two independent sources.
+
+    A verified figure whose only source could not be archived needs a second
+    independent source, except on a fiction: true practice ballot.
+    """
+    errors = []
+    ballot = load_yaml(workspace / "ballot.yaml") or {}
+    fiction = isinstance(ballot, dict) and ballot.get("fiction") is True
+    for item in iter_items(workspace):
+        doc = load_yaml(item / "claims.yaml") or {}
+        if not isinstance(doc, dict):
+            continue
+        for claim in doc.get("claims") or []:
+            if not isinstance(claim, dict) or claim.get("removed"):
+                continue
+            text = str(claim.get("text") or "")
+            if not _FIGURE_RE.search(text):
+                continue
+            sources = [source for source in claim.get("sources") or [] if isinstance(source, dict)]
+            if not sources:
+                continue
+            publishers = _independent_publishers(sources)
+            tiers = [source.get("tier") for source in sources]
+            has_t1 = "T1" in tiers
+            archived = any(source.get("archive_url") for source in sources)
+            failed = all(
+                source.get("archive_failed") is True and not source.get("archive_url") for source in sources
+            )
+            if claim.get("confidence") == "verified" and not has_t1 and len(publishers) < 2:
+                errors.append(
+                    f"{item.name}: {claim.get('id')} is a verified dollar or vote claim without a T1 source or two independent sources"
+                )
+            if (
+                claim.get("confidence") == "verified"
+                and has_t1
+                and len(publishers) < 2
+                and failed
+                and not archived
+                and not fiction
+            ):
+                errors.append(
+                    f"{item.name}: {claim.get('id')} is a verified figure whose filing was not archived and needs a second independent source"
+                )
+    return errors
+
+
+def _normalized_prose(text: str, names: list[str]) -> str:
+    cleaned = MARKER_RE.sub("", text or "").lower()
+    for name in sorted(names, key=len, reverse=True):
+        if len(name) >= 3:
+            cleaned = re.sub(rf"\b{re.escape(name.lower())}\b", "candidate", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
+
+def templated_prose_errors(workspace) -> list[str]:
+    """Identical section text with only the name swapped does not satisfy symmetry."""
+    errors = []
+    ballot = load_yaml(workspace / "ballot.yaml") or {}
+    if not isinstance(ballot, dict):
+        return errors
+    for contest in ballot.get("contests") or []:
+        if not isinstance(contest, dict) or contest.get("type") not in {"race", "primary", "local-office"}:
+            continue
+        candidates = [c for c in contest.get("candidates") or [] if isinstance(c, dict) and not c.get("write_in")]
+        names = [str(c.get("name") or "") for c in candidates]
+        seen: dict[tuple[str, str], str] = {}
+        for candidate in candidates:
+            item_id = str(candidate.get("item_id") or candidate.get("id"))
+            draft_path = workspace / "items" / item_id / "draft.md"
+            if not draft_path.exists():
+                continue
+            sections = section_map(draft_path.read_text(encoding="utf-8"))
+            for name in CANDIDATE_CORE:
+                body = sections.get(name, "")
+                if _is_gap_text(body) or _cited_word_count(body) < 12:
+                    continue
+                key = (name, _normalized_prose(body, names))
+                previous = seen.get(key)
+                if previous:
+                    errors.append(
+                        f"{contest.get('id')}: section '{name}' for {item_id} repeats the templated text used for {previous}"
+                    )
+                else:
+                    seen[key] = item_id
+    return errors
+
+
+def heading_errors(workspace) -> list[str]:
+    errors = []
+    for item in iter_items(workspace):
+        draft_path = item / "draft.md"
+        if not draft_path.exists():
+            continue
+        text = draft_path.read_text(encoding="utf-8")
+        if not re.search(r"^#\s+\S", text, re.M):
+            errors.append(f"items/{item.name}/draft.md: missing a level-1 heading. Keep the scaffold's # title line.")
+    return errors
+
+
+def structured_symmetry_errors(workspace) -> list[str]:
+    """Symmetry on profile.yaml fields. Rendered prose is not the only check."""
+    errors = []
+    ballot = load_yaml(workspace / "ballot.yaml") or {}
+    if not isinstance(ballot, dict):
+        return errors
+    for contest in ballot.get("contests") or []:
+        if not isinstance(contest, dict) or contest.get("type") not in {"race", "primary", "local-office"}:
+            continue
+        candidates = [c for c in contest.get("candidates") or [] if isinstance(c, dict) and not c.get("write_in")]
+        profiles = []
+        for candidate in candidates:
+            item_id = str(candidate.get("item_id") or candidate.get("id"))
+            path = workspace / "items" / item_id / "profile.yaml"
+            if not path.exists():
+                continue
+            data = load_yaml(path)
+            if isinstance(data, dict):
+                profiles.append((item_id, data))
+        if len(profiles) < 2:
+            continue
+        issue_sets = []
+        for item_id, data in profiles:
+            issues = data.get("issues") or {}
+            if not isinstance(issues, dict):
+                errors.append(f"{item_id}: profile.yaml issues must be a mapping of shared issue keys")
+                continue
+            issue_sets.append((item_id, set(issues)))
+        if len(issue_sets) >= 2:
+            union = set().union(*(keys for _item, keys in issue_sets))
+            for item_id, keys in issue_sets:
+                missing = sorted(union - keys)
+                if missing:
+                    errors.append(
+                        f"{item_id}: profile.yaml is missing shared issue rows {', '.join(missing)}. "
+                        "Every candidate gets the same issue rows."
+                    )
+        dates = []
+        for item_id, data in profiles:
+            money = data.get("money") or {}
+            if isinstance(money, dict) and money.get("report_date"):
+                dates.append((item_id, str(money.get("report_date"))))
+        unique_dates = {value for _item, value in dates}
+        if len(unique_dates) > 1:
+            shown = ", ".join(f"{item_id} {value}" for item_id, value in dates)
+            errors.append(f"{contest.get('id')}: money report_date differs across candidates ({shown})")
+        gap_sets = []
+        for item_id, data in profiles:
+            gaps = data.get("gaps") or []
+            if isinstance(gaps, list):
+                gap_sets.append((item_id, {str(item) for item in gaps}))
+        if len(gap_sets) >= 2:
+            # A field found for someone must stay visible for everyone. Whole-race gaps are symmetric.
+            found_somewhere = set()
+            for _item, gaps in gap_sets:
+                # gaps lists fields that were NOT found. A field absent from one list and present
+                # in another means one candidate showed it. That is allowed only when every profile
+                # lists the field as found-or-gap explicitly via the same keys in `fields`.
+                pass
+            field_maps = []
+            for item_id, data in profiles:
+                fields = data.get("fields")
+                if isinstance(fields, dict):
+                    field_maps.append((item_id, fields))
+            if len(field_maps) >= 2:
+                union_fields = set().union(*(set(fields) for _item, fields in field_maps))
+                for item_id, fields in field_maps:
+                    missing = sorted(union_fields - set(fields))
+                    if missing:
+                        errors.append(
+                            f"{item_id}: profile.yaml fields omit {', '.join(missing)} that another candidate lists"
+                        )
+                for field in sorted(union_fields):
+                    values = []
+                    for item_id, fields in field_maps:
+                        value = fields.get(field)
+                        empty = value in (None, "", "Not found", "not found")
+                        values.append(empty)
+                    if all(values):
+                        continue
+                    if any(values) and not all(item_id for item_id, fields in field_maps if field in fields):
+                        errors.append(f"{contest.get('id')}: field '{field}' is missing for a candidate")
+    return errors
+
+
 def content_gate_errors(workspace, today: date, *, include_guide: bool = True) -> list[str]:
     errors: list[str] = []
     errors.extend(citation_errors(workspace, guide=include_guide))
@@ -1064,6 +1420,10 @@ def content_gate_errors(workspace, today: date, *, include_guide: bool = True) -
     errors.extend(stale_errors(workspace, today))
     errors.extend(year_label_errors(workspace))
     errors.extend(offline_link_errors(workspace))
+    errors.extend(number_quote_errors(workspace))
+    errors.extend(figure_source_errors(workspace))
+    errors.extend(templated_prose_errors(workspace))
+    errors.extend(heading_errors(workspace))
     return errors
 
 

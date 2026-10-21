@@ -98,9 +98,22 @@ footer {
 
 code { font-size: 0.95em; }
 
+@page {
+  @top-center {
+    content: string(contest);
+    font-family: "DejaVu Sans", Helvetica, Arial, sans-serif;
+    font-size: 9pt;
+  }
+}
+
+h2.contest-title {
+  string-set: contest content();
+}
+
 @media print {
   .skip { display: none; }
   .banner { background: #ffffff; color: #000000; border: 2px solid #000000; }
   a { color: #000000; text-decoration: underline; }
   table { display: table; }
+  h2.contest-title { break-before: page; }
 }

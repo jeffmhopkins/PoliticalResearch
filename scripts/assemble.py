@@ -20,6 +20,9 @@ def main(argv: list[str] | None = None) -> int:
         print("\n".join(errors), file=sys.stderr)
         return 1
     print(f"Wrote {workspace / 'final' / 'guide.md'}")
+    full = workspace / "final" / "guide-full.md"
+    if full.exists():
+        print(f"Wrote {full}")
     return 0
 
 

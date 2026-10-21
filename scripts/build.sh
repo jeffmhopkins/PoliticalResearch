@@ -63,49 +63,57 @@ fi
 
 cp "$ROOT/assets/guide.css" "$WORKSPACE/final/guide.css"
 cp "$ROOT/assets/guide-narrow.css" "$WORKSPACE/final/guide-narrow.css"
-HTML="$WORKSPACE/final/guide.html"
-(
-  cd "$WORKSPACE/final"
-  pandoc "$GUIDE" \
-    --from markdown+footnotes \
-    --to html5 \
-    --standalone \
-    --template "$ROOT/assets/guide.html.tmpl" \
-    --css guide.css \
-    --toc --toc-depth=2 \
-    --metadata lang=en \
-    --variable version="$VERSION" \
-    --variable content-hash="$HASH" \
-    -o guide.html
-)
 
-"$PY" "$ROOT/scripts/a11y_check.py" "$HTML"
-
-PDF="$WORKSPACE/final/guide.pdf"
-if command -v weasyprint >/dev/null 2>&1; then
-  weasyprint "$HTML" "$PDF"
-elif command -v wkhtmltopdf >/dev/null 2>&1; then
-  wkhtmltopdf "$HTML" "$PDF"
-else
-  echo "No PDF engine found. HTML is at $HTML" >&2
-fi
-
-if [[ -f "$PDF" ]]; then
-  pdf_text="$(pdftotext "$PDF" - || true)"
-  if [[ "$pdf_text" != *"Not an official ballot"* ]]; then
-    echo "PDF is missing the not-an-official-ballot banner." >&2
-    exit 1
+build_one() {
+  local source_md="$1"
+  local html_out="$2"
+  local pdf_out="$3"
+  local hash
+  hash="$(sha256sum "$source_md" | awk '{print $1}')"
+  (
+    cd "$WORKSPACE/final"
+    pandoc "$source_md" \
+      --from markdown+footnotes+header_attributes \
+      --to html5 \
+      --standalone \
+      --template "$ROOT/assets/guide.html.tmpl" \
+      --css guide.css \
+      --toc --toc-depth=2 \
+      --metadata lang=en \
+      --variable version="$VERSION" \
+      --variable content-hash="$hash" \
+      -o "$html_out"
+  )
+  "$PY" "$ROOT/scripts/a11y_check.py" "$html_out"
+  if command -v weasyprint >/dev/null 2>&1; then
+    weasyprint "$html_out" "$pdf_out"
+  elif command -v wkhtmltopdf >/dev/null 2>&1; then
+    wkhtmltopdf "$html_out" "$pdf_out"
+  else
+    echo "No PDF engine found. HTML is at $html_out" >&2
   fi
+  if [[ -f "$pdf_out" ]]; then
+    local pdf_text
+    pdf_text="$(pdftotext "$pdf_out" - || true)"
+    if [[ "$pdf_text" != *"Not an official ballot"* ]]; then
+      echo "PDF is missing the not-an-official-ballot banner: $pdf_out" >&2
+      exit 1
+    fi
+  fi
+  echo "Built $html_out"
+  if [[ -f "$pdf_out" ]]; then
+    echo "Built $pdf_out"
+  fi
+  echo "Content hash: $hash"
+}
+
+build_one "$GUIDE" "$WORKSPACE/final/guide.html" "$WORKSPACE/final/guide.pdf"
+if [[ -f "$WORKSPACE/final/guide-full.md" ]]; then
+  build_one "$WORKSPACE/final/guide-full.md" "$WORKSPACE/final/guide-full.html" "$WORKSPACE/final/guide-full.pdf"
 fi
 
 mkdir -p "$WORKSPACE/versions"
-cp "$HTML" "$WORKSPACE/versions/guide-${VERSION}.html"
-if [[ -f "$PDF" ]]; then
-  cp "$PDF" "$WORKSPACE/versions/guide-${VERSION}.pdf"
+cp "$WORKSPACE/final/guide.html" "$WORKSPACE/versions/guide-${VERSION}.html"
+if [[ -f "$WORKSPACE/final/guide.pdf" ]]; then
+  cp "$WORKSPACE/final/guide.pdf" "$WORKSPACE/versions/guide-${VERSION}.pdf"
 fi
-
-echo "Built $HTML"
-if [[ -f "$PDF" ]]; then
-  echo "Built $PDF"
-fi
-echo "Content hash: $HASH"

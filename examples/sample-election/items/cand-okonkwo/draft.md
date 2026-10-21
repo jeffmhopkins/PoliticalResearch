@@ -50,7 +50,7 @@ The cited record for Blake Okonkwo of Cedar Hollow shows a 2016 parks planner ap
 
 ## Interest-group ratings
 
-Not found (searched: fictional paired rating pages; omitted because ratings are included only when a pair from opposite sides exists).
+Not found (searched: fictional paired rating pages for a pair from opposite sides).
 
 ## Sources and retrieval dates
 

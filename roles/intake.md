@@ -23,7 +23,7 @@ Party, ideology, religion, or "what you care about." This guide does not match v
 
 Use sources in this order. Every contest needs an official source URL. Flag conflicts. Do not invent a contest to fill a gap.
 
-1. A sample ballot or photo the requester supplies. Keep the file in `private/`. This is the preferred source.
+1. A sample ballot or photo the requester supplies. Keep the file in the workspace `private/` directory (`output/<election-id>/private/`). This is the preferred source. Do not copy that directory into artifacts or git.
 2. The county or state sample ballot and voter pamphlet.
 3. `scripts/ballot_lookup.py` when `GOOGLE_CIVIC_API_KEY` is set (`officialOnly=true`). Democracy Works runs only when both `DEMOCRACY_WORKS_API_KEY` and `DEMOCRACY_WORKS_API_URL` are set.
 4. Ballotpedia or VOTE411 as a cross-check, never as the only official URL.

@@ -28,4 +28,24 @@ Before research, write `items/<id>/identity.yaml` for each candidate: legal name
 
 A claim about a person must match at least two anchor attributes (name plus filing ID, or name plus city plus occupation). Otherwise set confidence to `identity-unconfirmed` and do not publish it. Court records and business records need a middle name or initial, an age range, or an address-level match from the record itself. Never print a home address.
 
-The fact-check reviewer verifies identity on every negative claim.
+The fact-check reviewer verifies identity on every negative claim. The anchor must appear in the claim text and in the draft section that carries the marker. It does not have to be repeated in every sentence of that section. A sentence that names a different person still fails.
+
+A verified dollar or vote total needs a T1 source or two independent publishers. If the only source is a T1 filing that could not be archived, add a second independent source. A `fiction: true` practice ballot is the exception to that archive rule. It is not an exception to the T1-or-two-publishers rule.
+
+## Florida and other source traps
+
+These are gaps or extraction notes, not permission to invent the record.
+
+- FEC candidate pages and some FDACS biography pages are JavaScript shells. The printed summary total is not the donor table. An independent-expenditure block that is only an image has no total.
+- A congress.gov or Biographical Directory Cloudflare challenge is not the page. A later deep link can still load. Say which URL loaded.
+- Sunbiz search often returns 403 to curl while an officer-detail URL still loads. An officer table is not an identity match. A Cloudflare or captcha page is a gap.
+- Florida Division of Elections website fields are sometimes not URLs. Do not fetch them as pages.
+- TreSel has a two-row header that is not in column order. Committee finance is a POST. A blank committee purpose stays blank.
+- Florida House `www` pages and `myfloridahouse.gov` can bounce to a session picker. `flhouse.gov` returns the member list. Do not treat the picker as the list.
+- Florida Senate HTML search can be empty, and a bare curl of an analysis PDF can get 403. Record the status.
+- The Florida Bar find-a-lawyer URL can 404. A 404 is not a clean record.
+- County clerk dockets can 404, 500, or stop on a disclaimer. That is not "no cases." Court indexes that fail in different ways stay separate gaps.
+- `pdftotext -layout` garbles a bilingual ballot. Use `pdftotext -raw -nodiag` (`scripts/lib/ballot_text.py`). "Shallll Judge" is an extraction error. CanDetail can drop an accent the ballot prints. An image-only PDF has no extractable text.
+- A campaign about page, a captcha, or a 403 from Space Coast Daily, a Cook rating page, or a county commission host is a gap. A browser load and a curl 403 are different results. Record which one you got.
+- A ratings compilation is one source, not one source per outlet that reprinted it.
+- Unquoted YAML dates become date objects and fail the claims schema. `scripts/validate.py` coerces them. Prefer quoted `YYYY-MM-DD` in files you write.

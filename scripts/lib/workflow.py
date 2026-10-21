@@ -21,6 +21,7 @@ from lib.schema import instance_errors, load_schema
 from lib.util import (
     CLAIM_ID_RE,
     FINDING_ID_RE,
+    coerce_yaml_dates,
     dump_json,
     dump_yaml,
     iter_items,
@@ -56,6 +57,7 @@ INTAKE_FIELDS = {
     "languages",
     "accessibility_needs",
     "offline_archive",
+    "archive_tier",
     "parallel_subagents",
     "notes",
     "requester_label",
@@ -160,7 +162,12 @@ def set_intake_field(intake: dict, field: str, value) -> list[str]:
 def set_address(workspace: Path, intake: dict, address: str) -> None:
     private = workspace / "private"
     private.mkdir(parents=True, exist_ok=True)
-    (private / "address.txt").write_text(address.strip() + "\n", encoding="utf-8")
+    path = private / "address.txt"
+    path.write_text(address.strip() + "\n", encoding="utf-8")
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
     intake["address_location"] = "private/address.txt"
 
 
@@ -186,14 +193,24 @@ def confirm_ballot(workspace: Path, clock: str) -> list[str]:
             errors.append(f"contest {contest.get('id')} official_source_url must be an http(s) URL")
     if errors:
         return errors
+    cleanup = _delete_ballot_images(workspace)
+    if cleanup == "symlink":
+        return [
+            "Refusing to confirm: a symlink under private/ points outside private/. "
+            "Ballot photos may still be reachable. confirmed_by_requester was not set."
+        ]
     ballot["confirmed_by_requester"] = True
     ballot["confirmed_at"] = clock
     dump_yaml(ballot_path, ballot)
-    cleared = _delete_ballot_images(workspace)
     intake_path = workspace / "intake.yaml"
     intake = load_yaml(intake_path) or {}
-    if isinstance(intake, dict) and cleared:
+    if isinstance(intake, dict) and cleanup == "ok":
         intake["ballot_photo_deleted"] = True
+        warning = _private_html_address_warning(workspace / "private")
+        if warning:
+            notes = str(intake.get("notes") or "")
+            if warning not in notes:
+                intake["notes"] = (notes + " " + warning).strip()
         dump_yaml(intake_path, intake)
     return []
 
@@ -207,24 +224,53 @@ def _resolves_inside(path: Path, root: Path) -> bool:
     return True
 
 
-def _delete_ballot_images(workspace: Path) -> bool:
-    """Delete image and PDF files under private/. A symlink that escapes private/ leaves the flag unset."""
+def _is_ballot_photo_name(name: str) -> bool:
+    """Requester ballot photos use a ballot prefix. Official sample-ballot PDFs do not."""
+    return Path(name).name.lower().startswith("ballot")
+
+
+def _private_html_address_warning(private: Path) -> str | None:
+    if not private.is_dir() or private.is_symlink():
+        return None
+    for path in private.rglob("*"):
+        if not path.is_file() or path.is_symlink():
+            continue
+        if path.suffix.lower() not in {".html", ".htm"}:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if looks_like_street_address(text):
+            return (
+                f"{path.name} under private/ contains a street address. "
+                "Leave it in private/ and do not copy it into the guide, a commit, or an artifact."
+            )
+    return None
+
+
+def _delete_ballot_images(workspace: Path) -> str:
+    """Delete ballot photos under private/.
+
+    Returns ``ok``, ``stuck`` when a ballot photo could not be removed, or
+    ``symlink`` when a link points outside private/. Only ``symlink`` blocks confirmation.
+    """
     private = workspace / "private"
     suffixes = {".jpg", ".jpeg", ".png", ".heic", ".pdf", ".webp", ".gif", ".tif", ".tiff"}
     if private.is_symlink():
-        return False
+        return "symlink"
     if not private.is_dir():
-        return True
-    unsafe = False
+        return "ok"
+    symlink_hit = False
     for root, dirnames, filenames in os.walk(private, followlinks=False):
         root_path = Path(root)
         for dirname in dirnames:
             entry = root_path / dirname
             try:
                 if entry.is_symlink() and not _resolves_inside(entry, private):
-                    unsafe = True
+                    symlink_hit = True
             except OSError:
-                unsafe = True
+                symlink_hit = True
         for filename in filenames:
             entry = root_path / filename
             try:
@@ -234,36 +280,42 @@ def _delete_ballot_images(workspace: Path) -> bool:
                     try:
                         target_suffix = entry.resolve(strict=False).suffix.lower()
                     except (OSError, RuntimeError):
-                        unsafe = True
+                        symlink_hit = True
                         continue
                     if not _resolves_inside(entry, private) and target_suffix not in suffixes and entry.suffix.lower() not in suffixes:
                         continue
-                if entry.suffix.lower() in suffixes or target_suffix in suffixes:
+                    if not _resolves_inside(entry, private):
+                        symlink_hit = True
+                        continue
+                name_matches = _is_ballot_photo_name(entry.name)
+                if name_matches and (entry.suffix.lower() in suffixes or target_suffix in suffixes):
                     try:
                         entry.unlink()
                     except OSError:
-                        unsafe = True
+                        pass
             except OSError:
-                unsafe = True
-    if unsafe:
-        return False
+                pass
+    if symlink_hit:
+        return "symlink"
     for root, dirnames, filenames in os.walk(private, followlinks=False):
         root_path = Path(root)
         for dirname in dirnames:
             entry = root_path / dirname
             if entry.is_symlink() and not _resolves_inside(entry, private):
-                return False
+                return "symlink"
         for filename in filenames:
             entry = root_path / filename
+            if not _is_ballot_photo_name(entry.name):
+                continue
             if entry.suffix.lower() in suffixes:
-                return False
+                return "stuck"
             if entry.is_symlink():
                 try:
                     if entry.resolve(strict=False).suffix.lower() in suffixes:
-                        return False
+                        return "stuck"
                 except (OSError, RuntimeError):
-                    return False
-    return True
+                    return "symlink"
+    return "ok"
 
 
 def approve_sharing(workspace: Path, clock: str) -> list[str]:
@@ -342,7 +394,7 @@ def open_round(item: Path, clock: str) -> list[str]:
     return []
 
 
-def signoff(item: Path, reviewer: str, clock: str) -> list[str]:
+def signoff(item: Path, reviewer: str, clock: str, *, same_context: bool = False) -> list[str]:
     if reviewer not in REVIEWERS:
         return [f"Unknown reviewer {reviewer}. Use one of: {', '.join(REVIEWERS)}"]
     state_path = item / "loop-state.json"
@@ -358,6 +410,11 @@ def signoff(item: Path, reviewer: str, clock: str) -> list[str]:
     ]
     if pending:
         return [f"{reviewer} still has unresolved findings: {', '.join(str(item_id) for item_id in pending)}"]
+    if same_context:
+        state.setdefault("process_gaps", []).append(
+            f"{reviewer} signed off in the same context as the research. "
+            "This is a process gap, not a fresh-context review."
+        )
     state["signoffs"][reviewer] = {"signed": True, "at": clock, "round": state.get("round")}
     state["updated_at"] = clock
     dump_json(state_path, state)
@@ -495,6 +552,21 @@ def gate_errors(workspace: Path) -> list[str]:
     return errors
 
 
+def _draft_looks_ready(item: Path) -> bool:
+    """True when claims exist and the draft is no longer the untouched scaffold."""
+    doc = load_yaml(item / "claims.yaml") or {}
+    claims = doc.get("claims") if isinstance(doc, dict) else None
+    if not claims:
+        return False
+    draft_path = item / "draft.md"
+    if not draft_path.exists():
+        return False
+    text = draft_path.read_text(encoding="utf-8")
+    if "Not found (searched: not started)." in text and "[^" not in text:
+        return False
+    return "[^" in text
+
+
 def next_actions(workspace: Path) -> list[str]:
     if not workspace.exists():
         return ["Create a workspace with scripts/intake.py init."]
@@ -516,7 +588,11 @@ def next_actions(workspace: Path) -> list[str]:
         return actions
     for name, status in item_statuses(workspace):
         if status == "researching":
-            actions.append(f"{name}: research and draft, then loop.py open-round.")
+            item = workspace / "items" / name
+            if _draft_looks_ready(item):
+                actions.append(f"{name}: draft is in place. Run loop.py open-round.")
+            else:
+                actions.append(f"{name}: research and draft, then loop.py open-round.")
         elif status == "in-review":
             actions.append(f"{name}: reviewers file findings or sign off, then loop.py close-round.")
         elif status == "fixing":
@@ -729,211 +805,29 @@ def assemble_guide(workspace: Path, today: str) -> list[str]:
     blocked.extend(content_gate_errors(workspace, date.fromisoformat(today), include_guide=False))
     if blocked:
         return blocked
-    ballot = load_yaml(workspace / "ballot.yaml") or {}
-    intake = load_yaml(workspace / "intake.yaml") or {}
-    election = ballot.get("election") or {}
-    title_name = election.get("name") or ballot.get("election_id")
-    fiction = bool(ballot.get("fiction"))
-    title = f"Voter guide: {title_name}"
-    if fiction:
-        title = f"FICTIONAL voter guide: {title_name}"
-    parts = [
-        "---",
-        f'title: "{title}"',
-        f"version: {ballot.get('report_version') or 'v1.0'}",
-        f"election_id: {ballot.get('election_id')}",
-        f"build_date: {today}",
-        f"fiction: {'true' if fiction else 'false'}",
-        "---",
-        "",
-    ]
-    if fiction:
-        parts.extend(
-            [
-                "> **FICTIONAL EXAMPLE:** the places, people, measures, and documents in this guide are invented, "
-                "sources on fictional.example are placeholders and not real records, and this is not a voting guide.",
-                "",
-            ]
-        )
-    parts.extend(
-        [
-            "> **Not an official ballot and not voting instructions:** confirm contests, deadlines, and polling places with the election office linked below.",
-            "",
-            "# How to use this guide",
-            "",
-            "Read the short summary at the start of each race or measure, then the comparison and the sourced sections. "
-            "The same sections appear for every candidate. A gap is written as not found, with the places that were searched. "
-            "This guide does not rank candidates, score them, or recommend a vote. "
-            "Claims marked disputed or unconfirmed are left out of summaries.",
-            "",
-            "Words such as levy, nonpartisan, and cash on hand are explained in the glossary.",
-            "",
-        ]
-    )
-    logistics = workspace / "logistics.md"
-    if logistics.exists():
-        parts.append(logistics.read_text(encoding="utf-8").strip())
-        parts.append("")
-    seen = set()
-    for contest in ballot.get("contests") or []:
-        if not isinstance(contest, dict):
-            continue
-        ordered = [contest.get("item_id") or contest.get("id")]
-        if contest.get("type") in {"race", "primary", "local-office"}:
-            for candidate in contest.get("candidates") or []:
-                if isinstance(candidate, dict) and not candidate.get("write_in"):
-                    ordered.append(candidate.get("item_id") or candidate.get("id"))
-        for item_id in ordered:
-            if not item_id or item_id in seen:
-                continue
-            draft = workspace / "items" / str(item_id) / "draft.md"
-            if not draft.exists():
-                return [f"Missing draft for {item_id}"]
-            seen.add(item_id)
-            parts.append(draft.read_text(encoding="utf-8").strip())
-            parts.append("")
-    counts = _finding_counts(workspace)
-    env_line = environment_rating_sentence(workspace)
-    flagged_sources = 0
-    for item in iter_items(workspace):
-        doc = load_yaml(item / "claims.yaml") or {}
-        if not isinstance(doc, dict):
-            continue
-        for _claim, source in iter_claim_sources(doc):
-            if source.get("suspected_injection") is True:
-                flagged_sources += 1
-    subagents = "not recorded"
-    if isinstance(intake, dict):
-        subagents = "available" if intake.get("parallel_subagents") else "not used; roles run one at a time in fresh contexts"
-    gap_lines = []
-    round_lines = []
-    for item in iter_items(workspace):
-        state = load_json(item / "loop-state.json") or {}
-        round_lines.append(f"- {item.name}: status {state.get('status')}, round {state.get('round')}, mode {state.get('mode')}")
-        for gap in state.get("gaps") or []:
-            gap_lines.append(f"- {item.name}: {gap}")
-    parts.extend(
-        [
-            "# Methodology",
-            "",
-            f"Version {ballot.get('report_version') or 'v1.0'} assembled on {today}. {env_line}",
-            f"Sources flagged suspected_injection: {flagged_sources}.",
-            f"Parallel subagents: {subagents}.",
-            f"Findings recorded: {counts['total']}. Accepted: {counts['accepted']}. Disputed: {counts['disputed']}.",
-            "Disputed and unconfirmed claims are not used in summaries. Blockers are removed rather than left disputed.",
-            "",
-            "## Review state",
-            "",
-            *round_lines,
-            "",
-            "## Effort",
-            "",
-            *_effort_rows(workspace),
-            "",
-            "## Known gaps",
-            "",
-        ]
-    )
-    parts.extend(gap_lines or ["- None recorded in loop state."])
-    parts.extend(["", "# Disputed claims", ""])
-    disputed_any = False
-    for item in iter_items(workspace):
-        for finding in load_findings(item):
-            if not isinstance(finding, dict) or finding.get("status") != "disputed":
-                continue
-            disputed_any = True
-            claim_id = finding.get("claim_id")
-            parts.append(f"## {claim_id}")
-            parts.append("")
-            parts.append(f"Reviewer ({finding.get('reviewer')}, {finding.get('severity')}): {finding.get('issue')}")
-            response = finding.get("response") or {}
-            if response.get("rationale"):
-                parts.append("")
-                parts.append(f"Researcher position: {response.get('rationale')}")
-            if finding.get("coordinator_note"):
-                parts.append("")
-                parts.append(finding["coordinator_note"])
-            parts.append("")
-            parts.append("This disputed claim is not used in the summary.")
-            parts.append("")
-    if not disputed_any:
-        parts.extend(["No claims are disputed.", ""])
-    corrections = load_yaml(workspace / "corrections.yaml") or []
-    parts.extend(["# Corrections", ""])
-    if not corrections:
-        parts.extend(["No corrections have been issued.", ""])
-    else:
-        for entry in corrections:
-            if not isinstance(entry, dict):
-                continue
-            parts.append(
-                f"- {entry.get('version')} on {entry.get('date')}: {entry.get('claim_id')} — {entry.get('change')} Reason: {entry.get('reason')}"
-            )
-        parts.append("")
+    from lib.guide_layout import build_editions
+
+    reader, full = build_editions(workspace, today)
     index = claim_index(workspace)
-    parts.extend(["# Works cited", ""])
-    for marker in sorted(index):
-        _item, claim, source = index[marker]
-        if claim.get("removed"):
-            continue
-        parts.append(format_work(marker, source))
-        parts.append("")
-    parts.extend(["# Marker index", "", "| Marker | Claim ID |", "| --- | --- |"])
-    for marker in sorted(index):
-        _item, claim, _source = index[marker]
-        if claim.get("removed"):
-            continue
-        parts.append(f"| {marker} | {claim.get('id')} |")
-    parts.extend(
-        [
-            "",
-            "# Glossary",
-            "",
-            "A levy is a tax or charge put on a ballot for voters to accept or reject. "
-            "Nonpartisan means the ballot does not list a party for that office. "
-            "Cash on hand is the money a campaign reported still having at the end of a filing period. "
-            "A filing period is the date range a finance report covers. "
-            "Tier T1 is a primary or official source. T2 is an established nonpartisan reference. "
-            "T3 is named journalism. T4 is an advocacy source and is quoted only as that group's view.",
-            "",
-            "# Changelog",
-            "",
-        ]
-    )
-    for item in iter_items(workspace):
-        changelog = item / "CHANGELOG.md"
-        if not changelog.exists():
-            continue
-        parts.append(f"## {item.name}")
-        parts.append("")
-        body = changelog.read_text(encoding="utf-8").strip()
-        body = re.sub(r"^# Changelog\s*", "", body).strip()
-        parts.append(body)
-        parts.append("")
-    parts.append("<!-- Pandoc footnote definitions. The reader-facing list is Works cited. -->")
-    parts.append("")
-    for marker in sorted(index):
-        _item, claim, source = index[marker]
-        if claim.get("removed"):
-            continue
-        parts.append(footnote_line(marker, source))
-        parts.append("")
-    text = "\n".join(parts).rstrip() + "\n"
-    index = claim_index(workspace)
-    guide_problems = assembled_guide_errors(text, index)
+    guide_problems = assembled_guide_errors(reader, index)
+    guide_problems.extend(assembled_guide_errors(full, index))
     if guide_problems:
         return guide_problems
     final = workspace / "final"
     final.mkdir(parents=True, exist_ok=True)
     versions = workspace / "versions"
-    guide = final / "guide.md"
-    if guide.exists():
-        previous = guide.read_text(encoding="utf-8")
-        if previous != text:
-            snapshot_guide(versions, previous, today)
-    guide.write_text(text, encoding="utf-8")
+    for name, text in (("guide.md", reader), ("guide-full.md", full)):
+        guide = final / name
+        if guide.exists():
+            previous = guide.read_text(encoding="utf-8")
+            if previous != text:
+                snapshot_guide(versions, previous, today)
+        guide.write_text(text, encoding="utf-8")
     _write_claim_baselines(workspace)
     return []
+
+
+
 
 
 def _write_claim_baselines(workspace: Path) -> None:
@@ -956,7 +850,7 @@ def structural_workspace_errors(workspace: Path) -> list[str]:
         if not path.exists():
             errors.append(f"Missing {path.name}")
             continue
-        data = load_yaml(path)
+        data = coerce_yaml_dates(load_yaml(path))
         errors.extend(f"{path.name}: {message}" for message in instance_errors(data, load_schema(schema_name, str(root))))
         blob = path.read_text(encoding="utf-8")
         if looks_like_street_address(blob):
@@ -970,7 +864,7 @@ def structural_workspace_errors(workspace: Path) -> list[str]:
     for item in iter_items(workspace):
         claims_path = item / "claims.yaml"
         if claims_path.exists():
-            doc = load_yaml(claims_path)
+            doc = coerce_yaml_dates(load_yaml(claims_path))
             errors.extend(
                 f"{item.name}/claims.yaml: {message}"
                 for message in instance_errors(doc, load_schema("claims.schema.yaml", str(root)))
@@ -1008,6 +902,13 @@ def structural_workspace_errors(workspace: Path) -> list[str]:
             errors.extend(
                 f"{item.name}/loop-state.json: {message}"
                 for message in instance_errors(state, load_schema("loop-state.schema.json", str(root)))
+            )
+        profile_path = item / "profile.yaml"
+        if profile_path.exists():
+            profile = coerce_yaml_dates(load_yaml(profile_path))
+            errors.extend(
+                f"{item.name}/profile.yaml: {message}"
+                for message in instance_errors(profile, load_schema("profile.schema.yaml", str(root)))
             )
         effort_path = item / "effort.json"
         if effort_path.exists():

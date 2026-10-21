@@ -36,6 +36,11 @@
       }
     },
     "gaps": {"type": "array", "items": {"type": "string"}},
+    "process_gaps": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Recorded when a reviewer signs off in the same context as the research."
+    },
     "removed_claims": {"type": "array", "items": {"type": "string"}},
     "updated_at": {
       "type": "string",

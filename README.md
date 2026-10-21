@@ -8,7 +8,7 @@ PoliticalResearch is a reusable kit an AI coding agent follows to research **you
 - Build a contest list from your sample ballot or from official pages, then ask you to confirm it before research starts.
 - Write the same sections for every candidate, with sources, dates, and visible gaps where a fact was not found.
 - Run a review loop that can mark a claim disputed instead of dropping it.
-- Save Markdown, HTML, and PDF under `output/`. Those files are git-ignored and are not uploaded by this repo.
+- Save a reader edition and a full audit edition as Markdown, HTML, and PDF under `output/`. Those files are git-ignored and are not uploaded by this repo. The reader opens with what is on the ballot.
 
 **What it will not do**
 

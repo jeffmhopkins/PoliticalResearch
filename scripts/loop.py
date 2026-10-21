@@ -16,6 +16,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("command", choices=["open-round", "close-round", "signoff", "enforce-cap", "status"])
     parser.add_argument("--item")
     parser.add_argument("--reviewer", choices=REVIEWERS)
+    parser.add_argument(
+        "--same-context",
+        action="store_true",
+        help="Record that this sign-off happened in the same context as the research.",
+    )
     args = parser.parse_args(argv)
     workspace = workspace_from(args)
     clock = clock_from(args)
@@ -38,7 +43,7 @@ def main(argv: list[str] | None = None) -> int:
             if not args.reviewer:
                 print("signoff needs --reviewer.", file=sys.stderr)
                 return 2
-            errors.extend(signoff(item, args.reviewer, clock))
+            errors.extend(signoff(item, args.reviewer, clock, same_context=args.same_context))
     write_status(workspace, clock)
     if errors:
         print("\n".join(errors), file=sys.stderr)

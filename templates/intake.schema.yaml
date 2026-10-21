@@ -44,7 +44,15 @@ properties:
   accessibility_needs:
     type: string
   offline_archive:
-    type: boolean
+    description: true, false, or pending when the requester has not decided. Only true runs the archive.
+    oneOf:
+      - type: boolean
+      - type: string
+        enum: [pending]
+  archive_tier:
+    description: html-pdf is the default capture. full adds monolith mirrors and screenshots.
+    type: string
+    enum: [html-pdf, full]
   parallel_subagents:
     type: boolean
   address_location:

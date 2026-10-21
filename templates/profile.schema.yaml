@@ -1,0 +1,36 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://github.com/jeffmhopkins/PoliticalResearch/templates/profile.schema.yaml"
+title: Structured candidate profile
+description: Same issue keys, money report date, and field map for every candidate in a race.
+type: object
+additionalProperties: false
+properties:
+  item_id:
+    type: string
+  issues:
+    type: object
+    additionalProperties:
+      type: string
+  money:
+    type: object
+    additionalProperties: false
+    properties:
+      report_date:
+        type: string
+      receipts:
+        type: string
+      cash_on_hand:
+        type: string
+      self_funding:
+        type: string
+      small_donors:
+        type: string
+      outside_spending:
+        type: string
+  gaps:
+    type: array
+    items:
+      type: string
+  fields:
+    type: object
+    additionalProperties: true

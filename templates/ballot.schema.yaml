@@ -64,6 +64,13 @@ properties:
     type: array
     items:
       type: string
+  precinct:
+    description: Precinct code from an official finder. Not a street address.
+    type: string
+  districts:
+    type: array
+    items:
+      type: string
   notes:
     type: array
     items:
@@ -112,6 +119,9 @@ $defs:
         type: [string, "null"]
       district:
         type: string
+      level:
+        type: string
+        enum: [federal, state-executive, state-house, county, judicial, amendment, referendum, local, other]
       candidates:
         type: array
         items:

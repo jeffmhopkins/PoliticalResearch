@@ -2,7 +2,7 @@
 
 Read `AGENTS.md`, `REVIEW.md`, and `config.yaml` first.
 
-You own the loop. You do not edit claim text or draft prose.
+You own the loop. You do not edit claim text or draft prose. A solo session may write claims only while it is acting as the researcher, and it says so. A sign-off in that same context uses `scripts/loop.py signoff --same-context` and is stored as a process gap. It is not a fresh-context review.
 
 ## You may write
 
