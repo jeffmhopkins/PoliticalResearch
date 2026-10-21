@@ -651,8 +651,10 @@ def test_rule_color_meets_non_text_contrast_and_flex_gaps_are_margins():
         assert _contrast(rule, background) >= 3.0, (rule, background, _contrast(rule, background))
     assert "#c8c2b8" not in css
     assert not re.search(r"(?m)^\s*gap\s*:", css)
-    assert "margin-left: 0.5rem" in css
-    assert "margin-left: 0.4rem" in css
+    assert ".vote-box + .vote-box" in css
+    assert ".candidate-index h3.candidate-name + h3.candidate-name" in css
+    assert "margin-left:" in css
+    assert "margin-right: 0.45rem" in css
 
 
 def test_small_screen_css_uses_a_max_width_query():

@@ -224,6 +224,7 @@ p { margin: 0 0 8pt; }
   align-items: stretch;
   gap: 12pt;
   margin: 8pt 0 20pt;
+  border: 0;
 }
 
 .candidate-index > h3.candidate-name,
@@ -373,6 +374,7 @@ p.not-found {
   margin: 0 0 4pt;
   padding-bottom: 3pt;
   border-bottom: 0.6pt solid var(--rule);
+  background: transparent;
   color: var(--ink);
   font-size: 10pt;
   font-weight: 700;
@@ -423,6 +425,7 @@ footer {
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: #1c1917;
+    background: transparent;
     width: 38%;
     vertical-align: bottom;
     padding-bottom: 5pt;
@@ -433,6 +436,7 @@ footer {
     background: transparent;
   }
   @top-right {
+    background: transparent;
     content: string(contest, last) " · " counter(page);
     font-family: "Source Serif 4", "Liberation Serif", serif;
     font-size: 10pt;
@@ -448,6 +452,7 @@ footer {
     border-bottom: 1pt solid #1c1917;
   }
   @bottom-left {
+    background: transparent;
     content: "Not an official ballot";
     font-family: "Public Sans", "Liberation Sans", sans-serif;
     font-size: 9.5pt;
@@ -461,6 +466,7 @@ footer {
   }
   @bottom-center { content: none; }
   @bottom-right {
+    background: transparent;
     content: "";
     width: 22%;
     vertical-align: top;
@@ -473,12 +479,12 @@ footer {
   size: letter portrait;
   margin: 0.75in;
   background: #f3efe6;
-  @top-left { content: none; }
-  @top-center { content: none; }
-  @top-right { content: none; }
-  @bottom-left { content: none; }
+  @top-left { background: transparent; content: none; }
+  @top-center { background: transparent; content: none; }
+  @top-right { background: transparent; content: none; }
+  @bottom-left { background: transparent; content: none; }
   @bottom-center { content: none; }
-  @bottom-right { content: none; }
+  @bottom-right { background: transparent; content: none; }
 }
 
 @page toc {
@@ -493,13 +499,15 @@ footer {
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: #1c1917;
+    background: transparent;
     width: 38%;
     vertical-align: bottom;
     padding-bottom: 5pt;
     border-bottom: 1pt solid #1c1917;
   }
-  @top-center { content: none; }
+  @top-center { background: transparent; content: none; }
   @top-right {
+    background: transparent;
     content: string(contest, last) " · " counter(page);
     font-family: "Source Serif 4", "Liberation Serif", serif;
     font-size: 10pt;
@@ -512,6 +520,7 @@ footer {
     border-bottom: 1pt solid #1c1917;
   }
   @bottom-left {
+    background: transparent;
     content: "Not an official ballot";
     font-family: "Public Sans", "Liberation Sans", sans-serif;
     font-size: 9.5pt;
@@ -524,6 +533,7 @@ footer {
   }
   @bottom-center { content: none; }
   @bottom-right {
+    background: transparent;
     content: "";
     width: 22%;
     border-top: 0.7pt solid #5c564c;
@@ -536,6 +546,7 @@ footer {
   margin: 0.62in 0.5in 0.52in 0.5in;
   background: #f6f3ec;
   @top-left {
+    background: transparent;
     content: string(section, first);
     font-family: "Public Sans", "Liberation Sans", sans-serif;
     font-size: 9.5pt;
@@ -548,8 +559,9 @@ footer {
     padding-bottom: 5pt;
     border-bottom: 1pt solid #1c1917;
   }
-  @top-center { content: none; }
+  @top-center { background: transparent; content: none; }
   @top-right {
+    background: transparent;
     content: string(contest, last) " · " counter(page);
     font-family: "Source Serif 4", "Liberation Serif", serif;
     font-size: 10pt;
@@ -562,6 +574,7 @@ footer {
     border-bottom: 1pt solid #1c1917;
   }
   @bottom-left {
+    background: transparent;
     content: "Not an official ballot";
     font-family: "Public Sans", "Liberation Sans", sans-serif;
     font-size: 9.5pt;
@@ -572,6 +585,7 @@ footer {
   }
   @bottom-center { content: none; }
   @bottom-right {
+    background: transparent;
     content: "";
     width: 22%;
     border-top: 0.7pt solid #5c564c;

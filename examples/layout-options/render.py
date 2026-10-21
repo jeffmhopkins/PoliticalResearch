@@ -19,7 +19,6 @@ ROOT = Path(__file__).resolve().parents[2]
 THEMES = (
     ("charter", "Option 1 · Charter"),
     ("folio", "Option 2 · Folio"),
-    ("docket", "Option 3 · Docket"),
 )
 
 BODY = """
@@ -139,7 +138,6 @@ def render(out_dir: Path) -> Path:
     names = (
         "cedar-hollow-layout-option-1-charter.png",
         "cedar-hollow-layout-option-2-folio.png",
-        "cedar-hollow-layout-option-3-docket.png",
     )
     for index, name in enumerate(names, start=1):
         source = out_dir / f"page-{index}.png"

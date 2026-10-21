@@ -231,6 +231,7 @@ p { margin: 0 0 8pt; }
   align-items: stretch;
   gap: 0;
   margin: 6pt 0 20pt;
+  border: 0;
   border-top: 0.8pt solid var(--ink);
   border-bottom: 0.8pt solid var(--ink);
 }
@@ -376,6 +377,7 @@ p.not-found {
   align-items: stretch;
   gap: 0;
   margin: 4pt 0 0;
+  border: 0;
   border-top: 0.8pt solid var(--ink);
   border-bottom: 0.8pt solid var(--ink);
 }
@@ -398,6 +400,7 @@ p.not-found {
   margin: 0 0 3pt;
   padding: 0;
   border: 0;
+  background: transparent;
   color: var(--ink);
   font-family: var(--serif);
   font-style: italic;
@@ -448,6 +451,7 @@ footer {
   margin: 0.82in 0.62in 0.55in 0.78in;
   background: #f4f3ef;
   @top-left {
+    background: transparent;
     content: string(section, first) "  ·  " string(contest, last);
     font-family: "Source Sans 3", "Liberation Sans", sans-serif;
     font-size: 9.5pt;
@@ -462,6 +466,7 @@ footer {
   }
   @top-center { content: none; background: transparent; }
   @top-right {
+    background: transparent;
     content: counter(page);
     font-family: "Source Sans 3", "Liberation Sans", sans-serif;
     font-size: 24pt;
@@ -476,6 +481,7 @@ footer {
     padding-bottom: 7pt;
   }
   @bottom-left {
+    background: transparent;
     content: "Not an official ballot";
     font-family: "Source Sans 3", "Liberation Sans", sans-serif;
     font-size: 9.5pt;
@@ -487,19 +493,19 @@ footer {
     padding-top: 4pt;
   }
   @bottom-center { content: none; }
-  @bottom-right { content: none; }
+  @bottom-right { background: transparent; content: none; }
 }
 
 @page cover {
   size: letter portrait;
   margin: 0.8in 0.7in 0.7in 0.85in;
   background: #f4f3ef;
-  @top-left { content: none; }
-  @top-center { content: none; }
-  @top-right { content: none; }
-  @bottom-left { content: none; }
+  @top-left { background: transparent; content: none; }
+  @top-center { background: transparent; content: none; }
+  @top-right { background: transparent; content: none; }
+  @bottom-left { background: transparent; content: none; }
   @bottom-center { content: none; }
-  @bottom-right { content: none; }
+  @bottom-right { background: transparent; content: none; }
 }
 
 @page toc {
@@ -507,6 +513,7 @@ footer {
   margin: 0.82in 0.62in 0.55in 0.78in;
   background: #f4f3ef;
   @top-left {
+    background: transparent;
     content: string(section, first) "  ·  " string(contest, last);
     font-family: "Source Sans 3", "Liberation Sans", sans-serif;
     font-size: 9.5pt;
@@ -517,8 +524,9 @@ footer {
     vertical-align: bottom;
     padding-bottom: 9pt;
   }
-  @top-center { content: none; }
+  @top-center { background: transparent; content: none; }
   @top-right {
+    background: transparent;
     content: counter(page);
     font-family: "Source Sans 3", "Liberation Sans", sans-serif;
     font-size: 24pt;
@@ -532,6 +540,7 @@ footer {
     padding-bottom: 7pt;
   }
   @bottom-left {
+    background: transparent;
     content: "Not an official ballot";
     font-family: "Source Sans 3", "Liberation Sans", sans-serif;
     font-size: 9.5pt;
@@ -541,7 +550,7 @@ footer {
     padding-top: 4pt;
   }
   @bottom-center { content: none; }
-  @bottom-right { content: none; }
+  @bottom-right { background: transparent; content: none; }
 }
 
 @page landscape {
@@ -549,6 +558,7 @@ footer {
   margin: 0.72in 0.5in 0.5in 0.62in;
   background: #f4f3ef;
   @top-left {
+    background: transparent;
     content: string(section, first) "  ·  " string(contest, last);
     font-family: "Source Sans 3", "Liberation Sans", sans-serif;
     font-size: 9.5pt;
@@ -559,8 +569,9 @@ footer {
     vertical-align: bottom;
     padding-bottom: 8pt;
   }
-  @top-center { content: none; }
+  @top-center { background: transparent; content: none; }
   @top-right {
+    background: transparent;
     content: counter(page);
     font-family: "Source Sans 3", "Liberation Sans", sans-serif;
     font-size: 24pt;
@@ -574,6 +585,7 @@ footer {
     padding-bottom: 6pt;
   }
   @bottom-left {
+    background: transparent;
     content: "Not an official ballot";
     font-family: "Source Sans 3", "Liberation Sans", sans-serif;
     font-size: 9.5pt;
@@ -582,7 +594,7 @@ footer {
     padding-top: 4pt;
   }
   @bottom-center { content: none; }
-  @bottom-right { content: none; }
+  @bottom-right { background: transparent; content: none; }
 }
 
 @media print {

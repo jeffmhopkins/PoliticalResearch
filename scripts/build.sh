@@ -9,7 +9,7 @@ ELECTION=""
 THEME=""
 
 usage() {
-  echo "Usage: scripts/build.sh --workspace PATH | --election-id ID [--theme charter|folio|docket]" >&2
+  echo "Usage: scripts/build.sh --workspace PATH | --election-id ID [--theme charter|folio]" >&2
 }
 
 while [[ $# -gt 0 ]]; do
@@ -69,14 +69,16 @@ cp "$ROOT/assets/guide-narrow.css" "$WORKSPACE/final/guide-narrow.css"
 
 # Optional theme. The default stylesheet is always guide.css. A theme loads after it.
 case "$THEME" in
-  ""|charter|folio|docket) ;;
-  *) echo "Unknown theme: $THEME (choose charter, folio, or docket)." >&2; exit 2 ;;
+  ""|charter|folio) ;;
+  docket) echo "Docket is the default guide. Omit --theme." >&2; exit 2 ;;
+  *) echo "Unknown theme: $THEME (choose charter or folio)." >&2; exit 2 ;;
 esac
+mkdir -p "$WORKSPACE/final/fonts"
+cp "$ROOT/assets/fonts/"*.ttf "$WORKSPACE/final/fonts/"
 PANDOC_CSS=(--css guide.css)
 if [[ -n "$THEME" ]]; then
-  mkdir -p "$WORKSPACE/final/themes" "$WORKSPACE/final/fonts"
+  mkdir -p "$WORKSPACE/final/themes"
   cp "$ROOT/assets/themes/${THEME}.css" "$WORKSPACE/final/themes/${THEME}.css"
-  cp "$ROOT/assets/fonts/"*.ttf "$WORKSPACE/final/fonts/"
   PANDOC_CSS+=(--css "themes/${THEME}.css")
 fi
 

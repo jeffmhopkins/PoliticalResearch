@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-THEMES = ("charter", "folio", "docket")
+THEMES = ("charter", "folio")
 
 
 def _luminance(hex_color: str) -> float:
@@ -42,9 +42,12 @@ def test_default_build_does_not_load_a_theme():
     build = (ROOT / "scripts" / "build.sh").read_text(encoding="utf-8")
     guide = (ROOT / "assets" / "guide.css").read_text(encoding="utf-8")
     assert "PANDOC_CSS=(--css guide.css)" in build
-    assert "charter|folio|docket" in build
+    assert "charter|folio" in build
     assert "assets/themes" not in guide
-    assert "h2.contest-title::before" in guide
+    assert "h2.contest-title::before" not in guide
+    assert "IBM Plex Sans" in guide
+    assert "--band:" in guide
+    assert "element(runhead)" in guide
 
 
 def test_theme_faces_are_vendored_under_the_ofl():
@@ -71,7 +74,6 @@ def test_themes_keep_neutral_aa_contrast_and_drop_the_stray_bar():
             assert _contrast(colors["link"], colors["paper"]) >= 4.5
         if "band" in colors:
             assert _contrast(colors["band-text"], colors["band"]) >= 4.5
-        assert "h2.contest-title::before" in css
         assert "content: none" in css
         assert "Not an official ballot" in css
         assert not re.search(r"democrat|republican|#0000ff|#ff0000|#0000ee", css, re.I)
@@ -96,14 +98,12 @@ def test_specimen_renders_one_page_per_theme(tmp_path: Path):
     folded = text.casefold()
     assert "option 1" in folded and "charter" in folded
     assert "option 2" in folded and "folio" in folded
-    assert "option 3" in folded and "docket" in folded
-    assert text.count("Not an official ballot") >= 3
+    assert text.count("Not an official ballot") >= 2
     assert "Avery Quinn" in text and "Blake Okonkwo" in text
     assert "A YES vote means" in text
     assert "recommend a vote" in text
     for name in (
         "cedar-hollow-layout-option-1-charter.png",
         "cedar-hollow-layout-option-2-folio.png",
-        "cedar-hollow-layout-option-3-docket.png",
     ):
         assert (tmp_path / name).stat().st_size > 1000
