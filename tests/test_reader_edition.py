@@ -413,6 +413,52 @@ def test_running_header_names_the_section_and_updates_per_contest(tmp_path: Path
     assert errors_from_bbox(subprocess.check_output(["pdftotext", "-bbox", str(pdf), "-"], text=True)) == []
 
 
+def test_running_header_names_the_section_at_the_top_of_the_page(tmp_path: Path):
+    """A heading lower on the page does not rename the section still at the top."""
+    html = tmp_path / "header-top.html"
+    css = Path(__file__).resolve().parents[1] / "assets" / "guide.css"
+    html.write_text(
+        f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="{css}">
+</head><body>
+<a class="runhead" href="#your-ballot-at-a-glance">&#8203;</a>
+<main>
+<h1 id="glossary" class="back-matter">Glossary</h1>
+<p>Glossary terms stay on this page.</p>
+<h1 id="methodology" class="back-matter">How we researched</h1>
+<p>Version line for the research section.</p>
+<div style="break-before: page">
+<h2>Effort</h2>
+<p>Effort rows stay in the research section.</p>
+</div>
+<h1 id="disputed-claims" class="back-matter">Disputed claims</h1>
+<p>The dispute starts with its own heading.</p>
+</main></body></html>
+""",
+        encoding="utf-8",
+    )
+    pdf = tmp_path / "header-top.pdf"
+    result = subprocess.run(
+        ["weasyprint", str(html), str(pdf)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    text = subprocess.check_output(["pdftotext", "-layout", str(pdf), "-"], text=True)
+    pages = [page for page in text.split("\f") if page.strip()]
+    effort = next(page for page in pages if "Effort rows stay" in page)
+    effort_header = next(line for line in effort.splitlines() if line.strip())
+    assert "How we researched" in effort_header
+    assert "Disputed claims" not in effort_header
+    dispute = next(page for page in pages if "dispute starts" in page)
+    dispute_header = next(line for line in dispute.splitlines() if line.strip())
+    assert "Disputed claims" in dispute_header
+    assert "How we researched" not in dispute_header
+    assert errors_from_bbox(subprocess.check_output(["pdftotext", "-bbox", str(pdf), "-"], text=True)) == []
+
+
 def test_reader_budget_flags_a_long_contest():
     words = " ".join(["alpha"] * 50)
     short = f"## Mayor {{#contest-race-1 .contest-title}}\n\n{words}[^1].\n"

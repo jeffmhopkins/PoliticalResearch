@@ -513,7 +513,7 @@ This disputed claim is not used in the summary.
 
 No corrections have been issued.
 
-# Marker index
+# Marker index {#marker-index}
 
 | Marker | Claim ID |
 | --- | --- |
@@ -554,7 +554,7 @@ No corrections have been issued.
 | 35 | race-mayor.funding.001 |
 | 40 | race-mayor.logistics.001 |
 
-# Changelog
+# Changelog {#changelog}
 
 ## cand-okonkwo
 

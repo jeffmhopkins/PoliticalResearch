@@ -281,8 +281,6 @@ GAP_NOT_FOUND_RE = re.compile(r"^not found \(searched: (.+)\)\.$", re.IGNORECASE
 EXEMPT_HEADINGS = {
     "how to use this guide",
     "how to read this guide",
-    "how we researched",
-    "in plain language",
     "methodology",
     "changelog",
     "corrections",
@@ -295,6 +293,51 @@ EXEMPT_HEADINGS = {
     "disputed claims",
     "search log",
 }
+# The published "How we researched" heading is not exempt. An ordinary sentence
+# there needs a marker. These lines are the assembler's own run record (version,
+# counts, review state, effort, known gaps). policy/citations.md still treats
+# that record as methodology, not as a claim about a candidate.
+_RUN_RECORD_SENTENCE_RE = re.compile(
+    r"^(?:"
+    r"Version \S+ assembled on \d{4}-\d{2}-\d{2}"
+    r"|Environment rating: (?:Full|Reduced|Minimal)"
+    r"|Environment rating is not recorded in env\.md"
+    r"|No environment rating file was found"
+    r"|Sources flagged suspected_?injection: \d+"
+    r"|Parallel subagents: .+"
+    r"|Findings recorded: \d+"
+    r"|Accepted: \d+"
+    r"|Disputed: \d+"
+    r"|Disputed and unconfirmed claims are not used in summaries"
+    r"|Blockers are removed rather than left disputed"
+    r"|The reader edition keeps a short summary and comparison tables for each contest"
+    r"|Works cited, quotes, and the search log are in the sources addendum"
+    r"|Per-candidate prose is in the full edition"
+    r"|The full edition adds the marker index and the changelog"
+    r")\.?$",
+    re.IGNORECASE,
+)
+_REVIEW_STATE_RE = re.compile(r"^[^:]+: status \S+, round \d+, mode \S+\.?$", re.IGNORECASE)
+_EFFORT_ROW_RE = re.compile(r"^\|[^|]+\|\s*\d*\s*\|\s*\d*\s*\|\s*\d*\s*\|$")
+
+
+def _is_run_record_sentence(plain: str, h1: str, h2: str, kind: str) -> bool:
+    if h1 != "how we researched":
+        return False
+    text = re.sub(r"\s+", " ", plain or "").strip()
+    if h2 == "review state":
+        return _REVIEW_STATE_RE.match(text) is not None
+    if h2 == "known gaps" and kind == "list item":
+        return True
+    if h2 == "":
+        return _RUN_RECORD_SENTENCE_RE.match(text) is not None
+    return False
+
+
+def _is_effort_row(row: str, h1: str, h2: str) -> bool:
+    return h1 == "how we researched" and h2 == "effort" and _EFFORT_ROW_RE.match(row.strip()) is not None
+
+
 CANDIDATE_CORE = [
     "identity",
     "prior offices and public service",
@@ -922,23 +965,26 @@ def _heading(line: str) -> tuple[int, str] | None:
     return len(match.group(1)), norm_heading(title)
 
 
-def factual_blocks(text: str) -> list[str]:
+def factual_blocks(text: str) -> list[tuple[str, str, str]]:
+    """Non-exempt blocks as (text, nearest h1, nearest h2)."""
     body = HTML_COMMENT_RE.sub("", strip_front_matter(text))
     kept: list[str] = []
     for raw in body.splitlines():
         if FOOTNOTE_DEF_RE.match(raw.strip()):
             continue
         kept.append(raw)
-    blocks: list[str] = []
+    blocks: list[tuple[str, str, str]] = []
     buf: list[str] = []
     stack: list[int] = []
+    h1 = ""
+    h2 = ""
 
     def flush(exempt: bool) -> None:
         nonlocal buf
         if buf and not exempt:
             block = "\n".join(buf).strip()
             if block:
-                blocks.append(block)
+                blocks.append((block, h1, h2))
         buf = []
 
     exempt = False
@@ -947,6 +993,10 @@ def factual_blocks(text: str) -> list[str]:
         if heading:
             flush(exempt)
             level, title = heading
+            if level == 1:
+                h1, h2 = title, ""
+            elif level == 2:
+                h2 = title
             while stack and stack[-1] >= level:
                 stack.pop()
             if title in EXEMPT_HEADINGS:
@@ -1085,7 +1135,7 @@ def official_restatement_sentences(ballot: dict | None) -> set[str]:
 
 def prose_marker_errors(text: str, label: str, exempt: set[str] | None = None) -> list[str]:
     errors: list[str] = []
-    for block in factual_blocks(text):
+    for block, h1, h2 in factual_blocks(text):
         if block.startswith("|"):
             rows = [line for line in block.splitlines() if line.strip().startswith("|")]
             seen_separator = False
@@ -1096,7 +1146,7 @@ def prose_marker_errors(text: str, label: str, exempt: set[str] | None = None) -
                     continue
                 if not seen_separator and index == 0:
                     continue
-                if _is_gap_text(row):
+                if _is_gap_text(row) or _is_effort_row(row, h1, h2):
                     continue
                 if not _has_citation_marker(row):
                     errors.append(f"{label}: table row has no citation marker: {row.strip()[:120]}")
@@ -1105,7 +1155,16 @@ def prose_marker_errors(text: str, label: str, exempt: set[str] | None = None) -
         bullet_lines = [line for line in lines if line.strip().startswith(("- ", "* "))]
         if bullet_lines and len(bullet_lines) == len([line for line in lines if line.strip()]):
             for line in bullet_lines:
-                errors.extend(_sentence_marker_errors(line.strip()[2:].strip(), label, "list item", exempt=exempt))
+                errors.extend(
+                    _sentence_marker_errors(
+                        line.strip()[2:].strip(),
+                        label,
+                        "list item",
+                        exempt=exempt,
+                        h1=h1,
+                        h2=h2,
+                    )
+                )
             continue
         errors.extend(
             _sentence_marker_errors(
@@ -1114,6 +1173,8 @@ def prose_marker_errors(text: str, label: str, exempt: set[str] | None = None) -
                 "sentence",
                 banner_ok=block.lstrip().startswith(">"),
                 exempt=exempt,
+                h1=h1,
+                h2=h2,
             )
         )
     return errors
@@ -1147,6 +1208,8 @@ def _sentence_marker_errors(
     kind: str,
     banner_ok: bool = False,
     exempt: set[str] | None = None,
+    h1: str = "",
+    h2: str = "",
 ) -> list[str]:
     if _is_gap_text(block) and not _has_citation_marker(block):
         return []
@@ -1163,6 +1226,8 @@ def _sentence_marker_errors(
         if not plain or _is_gap_text(plain):
             continue
         if _is_navigation_sentence(plain, exempt):
+            continue
+        if _is_run_record_sentence(plain, h1, h2, kind):
             continue
         if banner_ok and _is_banner_sentence(plain):
             continue

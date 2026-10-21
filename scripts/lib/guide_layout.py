@@ -1519,7 +1519,7 @@ class _GuideModel:
         return lines
 
     def _marker_index(self, used: set[int]) -> list[str]:
-        lines = ["# Marker index", "", "| Marker | Claim ID |", "| --- | --- |"]
+        lines = ["# Marker index {#marker-index}", "", "| Marker | Claim ID |", "| --- | --- |"]
         for number in sorted(used):
             found = self.index.get(number)
             if not found:
@@ -1532,7 +1532,7 @@ class _GuideModel:
         return lines
 
     def _changelog(self) -> list[str]:
-        lines = ["# Changelog", ""]
+        lines = ["# Changelog {#changelog}", ""]
         for item in iter_items(self.workspace):
             path = item / "CHANGELOG.md"
             if not path.exists():

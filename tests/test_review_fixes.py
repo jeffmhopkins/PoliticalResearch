@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from datetime import date
 from pathlib import Path
@@ -11,6 +12,7 @@ import yaml
 
 from lib.api_clients import contests_from_civic, scrub_civic_payload
 from lib.quality import (
+    EXEMPT_HEADINGS,
     argument_length_errors,
     citation_errors,
     content_gate_errors,
@@ -583,6 +585,74 @@ def test_confirm_deletes_nested_ballot_images(tmp_path: Path):
     kept = yaml.safe_load((again / "intake.yaml").read_text(encoding="utf-8"))
     assert kept["ballot_photo_deleted"] is not True
     assert (held / "ballot.png").exists()
+
+
+def test_plain_language_and_how_we_researched_are_citation_gated():
+    """The published summary and methodology headings are not blanket exemptions."""
+    assert "in plain language" not in EXEMPT_HEADINGS
+    assert "how we researched" not in EXEMPT_HEADINGS
+    bare_plain = "#### In plain language\n\nThe measure would raise the parks tax.\n"
+    plain_errors = prose_marker_errors(bare_plain, "guide")
+    assert any("parks tax" in error for error in plain_errors)
+    cited_plain = "#### In plain language\n\nThe measure would raise the parks tax[^3].\n"
+    assert prose_marker_errors(cited_plain, "guide") == []
+    bare_method = "# How we researched {#methodology}\n\nThe county clerk confirmed the levy rate.\n"
+    method_errors = prose_marker_errors(bare_method, "guide")
+    assert any("levy rate" in error for error in method_errors)
+    cited_method = "# How we researched {#methodology}\n\nThe county clerk confirmed the levy rate[^3].\n"
+    assert prose_marker_errors(cited_method, "guide") == []
+    nested = (
+        "# How we researched\n\n"
+        "## Review state\n\n"
+        "The mayor accepted a donation from the developer.\n"
+    )
+    assert any("donation" in error for error in prose_marker_errors(nested, "guide"))
+    record = (
+        "# How we researched\n\n"
+        "Version v1.0 assembled on 2026-10-20. Environment rating is not recorded in env.md.\n"
+        "Findings recorded: 2. Accepted: 1. Disputed: 1.\n\n"
+        "## Review state\n\n"
+        "- Avery Quinn: status signed-off, round 1, mode initial\n\n"
+        "## Effort\n\n"
+        "| Item | Searches | Fetches | Minutes |\n"
+        "| --- | --- | --- | --- |\n"
+        "| Avery Quinn | 12 | 8 | 40 |\n\n"
+        "## Known gaps\n\n"
+        "- None recorded in loop state.\n"
+    )
+    assert prose_marker_errors(record, "guide") == []
+
+
+def _relative_luminance(hex_color: str) -> float:
+    channels = [int(hex_color.lstrip("#")[index : index + 2], 16) / 255 for index in (0, 2, 4)]
+    linear = []
+    for channel in channels:
+        if channel <= 0.04045:
+            linear.append(channel / 12.92)
+        else:
+            linear.append(((channel + 0.055) / 1.055) ** 2.4)
+    red, green, blue = linear
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+
+
+def _contrast(foreground: str, background: str) -> float:
+    lighter = max(_relative_luminance(foreground), _relative_luminance(background))
+    darker = min(_relative_luminance(foreground), _relative_luminance(background))
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def test_rule_color_meets_non_text_contrast_and_flex_gaps_are_margins():
+    css = (ROOT / "assets" / "guide.css").read_text(encoding="utf-8")
+    match = re.search(r"--rule:\s*(#[0-9a-fA-F]{6})", css)
+    assert match
+    rule = match.group(1).lower()
+    assert rule != "#c8c2b8"
+    for background in ("#ffffff", "#fffcf7", "#f7f4ef", "#e7e1d6"):
+        assert _contrast(rule, background) >= 3.0, (rule, background, _contrast(rule, background))
+    assert "#c8c2b8" not in css
+    assert not re.search(r"(?m)^\s*gap\s*:", css)
+    assert "margin-left: 0.5rem" in css
+    assert "margin-left: 0.4rem" in css
 
 
 def test_small_screen_css_uses_a_max_width_query():

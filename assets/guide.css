@@ -7,7 +7,7 @@
   --ink: #1c1917;
   --paper: #fffcf7;
   --muted: #44403c;
-  --rule: #c8c2b8;
+  --rule: #7d756c;
   --shade: #e7e1d6;
   --zebra: #f7f4ef;
   --not-found: #5c564e;
@@ -242,6 +242,16 @@ h2.contest-title::before {
 
 h1#glossary { break-before: page; page-break-before: always; }
 
+/* These headings often land under a table that spilled from the previous
+   section. Starting them on a new page keeps string(section, first) on the
+   section that is actually at the top of the page. */
+h1#disputed-claims,
+h1#marker-index,
+h1#changelog {
+  break-before: page;
+  page-break-before: always;
+}
+
 h1.back-matter {
   border-top: 4px solid var(--ink);
   padding-top: 0.4rem;
@@ -250,17 +260,18 @@ h1.back-matter {
 .contest-open {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
-  margin: 0.35rem 0 0.85rem;
+  margin: 0.35rem 0 0.4rem;
 }
 
 .meta-item {
-  flex: 1 1 46%;
-  margin: 0;
+  flex: 1 1 42%;
+  margin: 0 0 0.45rem;
   padding: 0.4rem 0.55rem 0.55rem;
   background: var(--zebra);
   border-top: 3px solid var(--ink);
 }
+
+.meta-item:nth-child(odd) { margin-right: 0.45rem; }
 
 .meta-item p { margin: 0; }
 
@@ -276,14 +287,13 @@ h1.back-matter {
 .candidate-index {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  margin: 0.2rem 0 0.9rem;
+  margin: 0.2rem 0 0.5rem;
 }
 
 .candidate-index h3.candidate-name {
   flex: 1 1 0;
   min-width: 2.1in;
-  margin: 0;
+  margin: 0 0 0.4rem;
   padding: 0.4rem 0.55rem;
   border: 1px solid var(--rule);
   background: var(--paper);
@@ -293,6 +303,8 @@ h1.back-matter {
   color: var(--ink);
   bookmark-level: 3;
 }
+
+.candidate-index h3.candidate-name + h3.candidate-name { margin-left: 0.4rem; }
 
 h3.candidate-name,
 .candidate-name h3 { bookmark-level: 3; }
@@ -304,13 +316,12 @@ h4 { bookmark-level: none; }
 .vote-pair {
   display: flex;
   align-items: stretch;
-  gap: 0.5rem;
   margin: 0.45rem 0 0.95rem;
 }
 
 .vote-box {
   flex: 1 1 0;
-  width: 48%;
+  min-width: 0;
   margin: 0;
   padding: 0.55rem 0.65rem 0.65rem;
   border: 1px solid var(--rule);
@@ -318,6 +329,8 @@ h4 { bookmark-level: none; }
   break-inside: avoid;
   page-break-inside: avoid;
 }
+
+.vote-box + .vote-box { margin-left: 0.5rem; }
 
 .vote-box h4 {
   color: var(--ink);
@@ -586,7 +599,7 @@ h2 { bookmark-level: 2; }
     height: 13pt;
     overflow: visible;
     clip: auto;
-    border-bottom: 0.6pt solid #c8c2b8;
+    border-bottom: 0.6pt solid var(--rule);
     color: transparent;
     font-size: 9pt;
     text-decoration: none;
