@@ -1579,6 +1579,23 @@ def _is_navigation_sentence(plain: str, exempt: set[str] | None = None) -> bool:
     return False
 
 
+def _is_glance_block(block: str) -> bool:
+    """Assembler glance markup. The same facts are cited on the contest page."""
+    lines = [line.strip() for line in (block or "").splitlines() if line.strip()]
+    if not lines:
+        return False
+    prefixes = (
+        '<div class="glance-item">',
+        '<h3 class="glance-contest">',
+        '<ul class="glance-people">',
+        "<li>",
+        "</ul>",
+        "</div>",
+        '<p class="glance-summary">',
+    )
+    return all(any(line.startswith(prefix) for prefix in prefixes) for line in lines)
+
+
 def _sentence_marker_errors(
     block: str,
     label: str,
@@ -1603,6 +1620,8 @@ def _sentence_marker_errors(
         if not plain or _is_gap_text(plain):
             continue
         if _is_navigation_sentence(plain, exempt):
+            continue
+        if norm_heading(h1) == "your ballot at a glance" and _is_glance_block(block):
             continue
         if _is_plain_access_note(plain):
             continue
@@ -1681,6 +1700,46 @@ def href_fragments(text: str) -> set[str]:
     return set(_FRAGMENT_RE.findall(text or ""))
 
 
+_MARKER_MAP_RE = re.compile(r"<!--\s*marker-map:\s*([0-9=\s]+)\s*-->")
+_TRUNCATION_RE = re.compile(r"\.\.\.|…")
+
+
+def parse_display_markers(text: str) -> dict[int, int] | None:
+    """Display marker to the claim-file marker. None when this edition was not renumbered."""
+    match = _MARKER_MAP_RE.search(text or "")
+    if not match:
+        return None
+    found: dict[int, int] = {}
+    for pair in match.group(1).split():
+        if "=" not in pair:
+            continue
+        display, original = pair.split("=", 1)
+        found[int(display)] = int(original)
+    return found
+
+
+def _original_marker(number: int, index: dict[int, tuple[str, dict, dict]], mapping: dict[int, int] | None) -> int | None:
+    """Resolve a printed marker. A display map is used exclusively when the edition has one."""
+    if mapping is not None:
+        original = mapping.get(number)
+        if original is None or original not in index:
+            return None
+        return original
+    if number in index:
+        return number
+    return None
+
+
+def reader_truncation_errors(text: str) -> list[str]:
+    """The reader prints complete sentences. An ellipsis is a failed clip."""
+    errors = []
+    body = HTML_COMMENT_RE.sub("", strip_front_matter(text or ""))
+    for line in body.splitlines():
+        if _TRUNCATION_RE.search(line):
+            errors.append(f"final/guide.md: reader truncates with an ellipsis: {line.strip()[:160]}")
+    return errors
+
+
 def assembled_guide_errors(
     text: str,
     index: dict[int, tuple[str, dict, dict]],
@@ -1691,21 +1750,24 @@ def assembled_guide_errors(
 ) -> list[str]:
     """Check a rendered edition. Works cited may live in the sources addendum."""
     exempt = official_restatement_sentences(ballot)
+    mapping = parse_display_markers(text)
     errors = prose_marker_errors(text, "final/guide.md", exempt)
-    errors.extend(summary_errors(text, "final/guide.md", index))
+    errors.extend(summary_errors(text, "final/guide.md", index, display_to_original=mapping))
     if reader:
         errors.extend(reader_contest_budget_errors(text))
         errors.extend(reader_log_errors(text))
+        errors.extend(reader_truncation_errors(text))
     cited_text = addendum or text
     cited = works_cited_numbers(cited_text)
     addendum_anchors = anchor_ids(addendum) if addendum else set()
     body_anchors = anchor_ids(text)
     addendum_fragments = href_fragments(addendum) if addendum else set()
     for number in sorted(marker_numbers(text)):
-        if number not in index:
+        original = _original_marker(number, index, mapping)
+        if original is None:
             errors.append(f"final/guide.md: marker {number} does not resolve to a claim source")
         else:
-            _item_name, claim, _source = index[number]
+            _item_name, claim, _source = index[original]
             if claim.get("removed"):
                 errors.append(f"final/guide.md: marker {number} points at removed claim {claim.get('id')}")
             if claim.get("confidence") == "identity-unconfirmed":
@@ -1720,7 +1782,7 @@ def assembled_guide_errors(
             if f"cite-{number}" not in addendum_fragments:
                 errors.append(f"final/guide.md: marker {number} addendum entry does not link back")
     for number in sorted(cited):
-        if number not in index:
+        if _original_marker(number, index, mapping) is None:
             errors.append(f"final/guide.md: works-cited [{number}] has no claim source")
     return errors
 
@@ -1745,7 +1807,12 @@ def reader_contest_budget_errors(text: str, budget: int | None = None) -> list[s
     return errors
 
 
-def summary_errors(text: str, label: str, index: dict[int, tuple[str, dict, dict]]) -> list[str]:
+def summary_errors(
+    text: str,
+    label: str,
+    index: dict[int, tuple[str, dict, dict]],
+    display_to_original: dict[int, int] | None = None,
+) -> list[str]:
     errors = []
     if "<!-- summary -->" not in text:
         return errors
@@ -1768,7 +1835,8 @@ def summary_errors(text: str, label: str, index: dict[int, tuple[str, dict, dict
     if not numbers:
         errors.append(f"{label}: summary has no citation markers")
     for number in sorted(numbers):
-        found = index.get(number)
+        original = _original_marker(number, index, display_to_original)
+        found = index.get(original) if original is not None else None
         if not found:
             errors.append(f"{label}: summary marker {number} does not resolve")
             continue

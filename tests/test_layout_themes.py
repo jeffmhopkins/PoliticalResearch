@@ -48,7 +48,8 @@ def test_default_build_does_not_load_a_theme():
     assert "h2.contest-title::before" not in guide
     assert "IBM Plex Sans" in guide
     assert "--band:" in guide
-    assert "element(runhead)" in guide
+    assert "content: counter(page)" in guide
+    assert "element(runhead)" not in guide
 
 
 def test_theme_faces_are_vendored_under_the_ofl():

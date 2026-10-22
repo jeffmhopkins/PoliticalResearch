@@ -419,19 +419,20 @@ def test_reader_and_full_editions_follow_the_layout_rules():
         if line.startswith("| ") and line.count("|") >= 4:
             cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
             table[cells[0]] = cells
-    assert "48200 dollars in receipts" in table["Receipts"][1]
-    assert "17200 dollars in cash on hand" in table["Cash on hand"][1]
+    assert "$48,200" in table["Receipts"][1]
+    assert "$17,200" in table["Cash on hand"][1]
     assert table["Receipts"][1] != table["Cash on hand"][1]
-    assert "30100 dollars in receipts" in table["Receipts"][2]
-    assert "11700 dollars in cash on hand" in table["Cash on hand"][2]
+    assert "$30,100" in table["Receipts"][2]
+    assert "$11,700" in table["Cash on hand"][2]
+    assert "Ballot status" not in table
     assert "four-year term" in table["Current or most recent office"][1]
     assert "2018 certificate" in table["Prior offices"][1]
     assert table["Current or most recent office"][1] != table["Prior offices"][1]
     assert len(table["Receipts"][1]) < 180
     quinn_money = next(line for line in guide.splitlines() if line.startswith("| Mayor of Cedar Hollow | Avery Quinn |"))
     quinn_cells = [cell.strip() for cell in quinn_money.strip().strip("|").split("|")]
-    assert "48200" in quinn_cells[2]
-    assert "17200" in quinn_cells[3]
+    assert "$48,200" in quinn_cells[2]
+    assert "$17,200" in quinn_cells[3]
     assert quinn_cells[2] != quinn_cells[3]
     assert "# Marker index" in full
     assert "# Changelog" in full

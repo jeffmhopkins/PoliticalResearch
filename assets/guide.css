@@ -5,8 +5,8 @@
    by bootstrap, with DejaVu after them.
    Body type is 11pt. Comparison tables are 10.75pt.
    Off-white paper and near-black ink. No red or blue party coding.
-   The running header is a masthead: section, contest, and page sit in the
-   band. The old contest bar and the empty runhead rule are not used.
+   The running header is a thin rule: the section in small caps on the left,
+   the page number on the right. No black band, and no contest name in the margin.
    Flex rows use margins, not gap, because the PDF engine drops gap. */
 
 @font-face {
@@ -145,22 +145,24 @@ h2 {
 
 h3 {
   font-family: var(--sans);
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin: 1.15rem 0 0.2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 0.85rem 0 0.2rem;
 }
 
 h4 {
   font-family: var(--sans);
-  font-size: 0.75rem;
-  margin: 0 0 0.25rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.78rem;
+  margin: 0 0 0.2rem;
+  letter-spacing: 0.04em;
+  font-variant: small-caps;
+  text-transform: none;
   color: var(--ink);
 }
 
-p { margin: 0.35rem 0 0.65rem; }
+p { margin: 0.22rem 0 0.45rem; }
 
 /* Cover */
 
@@ -307,55 +309,113 @@ a.runhead {
   clip: rect(0, 0, 0, 0);
 }
 
-h1.ballot-glance { break-before: page; page-break-before: always; }
-
-h1.ballot-group { break-before: page; page-break-before: always; }
-
 h2.contest-title {
-  break-before: page;
-  page-break-before: always;
   font-family: var(--serif);
   font-weight: 600;
-  font-size: 1.65rem;
-  line-height: 1.12;
+  font-size: 1.35rem;
+  line-height: 1.15;
   letter-spacing: 0;
   text-transform: none;
-  margin: 0 0 0.55rem;
-  padding: 0.05rem 0 0.2rem;
-  border-bottom: 2.5pt solid var(--ink);
+  margin: 0.85rem 0 0.15rem;
+  padding: 0 0 0.12rem;
+  border-bottom: 0.6pt solid var(--ink);
   bookmark-level: 2;
+  break-after: avoid;
+  page-break-after: avoid;
   string-set: contest content();
 }
 
-h1.ballot-group + h2.contest-title {
+h1.ballot-group + h2.contest-title,
+h2.contest-title + p.official-title,
+.glance-contest + .glance-people,
+.glance-people + .glance-summary {
   break-before: avoid;
   page-break-before: avoid;
 }
 
-h1.ballot-group,
-h1.ballot-glance {
-  font-family: var(--sans);
-  font-size: 0.75rem;
+h1.ballot-group {
+  font-family: var(--serif);
+  font-size: 1.25rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   line-height: 1.2;
-  margin: 0 0 0.35rem;
-  padding: 0;
+  margin: 1rem 0 0.35rem;
+  padding: 0 0 0.1rem;
   border: 0;
+  border-bottom: 0.6pt solid var(--ink);
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 h1.ballot-glance {
   font-family: var(--serif);
-  font-size: 1.7rem;
+  font-size: 1.55rem;
+  font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
-  margin: 0 0 0.55rem;
-  padding-bottom: 0.15rem;
-  border-bottom: 2.5pt solid var(--ink);
+  margin: 0 0 0.4rem;
+  padding-bottom: 0.1rem;
+  border-bottom: 0.6pt solid var(--ink);
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
-h1#glossary { break-before: page; page-break-before: always; }
+p.official-title {
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  margin: 0 0 0.55rem;
+  color: var(--ink);
+}
+
+.glance-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin: 0 0 0.45rem;
+}
+
+h3.glance-contest {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 0.55rem 0 0.08rem;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+a.page-ref {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+a.page-ref::after {
+  content: " · p. " target-counter(attr(href), page);
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.glance-people {
+  margin: 0.05rem 0 0.12rem;
+  padding-left: 1.05rem;
+}
+
+.glance-people li { margin: 0.02rem 0; }
+
+.glance-summary {
+  font-family: var(--serif);
+  margin: 0.05rem 0 0.15rem;
+}
+
+span.num {
+  display: block;
+  text-align: right;
+  font-variant-numeric: lining-nums tabular-nums;
+}
 
 /* These headings often land under a table that spilled from the previous
    section. Starting them on a new page keeps string(section, first) on the
@@ -687,65 +747,56 @@ footer {
   font-size: 0.9rem;
 }
 
-/* Pages. The masthead is the top margin. The runhead link sits in the band
-   with no rule of its own, so the old empty bar does not paint. */
+/* Pages. A hairline rule, small caps, section at the left, page number at the right. */
 
 @page {
   size: letter portrait;
-  margin: 0.48in 0.58in 0.55in 0.58in;
+  margin: 0.58in 0.62in 0.52in 0.62in;
   background: #fbfbfa;
   @top-left {
     content: string(section, first);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
-    font-weight: 600;
+    font-size: 8.5pt;
+    font-weight: 500;
     font-variant: small-caps;
     letter-spacing: 0.06em;
-    color: #f4f1ea;
-    background: #161616;
-    width: 32%;
-    vertical-align: middle;
-    padding: 0 8pt 0 10pt;
+    color: #161616;
+    background: transparent;
+    width: 78%;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.4pt solid #161616;
   }
-  @top-center {
-    content: element(runhead);
-    background: #161616;
-    width: 6%;
-  }
+  @top-center { content: none; background: transparent; }
   @top-right {
-    content: string(contest, last) "   " counter(page);
+    content: counter(page);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
+    font-size: 8.5pt;
     font-weight: 500;
-    letter-spacing: 0;
-    color: #f4f1ea;
-    background: #161616;
-    width: 62%;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: #161616;
+    background: transparent;
+    width: 22%;
     text-align: right;
-    vertical-align: middle;
-    padding: 0 10pt 0 6pt;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.4pt solid #161616;
   }
   @bottom-left {
     content: "Not an official ballot";
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
-    font-weight: 500;
+    font-size: 8.5pt;
+    font-weight: 400;
     color: #161616;
     background: transparent;
-    width: 78%;
+    width: 100%;
     vertical-align: top;
-    padding-top: 5pt;
-    border-top: 1.5pt solid #161616;
+    padding-top: 3pt;
+    border-top: 0.4pt solid #161616;
   }
   @bottom-center { content: none; }
-  @bottom-right {
-    content: "";
-    width: 22%;
-    vertical-align: top;
-    padding-top: 5pt;
-    border-top: 1.5pt solid #161616;
-    background: transparent;
-  }
+  @bottom-right { content: none; border: 0; background: transparent; }
 }
 
 @page cover {
@@ -762,106 +813,92 @@ footer {
 
 @page toc {
   size: letter portrait;
-  margin: 0.48in 0.58in 0.55in 0.58in;
+  margin: 0.58in 0.62in 0.52in 0.62in;
   background: #fbfbfa;
   @top-left {
     content: string(section, first);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
-    font-weight: 600;
+    font-size: 8.5pt;
+    font-weight: 500;
     font-variant: small-caps;
     letter-spacing: 0.06em;
-    color: #f4f1ea;
-    background: #161616;
-    width: 32%;
-    vertical-align: middle;
-    padding: 0 8pt 0 10pt;
+    color: #161616;
+    background: transparent;
+    width: 78%;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.4pt solid #161616;
   }
-  @top-center {
-    content: element(runhead);
-    background: #161616;
-    width: 6%;
-  }
+  @top-center { content: none; background: transparent; }
   @top-right {
-    content: string(contest, last) "   " counter(page);
+    content: counter(page);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
+    font-size: 8.5pt;
     font-weight: 500;
-    color: #f4f1ea;
-    background: #161616;
-    width: 62%;
+    color: #161616;
+    background: transparent;
+    width: 22%;
     text-align: right;
-    vertical-align: middle;
-    padding: 0 10pt 0 6pt;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.4pt solid #161616;
   }
   @bottom-left {
     content: "Not an official ballot";
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
+    font-size: 8.5pt;
     color: #161616;
-    width: 78%;
-    padding-top: 5pt;
-    border-top: 1.5pt solid #161616;
+    width: 100%;
+    padding-top: 3pt;
+    border-top: 0.4pt solid #161616;
   }
   @bottom-center { content: none; }
-  @bottom-right {
-    content: "";
-    width: 22%;
-    padding-top: 5pt;
-    border-top: 1.5pt solid #161616;
-  }
+  @bottom-right { content: none; border: 0; }
 }
 
 @page landscape {
   size: letter landscape;
-  margin: 0.48in 0.48in 0.5in 0.48in;
+  margin: 0.55in 0.48in 0.48in 0.48in;
   background: #fbfbfa;
   @top-left {
     content: string(section, first);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
-    font-weight: 600;
+    font-size: 8.5pt;
+    font-weight: 500;
     font-variant: small-caps;
     letter-spacing: 0.06em;
-    color: #f4f1ea;
-    background: #161616;
-    width: 28%;
-    vertical-align: middle;
-    padding: 0 8pt 0 8pt;
+    color: #161616;
+    background: transparent;
+    width: 78%;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.4pt solid #161616;
   }
-  @top-center {
-    content: element(runhead);
-    background: #161616;
-    width: 6%;
-  }
+  @top-center { content: none; background: transparent; }
   @top-right {
-    content: string(contest, last) "   " counter(page);
+    content: counter(page);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
+    font-size: 8.5pt;
     font-weight: 500;
-    color: #f4f1ea;
-    background: #161616;
-    width: 66%;
+    color: #161616;
+    background: transparent;
+    width: 22%;
     text-align: right;
-    vertical-align: middle;
-    padding: 0 8pt 0 6pt;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.4pt solid #161616;
   }
   @bottom-left {
     content: "Not an official ballot";
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
+    font-size: 8.5pt;
     color: #161616;
-    width: 78%;
-    padding-top: 4pt;
-    border-top: 1.5pt solid #161616;
+    width: 100%;
+    padding-top: 3pt;
+    border-top: 0.4pt solid #161616;
   }
   @bottom-center { content: none; }
-  @bottom-right {
-    content: "";
-    width: 22%;
-    padding-top: 4pt;
-    border-top: 1.5pt solid #161616;
-  }
+  @bottom-right { content: none; border: 0; }
 }
 
 .landscape { page: landscape; }
@@ -900,14 +937,16 @@ h2 { bookmark-level: 2; }
     line-height: 1.48;
     background: #fbfbfa;
   }
-  h1 { font-size: 20pt; }
-  h1.ballot-group { font-size: 9.5pt; }
+  h1 { font-size: 18pt; }
+  h1.ballot-group { font-size: 16pt; }
   h1.ballot-glance,
   h1.guide-title,
   h1.sources-title,
-  #toc-title { font-size: 22pt; }
+  #toc-title { font-size: 20pt; }
   h2 { font-size: 13pt; }
-  h2.contest-title { font-size: 22pt; }
+  h2.contest-title { font-size: 18pt; }
+  p.official-title { font-size: 9.5pt; }
+  h3.glance-contest { font-size: 13pt; }
   h2.source-group { font-size: 18pt; }
   h3 { font-size: 10pt; }
   h3.source-entry { font-size: 11pt; }

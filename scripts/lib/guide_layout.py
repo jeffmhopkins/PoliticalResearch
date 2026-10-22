@@ -10,6 +10,7 @@ gap sentence.
 
 from __future__ import annotations
 
+import html
 import re
 from pathlib import Path
 
@@ -150,7 +151,6 @@ _COMPARISON_GROUPS = [
         [
             _Row("Party", "party", profile_path=("party", "display"), keep_if_empty=True),
             _Row("Party changes", "party", _PARTY_CHANGE_RE, profile_path=("party", "changes_display")),
-            _Row("Ballot status", "identity", _PARTY_RE, fallback_first=True),
             _Row("Current or most recent office", "prior offices and public service"),
             _Row("Years in elected office", "prior offices and public service", _YEARS_IN_OFFICE_RE),
         ],
@@ -375,14 +375,19 @@ class _GuideModel:
         parts.extend(self._disputed(edition))
         parts.extend(self._corrections())
         if edition == "full":
-            used_for_index = marker_numbers("\n".join(parts))
-            parts.extend(self._marker_index(used_for_index))
             parts.extend(self._changelog())
         body = "\n".join(parts).rstrip() + "\n"
         used = marker_numbers(body)
         addendum = self._sources_addendum(used)
+        body, addendum, mapping = _renumber_markers(body, addendum)
+        body = _separate_adjacent_markers(body)
+        if edition == "full" and mapping:
+            body = body.rstrip() + "\n\n" + "\n".join(self._marker_index_from_map(mapping)).rstrip() + "\n"
         linked = self._link_markers(body)
         text = re.sub(r"\n{3,}", "\n\n", linked).rstrip() + "\n"
+        comment = _marker_map_comment(mapping)
+        if comment:
+            text += comment
         addendum_text = re.sub(r"\n{3,}", "\n\n", addendum).rstrip() + "\n"
         return text, addendum_text
 
@@ -400,13 +405,11 @@ class _GuideModel:
         return MARKER_RE.sub(repl, text)
 
     def _show_cell(self, full: str, anchor: str, title: str, hint: str = "") -> str:
+        """A complete short sentence, or an amount. Never an ellipsis or a detail link."""
+        del anchor, title
         if not _cell_found(full):
             return NOT_FOUND_CELL
-        short = _short_fact(full, hint)
-        if _sentence_key(short) != _sentence_key(full):
-            anchor = self._detail_anchor(anchor, title, full)
-            short = f"{short} [detail]({self.addendum_name}#{anchor})"
-        return short
+        return _short_fact(full, hint)
 
     def _show_prose(self, full: str) -> str:
         """A cited sentence in a card. Keep the marker on the sentence."""
@@ -464,11 +467,10 @@ class _GuideModel:
         return ["Not found (searched: precinct code and district list on the confirmed ballot).", ""]
 
     def _at_a_glance(self) -> list[str]:
+        """One scannable block per contest. No markers, no type words, no clipped sentences."""
         lines = [
             "# Your ballot at a glance {#your-ballot-at-a-glance .ballot-glance}",
             "",
-            "| Contest | Summary | Read |",
-            "| --- | --- | --- |",
         ]
         for contest in self._contests_raw():
             item_id = str(contest.get("item_id") or contest.get("id"))
@@ -477,39 +479,47 @@ class _GuideModel:
             if "[^" not in summary:
                 continue
             title = str(contest.get("title") or self.titles.get(item_id) or item_id)
-            party_lines = []
+            title, _subtitle = _title_pair(title)
+            sentence = _one_sentence(summary)
+            if not sentence:
+                continue
+            people = []
             if contest.get("type") in {"race", "primary", "local-office", "judicial-retention"}:
                 for candidate in contest.get("candidates") or []:
                     if not isinstance(candidate, dict) or candidate.get("withdrawn"):
                         continue
-                    cid = str(candidate.get("item_id") or candidate.get("id") or "")
-                    display = _party_display(self.workspace, cid)
-                    if display:
-                        party_lines.append(f"{candidate.get('name')}: {display}")
-            bits = [
-                f"**{_cell(title)}**",
-                _cell(_contest_kind(contest)),
-                _cell(_choices(contest, hide_party=bool(party_lines))),
-            ]
-            if party_lines:
-                bits.append("Party: " + " ".join(party_lines))
-            elif contest.get("type") in {"race", "primary", "local-office", "judicial-retention"} and _people(contest):
-                bits.append("Party: " + NOT_FOUND_CELL)
-            if contest.get("type") in {"race", "primary", "local-office"}:
-                incumbent = _incumbent_names(contest) or NOT_FOUND_CELL
-                bits.append("Incumbent: " + _cell(incumbent))
-            summary_cell = self._show_cell(summary, f"detail-{item_id}-summary", f"{title} summary")
-            link = f"[{_cell(title)}](#contest-{item_id})"
-            row = ["<br>".join(bits), _cell(summary_cell), link]
-            lines.append("| " + " | ".join(row) + " |")
-        lines.append("")
+                    name = str(candidate.get("name") or "").strip()
+                    if not name:
+                        continue
+                    abbr = _party_abbr(self.workspace, candidate)
+                    line = f"{name}, {abbr}" if abbr else name
+                    if candidate.get("incumbent") is True:
+                        line += " (incumbent)"
+                    people.append(line)
+            lines.append('<div class="glance-item">')
+            lines.append("")
+            href = f"#contest-{item_id}"
+            lines.append(
+                f'<h3 class="glance-contest"><a class="page-ref" href="{html.escape(href, quote=True)}">{html.escape(title)}</a></h3>'
+            )
+            lines.append("")
+            if people:
+                lines.append('<ul class="glance-people">')
+                for person in people:
+                    lines.append(f"<li>{html.escape(person)}</li>")
+                lines.append("</ul>")
+                lines.append("")
+            lines.append(f'<p class="glance-summary">{html.escape(sentence)}</p>')
+            lines.append("")
+            lines.append("</div>")
+            lines.append("")
         return lines
 
     def _how_to_read(self) -> list[str]:
         return [
             "# How to read this guide",
             "",
-            "Start with the ballot table, then read one contest at a time. "
+            "Start with the ballot at a glance, then read one contest at a time. "
             "Each race uses the same comparison rows for every candidate. "
             "Party is printed as text. This guide does not color a party. "
             "An endorsement names the group, its type, the date, and whether the words are the group's own statement or the candidate's site. "
@@ -526,13 +536,16 @@ class _GuideModel:
             "This guide does not rank candidates, score them, or recommend a vote. "
             "Claims marked disputed or unconfirmed are left out of summaries.",
             "",
-            BACK_LINK,
-            "",
         ]
 
     def _compare(self) -> list[str]:
-        lines = ["# Compare across the ballot", ""]
-        lines.extend(self._money_across())
+        money = self._money_across()
+        if money[:1] == ["::: landscape"]:
+            # The landscape page break would otherwise leave this heading alone.
+            lines = ["::: landscape", "", "# Compare across the ballot", ""]
+            lines.extend(money[2:])
+        else:
+            lines = ["# Compare across the ballot", "", *money]
         lines.extend(self._issue_matrix())
         lines.extend(self._measures_across())
         lines.extend(self._judicial_across())
@@ -803,12 +816,21 @@ class _GuideModel:
             return self._fit_contest_budget(self._reader_contest(contest))
         return self._full_contest(contest)
 
+    def _contest_title_lines(self, contest: dict, title: str, item_id: str, sections) -> list[str]:
+        """Sentence-case a long or all-caps title, and keep the official wording under it."""
+        del contest, sections
+        short, subtitle = _title_pair(title)
+        lines = [f"## {short} {{#contest-{item_id} .contest-title}}", ""]
+        if subtitle and subtitle != short:
+            lines.extend([f'<p class="official-title">{html.escape(subtitle)}</p>', ""])
+        return lines
+
     def _full_contest(self, contest: dict) -> list[str]:
         item_id = str(contest.get("item_id") or contest.get("id"))
         title = str(contest.get("title") or self.titles.get(item_id) or item_id)
         draft = self._draft(item_id)
         sections = _section_pairs(draft)
-        lines = [f"## {title} {{#contest-{item_id} .contest-title}}", ""]
+        lines = self._contest_title_lines(contest, title, item_id, sections)
         lines.extend(self._contest_opener(contest))
         lines.extend(self._preamble(draft, item_id))
         kind = contest.get("type")
@@ -877,7 +899,7 @@ class _GuideModel:
         title = str(contest.get("title") or self.titles.get(item_id) or item_id)
         draft = self._draft(item_id)
         sections = _section_pairs(draft)
-        lines = [f"## {title} {{#contest-{item_id} .contest-title}}", ""]
+        lines = self._contest_title_lines(contest, title, item_id, sections)
         for line in draft.splitlines():
             if line.startswith("## "):
                 break
@@ -1843,16 +1865,17 @@ class _GuideModel:
                 lines.extend([format_work(number, source), ""])
         return lines
 
-    def _marker_index(self, used: set[int]) -> list[str]:
+    def _marker_index_from_map(self, mapping: dict[int, int]) -> list[str]:
+        """Display numbers, in edition order, mapped back to the claim file id."""
         lines = ["# Marker index {#marker-index}", "", "| Marker | Claim ID |", "| --- | --- |"]
-        for number in sorted(used):
-            found = self.index.get(number)
+        for display, original in sorted(mapping.items()):
+            found = self.index.get(original)
             if not found:
                 continue
             _item, claim, _source = found
             if claim.get("removed"):
                 continue
-            lines.append(f"| {number} | {claim.get('id')} |")
+            lines.append(f"| {display} | {claim.get('id')} |")
         lines.append("")
         return lines
 
@@ -2152,17 +2175,254 @@ def _cap_summary(summary: str, sentences: int = 2, words: int = 60) -> str:
     return " ".join(kept)
 
 
+def _is_money_hint(hint: str) -> bool:
+    lowered = (hint or "").lower()
+    keys = (
+        "receipt",
+        "cash",
+        "self-fund",
+        "self fund",
+        "small donor",
+        "large donor",
+        "in-district",
+        "in district",
+        "pac money",
+        "party money",
+        "outside spending",
+    )
+    return any(key in lowered for key in keys)
+
+
+_DOLLAR_RE = re.compile(
+    r"\$\s*(\d[\d,]*(?:\.\d+)?)|(?<![\w.])(\d[\d,]*(?:\.\d+)?)\s+dollars\b",
+    re.IGNORECASE,
+)
+
+
+def _format_dollars(plain: str) -> str | None:
+    """The amount only. Cents drop once the sum reaches 100. Missing amounts stay missing."""
+    match = _DOLLAR_RE.search(plain or "")
+    if not match:
+        return None
+    raw = (match.group(1) or match.group(2)).replace(",", "")
+    try:
+        value = float(raw)
+    except ValueError:
+        return None
+    if abs(value) >= 100:
+        return f"${int(value):,}"
+    if value.is_integer():
+        return f"${int(value):,}"
+    return f"${value:,.2f}"
+
+
 def _short_fact(sentence: str, hint: str = "") -> str:
-    """A value or a brief phrase, with the citation markers kept on the end."""
+    """A complete sentence or an amount, with the citation markers kept on the end.
+
+    Money cells are the amount only. A money sentence with no amount is Not found.
+    Nothing is cut off with an ellipsis.
+    """
     if not sentence or sentence == NOT_FOUND_CELL:
         return NOT_FOUND_CELL
     markers = "".join(f"[^{number}]" for number in MARKER_RE.findall(sentence))
-    plain = re.sub(r"\s+", " ", MARKER_RE.sub("", sentence)).strip().rstrip(".")
-    excerpt = _excerpt_for_hint(plain, hint)
-    if len(excerpt) > CELL_CHAR_CAP:
-        clipped = excerpt[: CELL_CHAR_CAP - 3].rsplit(" ", 1)[0].rstrip(",;:")
-        excerpt = (clipped or excerpt[: CELL_CHAR_CAP - 3]) + "..."
-    return f"{excerpt}{markers}" if excerpt else NOT_FOUND_CELL
+    plain = re.sub(r"\s+", " ", MARKER_RE.sub("", sentence)).strip()
+    if _is_money_hint(hint):
+        amount = _format_dollars(plain)
+        if not amount:
+            return NOT_FOUND_CELL
+        return f'<span class="num">{amount}{markers}</span>'
+    bare = plain.rstrip(".")
+    excerpt = _excerpt_for_hint(bare, hint)
+    if not excerpt:
+        return NOT_FOUND_CELL
+    if excerpt != bare or "report" in (hint or "").lower():
+        body = excerpt
+    elif plain[-1:] in ".!?":
+        body = plain
+    else:
+        body = f"{plain}."
+    return f"{body}{markers}"
+
+
+def _renumber_markers(body: str, addendum: str) -> tuple[str, str, dict[int, int]]:
+    """Replace claim-file marker ids with 1, 2, 3… in the order the body first uses them.
+
+    The returned map is display number to original number. Tokens are swapped in
+    one pass so marker 10 is never rewritten as marker 1.
+    """
+    order: list[int] = []
+    seen: set[int] = set()
+    for match in MARKER_RE.finditer(body):
+        number = int(match.group(1))
+        if number not in seen:
+            seen.add(number)
+            order.append(number)
+    if not order:
+        return body, addendum, {}
+    original_to_display = {original: index for index, original in enumerate(order, start=1)}
+
+    def protect(text: str) -> str:
+        def marker_repl(match: re.Match) -> str:
+            number = int(match.group(1))
+            if number not in original_to_display:
+                return match.group(0)
+            return f"[^@@M{number}@@]"
+
+        text = MARKER_RE.sub(marker_repl, text)
+        for original in order:
+            token = f"@@M{original}@@"
+            text = re.sub(rf"#source-{original}(?!\d)", f"#source-{token}", text)
+            text = re.sub(rf"#cite-{original}(?!\d)", f"#cite-{token}", text)
+            text = re.sub(rf"(### Source ){original}(?!\d)", rf"\g<1>{token}", text)
+            text = re.sub(rf"(?m)^\[{original}\] ", f"[{token}] ", text)
+            text = re.sub(rf"(?m)^\| {original} \|", f"| {token} |", text)
+
+        def finish(match: re.Match) -> str:
+            return str(original_to_display[int(match.group(1))])
+
+        return re.sub(r"@@M(\d+)@@", finish, text)
+
+    display_to_original = {display: original for original, display in original_to_display.items()}
+    return protect(body), protect(addendum), display_to_original
+
+
+def _separate_adjacent_markers(text: str) -> str:
+    """Keep neighboring markers from printing as one digit string.
+
+    The same marker twice in a row is one source, so it stays one marker.
+    Different neighbors are separated with a comma.
+    """
+    previous = None
+    while previous != text:
+        previous = text
+        text = re.sub(r"(\[\^(\d+)\])\[\^\2\]", r"\1", text)
+    return re.sub(r"(\[\^\d+\])(?=\[\^\d+\])", r"\1, ", text)
+
+
+def _marker_map_comment(mapping: dict[int, int]) -> str:
+    if not mapping:
+        return ""
+    pairs = " ".join(f"{display}={original}" for display, original in sorted(mapping.items()))
+    return f"<!-- marker-map: {pairs} -->\n"
+
+
+_PARTY_ABBR = (
+    (re.compile(r"no party|n\.?p\.?a\.?\b|unaffiliated|non-?partisan", re.IGNORECASE), "NPA"),
+    (re.compile(r"working families|\bwfp\b", re.IGNORECASE), "WFP"),
+    (re.compile(r"republican|\bgop\b|\brep\b", re.IGNORECASE), "REP"),
+    (re.compile(r"democrat|\bdem\b", re.IGNORECASE), "DEM"),
+    (re.compile(r"libertarian|\blpf\b", re.IGNORECASE), "LPF"),
+    (re.compile(r"\bgreen\b|\bgre\b", re.IGNORECASE), "GRE"),
+    (re.compile(r"constitution", re.IGNORECASE), "CON"),
+    (re.compile(r"independent|\bind\b", re.IGNORECASE), "IND"),
+)
+
+
+def _abbreviate_party(label: str) -> str:
+    text = (label or "").strip()
+    if re.fullmatch(r"[A-Z]{2,5}", text):
+        return text
+    for pattern, abbr in _PARTY_ABBR:
+        if pattern.search(text):
+            return abbr
+    return ""
+
+
+def _party_abbr(workspace: Path, candidate: dict) -> str:
+    """A short plain-text party label. Registered party wins over the ballot's nonpartisan line."""
+    labels: list[str] = []
+    item_id = str(candidate.get("item_id") or candidate.get("id") or "")
+    party: dict = {}
+    if item_id:
+        profile = load_yaml(workspace / "items" / item_id / "profile.yaml") or {}
+        found = profile.get("party") if isinstance(profile, dict) else None
+        if isinstance(found, dict):
+            party = found
+            registered = str(party.get("registered_party") or "").strip()
+            if registered:
+                labels.append(registered)
+    ballot_party = str(candidate.get("party") or "").strip()
+    if ballot_party:
+        labels.append(ballot_party)
+    ballot_label = str(party.get("ballot_label") or "").strip()
+    if ballot_label:
+        labels.append(ballot_label)
+    for label in labels:
+        abbr = _abbreviate_party(label)
+        if abbr:
+            return abbr
+    return ""
+
+
+def _one_sentence(text: str) -> str:
+    """The first complete sentence, with citation markers removed."""
+    cleaned = re.sub(r"\s+", " ", MARKER_RE.sub("", text or "")).strip()
+    if not cleaned:
+        return ""
+    first = split_sentences(cleaned)[0].strip()
+    if first and first[-1] not in ".!?":
+        first += "."
+    return first
+
+
+def _is_shouting(title: str) -> bool:
+    letters = [char for char in title if char.isalpha()]
+    if len(letters) < 8:
+        return False
+    upper = sum(1 for char in letters if char.isupper())
+    return upper / len(letters) > 0.7
+
+
+def _sentence_case(title: str) -> str:
+    text = re.sub(r"\s+", " ", title or "").strip()
+    if not text or not _is_shouting(text):
+        return text
+    lowered = text.lower()
+    return lowered[0].upper() + lowered[1:]
+
+
+_TRAILING_TITLE_WORDS = frozenset(
+    {"of", "the", "to", "a", "an", "and", "or", "for", "in", "on", "without", "by", "from"}
+)
+
+
+def _short_title(title: str) -> str:
+    cleaned = re.sub(r"\s+", " ", title or "").strip()
+    for sep in (":", "—", "–"):
+        if sep in cleaned:
+            head = cleaned.split(sep, 1)[0].strip()
+            if 3 <= len(head) <= 56:
+                return _sentence_case(head)
+    if "," in cleaned and (len(cleaned) > 72 or _is_shouting(cleaned)):
+        head = cleaned.split(",", 1)[0].strip()
+        if 3 <= len(head) <= 42:
+            return _sentence_case(head)
+    words = cleaned.split()
+    if len(words) > 6 or len(cleaned) > 72 or _is_shouting(cleaned):
+        chosen: list[str] = []
+        for word in words[:10]:
+            chosen.append(word)
+            if len(" ".join(chosen)) >= 42 and word.lower().strip(",:;") not in _TRAILING_TITLE_WORDS:
+                break
+        while chosen and chosen[-1].lower().strip(",:;") in _TRAILING_TITLE_WORDS:
+            chosen.pop()
+        if not chosen:
+            chosen = words[:4]
+        return _sentence_case(" ".join(chosen))
+    return _sentence_case(cleaned)
+
+
+def _title_pair(title: str, official: str = "") -> tuple[str, str]:
+    """A short sentence-case title, plus the full ballot title when that title is long or all caps."""
+    del official
+    full = re.sub(r"\s+", " ", title or "").strip()
+    if not full:
+        return "", ""
+    if not (_is_shouting(full) or len(full) > 72):
+        return full, ""
+    short = _short_title(full)
+    subtitle = "" if short.lower() == full.lower() else full
+    return short, subtitle
 
 
 def _excerpt_for_hint(plain: str, hint: str) -> str:
