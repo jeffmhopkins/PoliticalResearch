@@ -18,7 +18,10 @@ def test_sample_uses_real_research_and_keeps_the_default_sheet_alone():
     assert "mock.css" not in guide
     assert "break-before: page" in css
     assert ".sheet-first" in css
-    assert html.count("data-run=") == 8
+    assert html.count("data-run=") == 9
+    assert "font-size: 9pt" in css
+    assert "font-size: 8.5pt" not in css.split(".notes")[1]
+    assert "font-size: 8pt" not in css
     assert "size: letter portrait" in css
     assert "font-size: 11pt" in css
     assert "#0000ff" not in css.casefold()
@@ -34,15 +37,35 @@ def test_sample_uses_real_research_and_keeps_the_default_sheet_alone():
         "What is this about?",
         "What does your vote mean?",
         "Exact words on your ballot",
-        "No public statement found",
-        "expanding access to affordable housing",
+        "No public statement found on housing costs.",
+        "No public statement found on health care costs.",
+        "The rest of this ballot is not in this sample.",
+        "Pay was not in the sources checked.",
+        "Where do they stand? continued",
+        "House bill 3838, the 2026 defense bill",
+        "voted yes",
+        "voted no",
+        "No dated endorsement found.",
+        "No public record found in the sources checked.",
+        "Who is Jennifer Jenkins?",
         "Make housing more affordable",
-        "$1,994,333.29",
-        "$976,256.04",
-        "$205,895.61",
+        "$1,994,333",
+        "$976,256",
+        "$205,896",
         "My opponent voted no",
     ):
         assert phrase in html
+    for banned in (
+        "expanding access to affordable housing",
+        "Qualified",
+        "Single source",
+        "Unconfirmed as a vote record",
+        "not profiled",
+        "Aye",
+        "Nay",
+        "$1,994,333.29",
+    ):
+        assert banned not in html
     assert "..." not in html
     assert "…" not in html
     assert privacy_errors(html) == []

@@ -165,32 +165,37 @@ a { color: var(--ink); text-decoration: none; }
   font-size: 11pt;
 }
 
-.kicker {
-  margin: 0.38rem 0 0.08rem;
-  font-weight: 600;
-  font-size: 10.5pt;
+.cover-line { margin: 0 0 0.45rem; }
+
+table.contents {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.2rem 0 0.45rem;
+  font-size: 11pt;
+  line-height: 1.35;
 }
 
-.ballot {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+table.contents th,
+table.contents td {
+  border-bottom: 0.6pt solid var(--ink);
+  padding: 0.28rem 0.45rem 0.28rem 0;
+  text-align: left;
+  vertical-align: top;
 }
 
-.ballot li {
-  margin: 0;
-  padding: 0.08rem 0;
-  border-bottom: 0.4pt solid var(--zebra);
-  font-size: 10.5pt;
-  line-height: 1.3;
-}
+table.contents th { font-weight: 600; }
 
-.ballot .name { font-weight: 600; }
-
-.ballot a::after {
-  content: " (page " target-counter(attr(href), page) ")";
-  font-weight: 500;
+table.contents td.page,
+table.contents th.page {
+  width: 0.7in;
+  text-align: right;
   font-variant-numeric: tabular-nums;
+  padding-right: 0;
+}
+
+table.contents a::after {
+  content: target-counter(attr(href), page);
+  font-weight: 500;
 }
 
 .pair {
@@ -311,21 +316,20 @@ ul.plain {
 
 ul.plain li { margin: 0.08rem 0; }
 
-#measure h2 { margin-top: 0.32rem; }
-#measure .intro { margin-bottom: 0.2rem; }
-#measure .notes { font-size: 8pt; }
+#measure h2 { margin-top: 0.28rem; }
+#measure .ballot-words { margin-bottom: 0.12rem; }
 
 .notes {
-  margin: 0.28rem 0 0;
+  margin: 0.22rem 0 0;
   padding-left: 1.15rem;
-  font-size: 8.5pt;
-  line-height: 1.28;
+  font-size: 9pt;
+  line-height: 1.25;
 }
 
 .notes li { margin: 0 0 0.08rem; }
 
 sup {
-  font-size: 0.72em;
+  font-size: 9pt;
   line-height: 0;
   vertical-align: super;
 }
