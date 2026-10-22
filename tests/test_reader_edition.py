@@ -239,6 +239,16 @@ def test_office_links_and_precinct_render_from_the_ballot(tmp_path: Path):
     assert prose_marker_errors(text, "ballot")
 
 
+def test_official_ballot_title_is_a_label_not_an_uncited_claim():
+    title = (
+        '<p class="official-title">No. 1 Constitutional Amendment, Article III, Section 19: '
+        "Budget Stabilization Fund</p>"
+    )
+    assert prose_marker_errors(title, "guide") == []
+    prose = "No. 1 Constitutional Amendment, Article III, Section 19: Budget Stabilization Fund"
+    assert prose_marker_errors(prose, "guide")
+
+
 def test_quote_must_be_verbatim_and_a_number_can_live_on_the_archived_page(tmp_path: Path):
     init_workspace(tmp_path, "quote-demo", "household", "2026-10-20 12:00 ET")
     archive = tmp_path / "archive"

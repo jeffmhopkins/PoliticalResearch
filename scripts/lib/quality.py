@@ -1584,6 +1584,15 @@ def _is_navigation_sentence(plain: str, exempt: set[str] | None = None) -> bool:
     return False
 
 
+def _is_official_title_block(block: str) -> bool:
+    """The ballot's own title under the short heading. It is a label, not a researched claim."""
+    lines = [line.strip() for line in (block or "").splitlines() if line.strip()]
+    if len(lines) != 1:
+        return False
+    line = lines[0]
+    return line.startswith('<p class="official-title">') and line.endswith("</p>")
+
+
 def _is_glance_block(block: str) -> bool:
     """Assembler glance markup. The same facts are cited on the contest page."""
     lines = [line.strip() for line in (block or "").splitlines() if line.strip()]
@@ -1611,6 +1620,8 @@ def _sentence_marker_errors(
     h2: str = "",
 ) -> list[str]:
     if _is_gap_text(block) and not _has_citation_marker(block):
+        return []
+    if _is_official_title_block(block):
         return []
     # Mask citation links before emphasis characters are removed. The link text
     # uses <sup>, and stripping ">" would hide the marker.
