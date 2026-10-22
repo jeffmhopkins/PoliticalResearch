@@ -271,6 +271,12 @@ table.money caption {
   margin: 0 0 0.28rem;
 }
 
+table.money .caption-next {
+  display: block;
+  margin-top: 0.22rem;
+  font-weight: 400;
+}
+
 table.money th,
 table.money td {
   border: 0.6pt solid var(--ink);

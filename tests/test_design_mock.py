@@ -18,7 +18,7 @@ def test_sample_uses_real_research_and_keeps_the_default_sheet_alone():
     assert "mock.css" not in guide
     assert "break-before: page" in css
     assert ".sheet-first" in css
-    assert html.count("data-run=") == 9
+    assert html.count("data-run=") == 8
     assert "font-size: 9pt" in css
     assert "font-size: 8.5pt" not in css.split(".notes")[1]
     assert "font-size: 8pt" not in css
@@ -41,7 +41,8 @@ def test_sample_uses_real_research_and_keeps_the_default_sheet_alone():
         "No public statement found on health care costs.",
         "The rest of this ballot is not in this sample.",
         "Pay was not in the sources checked.",
-        "Where do they stand? continued",
+        "Months in this report",
+        "Outside spending was not in the FEC summaries checked for either candidate.",
         "House bill 3838, the 2026 defense bill",
         "voted yes",
         "voted no",
@@ -64,6 +65,10 @@ def test_sample_uses_real_research_and_keeps_the_default_sheet_alone():
         "Aye",
         "Nay",
         "$1,994,333.29",
+        "The two cards are the same size",
+        "A missing statement stays a one-line gap",
+        "Where do they stand? continued",
+        ">Outside money<",
     ):
         assert banned not in html
     assert "..." not in html
