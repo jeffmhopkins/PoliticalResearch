@@ -1525,6 +1525,11 @@ def prose_marker_errors(text: str, label: str, exempt: set[str] | None = None) -
                     continue
                 if _is_gap_text(row) or _is_effort_row(row, h1, h2) or _is_review_row(row, h1, h2):
                     continue
+                data_cells = [cell.strip() for cell in row.strip().strip("|").split("|")][1:]
+                # A comparison slice may be only the Not found token. That token is
+                # the searched-and-missing cell, not an uncited fact.
+                if data_cells and all(cell == "Not found" for cell in data_cells):
+                    continue
                 if not _has_citation_marker(row):
                     errors.append(f"{label}: table row has no citation marker: {row.strip()[:120]}")
             continue
@@ -3083,7 +3088,9 @@ def legislation_depth_errors(workspace) -> list[str]:
 
 
 _PARTY_COLOR_RE = re.compile(
-    r"party[-_\s]?(?:democrat(?:ic)?|republican|dem|rep|blue|red|d|r)\b"
+    # A hyphen or underscore is a class name. "party REP" is a ballot abbreviation.
+    r"party[-_](?:democrat(?:ic)?|republican|dem|rep|blue|red|d|r)\b"
+    r"|party\s(?:blue|red)\b"
     r"|(?:democrat(?:ic)?|republican)[-_\s](?:red|blue)\b"
     r"|color\s*:\s*(?:red|blue|darkred|darkblue|crimson|navy)\b"
     r"|rgb\(\s*255\s*,\s*0\s*,\s*0\s*\)"
