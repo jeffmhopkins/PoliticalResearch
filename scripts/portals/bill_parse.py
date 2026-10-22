@@ -72,6 +72,33 @@ def title_chamber(title: str) -> str:
     return match.group(1).upper() if match else ""
 
 
+def _as_bill_token(chamber: str, number: str) -> str:
+    return f"{chamber.upper()}{int(number)}"
+
+
+def requested_bill_token(bill: str) -> str:
+    """HB18 and 'HB 18' share a token. HB180 does not."""
+    token = bill_token(bill)
+    match = re.fullmatch(r"(HB|SB)(\d+)", token)
+    if not match:
+        return ""
+    return _as_bill_token(match.group(1), match.group(2))
+
+
+def title_bill_token(title: str) -> str:
+    """The bill number printed in a title. HB 180 is not HB 18."""
+    match = re.search(r"\b(HB|SB)\s*(\d+)\b", title or "", re.IGNORECASE)
+    if not match:
+        return ""
+    return _as_bill_token(match.group(1), match.group(2))
+
+
+def title_matches_bill(title: str, bill: str) -> bool:
+    wanted = requested_bill_token(bill)
+    found = title_bill_token(title)
+    return bool(wanted) and wanted == found
+
+
 def bill_token(value: str) -> str:
     """Comparable id: HB18 and 'HB 18' are the same token. The other chamber is not."""
     compact = re.sub(r"[^A-Za-z0-9]", "", value or "").upper()

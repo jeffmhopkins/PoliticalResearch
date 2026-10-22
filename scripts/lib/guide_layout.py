@@ -73,8 +73,13 @@ _ELIGIBLE_RE = re.compile(r"eligible through", re.IGNORECASE)
 _PROMISE_RE = re.compile(r"status is", re.IGNORECASE)
 _REPORT_DATE_RE = re.compile(r"quarter|filed on|report date|as of", re.IGNORECASE)
 _PARTY_RE = re.compile(r"incumbent|challenger|nonpartisan|party", re.IGNORECASE)
+_PARTY_NAME = (
+    r"No Party Affiliation|Working Families|Peace and Freedom|American Independent|"
+    r"Republican|Democratic|Democrat|Libertarian|Green|Independent|Nonpartisan|"
+    r"Constitution|Reform|Socialist|Forward|Whig|Conservative|NPA"
+)
 _PARTY_CHANGE_RE = re.compile(
-    r"party change|changed party|(?:from|to)\s+(?!the\b|a\b|an\b|that\b|this\b|his\b|her\b|their\b|its\b)[A-Za-z][\w'-]+",
+    rf"party change|changed party|(?:from|to)\s+(?:the\s+)?(?:{_PARTY_NAME})(?:\s+Party)?\b",
     re.IGNORECASE,
 )
 _RHETORIC_LABEL_RE = re.compile(r"\b(?:MATCH|CONTRADICTION|NO RECORD)\b")
@@ -2462,6 +2467,42 @@ def _row_options(row: _Row, sections: dict, used: set[str], *, ignore_pattern: b
     return options
 
 
+def _attendance_value(body: str) -> tuple[str, list[str]] | None:
+    """The member's count and the chamber median, even when they are two sentences."""
+    sentences = _cited_sentences(body)
+    if not sentences:
+        return None
+
+    def plain(sentence: str) -> str:
+        return MARKER_RE.sub("", sentence)
+
+    def has_count(sentence: str) -> bool:
+        return re.search(r"\b\d+\s+of\s+\d+\b", plain(sentence)) is not None
+
+    def has_median(sentence: str) -> bool:
+        return re.search(r"\bmedian\b", plain(sentence), re.IGNORECASE) is not None
+
+    def has_member(sentence: str) -> bool:
+        return re.search(r"\b(?:attended|missed)\b", plain(sentence), re.IGNORECASE) is not None
+
+    both = [sentence for sentence in sentences if has_count(sentence) and has_median(sentence) and has_member(sentence)]
+    if not both:
+        both = [
+            sentence
+            for sentence in sentences
+            if has_median(sentence) and len(re.findall(r"\b\d+\s+of\s+\d+\b", plain(sentence))) >= 2
+        ]
+    if both:
+        chosen = both[0]
+        return chosen, [_sentence_key(chosen)]
+    members = [sentence for sentence in sentences if has_count(sentence) and not has_median(sentence)]
+    medians = [sentence for sentence in sentences if has_median(sentence)]
+    if members and medians:
+        text = f"{members[0].strip()} {medians[0].strip()}"
+        return text, [_sentence_key(members[0]), _sentence_key(medians[0])]
+    return None
+
+
 def _assign_cells(sections: dict, profile: dict, rows: list[_Row]) -> dict[str, str]:
     """Give each row its own fact.
 
@@ -2494,6 +2535,16 @@ def _assign_cells(sections: dict, profile: dict, rows: list[_Row]) -> dict[str, 
         return (overlap, len(sentence))
 
     for row in patterned:
+        if row.label == "Attendance" and row.label not in assigned:
+            found = sections.get(row.section)
+            body = found[1] if found else ""
+            combined = _attendance_value(body)
+            if combined:
+                text, keys = combined
+                if not any(key in used for key in keys):
+                    take(row.label, text)
+                    used.update(key for key in keys if key)
+                    continue
         options = _row_options(row, sections, used)
         if not options and row.fallback_first:
             options = _row_options(row, sections, used, ignore_pattern=True)

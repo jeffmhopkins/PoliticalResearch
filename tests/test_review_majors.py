@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 
 from lib.guide_layout import (
+    NOT_FOUND_CELL,
     _ATTENDANCE_RE,
     _COMPARISON_GROUPS,
     _PARTY_CHANGE_RE,
@@ -20,6 +21,8 @@ from lib.guide_layout import (
 from lib.legislation import collect_legislation
 from lib.quality import (
     FINANCE_KEYS,
+    _money_value_ok,
+    _party_color_coded,
     depth_record_errors,
     endorsement_record_errors,
     iso_date_appears,
@@ -28,7 +31,8 @@ from lib.quality import (
     party_record_errors,
     rendered_party_errors,
 )
-from lib.util import dump_yaml, repo_root
+from portals.bill_parse import title_matches_bill
+from lib.util import dump_yaml, looks_like_street_address, repo_root
 from portals.fl_campaign_finance import parse_contributions
 from portals.fl_house import search_url
 from portals.fl_lobbyists import parse_lobbyist_page
@@ -502,7 +506,28 @@ def test_similar_laws_need_two_distinct_citations(tmp_path: Path):
     assert any("two independent sources" in error for error in errors), errors
 
     distinct = "NCSL lists the posting law[^1]. OPPAGA reported the same outcome[^2]."
-    _item(root, "bill-hb18", "legislation", _bill_draft(GAP, similar=distinct), status="signed-off")
+    _item(
+        root,
+        "bill-hb18",
+        "legislation",
+        _bill_draft(GAP, similar=distinct),
+        [
+            _claim(
+                "bill-hb18.similar.001",
+                "similar",
+                "NCSL lists the posting law.",
+                sources=[_source(marker=1, url="https://fictional.example/ncsl/posting")],
+            ),
+            _claim(
+                "bill-hb18.similar.002",
+                "similar",
+                "OPPAGA reported the same outcome.",
+                marker=2,
+                sources=[_source(marker=2, url="https://fictional.example/oppaga/posting")],
+            ),
+        ],
+        status="signed-off",
+    )
     assert not any("two independent sources" in error for error in depth_record_errors(root))
 
 
@@ -529,13 +554,17 @@ def test_rendered_party_rejects_red_and_blue_coding(tmp_path: Path):
         "rgb(255, 0, 0)",
         "rgb(0, 0, 255)",
         "#ff0000",
+        "color: #1d4ed8",
+        "color: #0033cc",
+        "#b91c1c",
     ]
     for snippet in snippets:
         (final / "guide.md").write_text(f"A class {snippet} sits on the name.\n", encoding="utf-8")
         errors = rendered_party_errors(root)
         assert any("colored" in error for error in errors), snippet
     (final / "guide.md").write_text(
-        "| Party | Ada |\n| --- | --- |\n| Endorsements | None |\n\nThe bill discusses redistricting and a blue pamphlet.\n",
+        "| Party | Ada |\n| --- | --- |\n| Endorsements | None |\n\n"
+        "The bill discusses redistricting and a blue pamphlet. The chart uses #22c55e and #888888.\n",
         encoding="utf-8",
     )
     dump_yaml(root / "ballot.yaml", {"contests": [{"type": "race", "title": "Mayor", "candidates": []}]})
@@ -663,6 +692,278 @@ def test_florida_import_keeps_the_chamber_prefix_and_the_matching_bill():
     assert senate_record["sponsors"][0]["party"] == "Democratic"
     assert "Bo Chen" not in json.dumps(senate_record["sponsors"])
     assert senate_record["lobbyists"] == []
+
+
+def test_staff_analysis_ignores_a_title_that_only_mentions_the_words(tmp_path: Path):
+    root = _workspace(tmp_path)
+    pretended = _source(title="This is not a staff analysis", doc_type="Memo", marker=1)
+    _item(
+        root,
+        "bill-hb18",
+        "legislation",
+        _bill_draft("The House file says this is not a staff analysis[^1]."),
+        [_claim("bill-hb18.staff.001", "staff", "The House file says this is not a staff analysis.", sources=[pretended])],
+        status="signed-off",
+    )
+    errors = depth_record_errors(root)
+    assert any("staff analysis" in error for error in errors), errors
+
+    real = _source(title="Fiscal note", doc_type="Staff analysis", marker=1)
+    _item(
+        root,
+        "bill-hb18",
+        "legislation",
+        _bill_draft("The fiscal note describes the posting change[^1]."),
+        [_claim("bill-hb18.staff.002", "staff", "The fiscal note describes the posting change.", sources=[real])],
+        status="signed-off",
+    )
+    assert not any("staff analysis source" in error for error in depth_record_errors(root))
+
+
+def test_party_source_kind_is_the_document_type(tmp_path: Path):
+    root = _workspace(tmp_path)
+    blog = _source(
+        title="Election blog",
+        doc_type="Election blog",
+        publisher="Cedar Hollow Notes",
+        tier="T1",
+        quote="Ada Hale is a Republican.",
+    )
+    draft = """# Ada Hale
+
+## Party
+
+An election blog lists Ada Hale in a Nonpartisan race[^1]. Not found (searched: the voter registration index).
+"""
+    _item(
+        root,
+        "cand-ada",
+        "candidate",
+        draft,
+        [_claim("cand-ada.identity.001", "identity", "An election blog lists Ada Hale as Republican.", sources=[blog])],
+        _party_profile(display="Nonpartisan race[^1]"),
+    )
+    errors = party_record_errors(root)
+    assert any("official T1 citation" in error for error in errors), errors
+
+    filing = _source(title="Election blog reprint", doc_type="Filing", tier="T1")
+    _item(
+        root,
+        "cand-ada",
+        "candidate",
+        draft,
+        [_claim("cand-ada.identity.001", "identity", "An election blog lists Ada Hale as Republican.", sources=[filing])],
+        _party_profile(display="Nonpartisan race[^1]"),
+    )
+    assert party_record_errors(root) == []
+
+
+def test_finance_value_rejects_a_digit_inside_filler(tmp_path: Path):
+    root = _workspace(tmp_path)
+    funding = (
+        "Small donors gave 10 dollars[^1]. Large donors gave 20 dollars[^1]. "
+        "The in-district share was 5 dollars[^1]. Loans were 0 dollars[^1]. "
+        "Party committee money was 0 dollars[^1]. PAC committees gave 8 dollars[^1]."
+    )
+    _item(
+        root,
+        "cand-ada",
+        "candidate",
+        _candidate_draft(funding),
+        [],
+        {"item_id": "cand-ada", "money": _money(pac_money="see the 1 filing[^1]")},
+        status="signed-off",
+    )
+    errors = depth_record_errors(root)
+    assert any("money.pac_money must be a number" in error for error in errors), errors
+    assert _money_value_ok("see the 1 filing[^1]") is False
+    assert _money_value_ok("8 dollars[^1]") is True
+    assert _money_value_ok("2026-09-30[^1]") is True
+
+
+def test_florida_import_rejects_a_different_bill_number():
+    assert title_matches_bill("HB 18: House parks reporting bill.", "HB 18")
+    assert title_matches_bill("HB 180: A different parks bill.", "HB 18") is False
+    assert title_matches_bill("HB 018: House parks reporting bill.", "HB 18")
+
+    senate_page = "<html><body><p>SB 18: Senate parks reporting bill.</p><p>Senator Ada Hale (D-4)</p></body></html>"
+    house_page = "<html><body><p>HB 180: A different parks bill.</p><p>Representative Cam Diaz (R-2)</p></body></html>"
+    bases = {
+        "senate": "https://senate.test",
+        "house": "https://house.test",
+        "lobbyists": "https://senate.test",
+        "finance": "https://finance.test",
+    }
+
+    class Router:
+        def fetch_html(self, url, **kwargs):
+            if "Lobbyist" in url or "contributions" in url:
+                return url, "<html><body><p>Search</p></body></html>"
+            if "billsdetail" in url:
+                return url, house_page
+            return url, senate_page
+
+    record = collect_legislation("FL", "HB 18", "2026", Router(), base_urls=bases)
+    assert record["title"] == ""
+    assert record["sponsors"] == []
+    assert "Cam Diaz" not in json.dumps(record)
+    assert "Ada Hale" not in json.dumps(record["sponsors"])
+    assert any("different bill" in note for note in record["notes"])
+
+
+def test_address_scrub_covers_spelled_numbers_boxes_and_candidate_cells():
+    page = """
+    <table>
+      <tr><th>Date</th><th>Candidate</th><th>Contributor</th><th>Amount</th></tr>
+      <tr><td>2026-03-01</td><td>Bo Chen</td><td>Twelve Oak Street</td><td>25</td></tr>
+      <tr><td>2026-03-02</td><td>1 Pine Road committee</td><td>Ada Post Office Box 12</td><td>40</td></tr>
+      <tr><td>2026-03-03</td><td>Bo Chen</td><td>Ada 12 Oak Street</td><td>500</td></tr>
+    </table>
+    """
+    rows = parse_contributions(page)["contributions"]
+    assert rows[0]["contributor"] == ""
+    assert looks_like_street_address(rows[0]["contributor"]) is False
+    assert rows[1]["contributor"] == "Ada"
+    assert rows[1]["candidate"] == "committee"
+    assert looks_like_street_address(rows[1]["contributor"]) is False
+    assert looks_like_street_address(rows[1]["candidate"]) is False
+    assert rows[2]["contributor"] == "Ada"
+    assert "Oak" not in rows[2]["contributor"]
+    assert rows[0]["amount"] == "25"
+    assert rows[1]["date"] == "2026-03-02"
+
+
+def test_endorsement_date_must_be_in_that_endorsement_entry(tmp_path: Path):
+    root = _workspace(tmp_path)
+    claim = _claim(
+        "cand-ada.endorsements.001",
+        "endorsements",
+        "River Fund endorsed Ada Hale.",
+        endorsement={
+            "endorser": "River Fund",
+            "endorser_type": "advocacy",
+            "date": "2026-09-02",
+            "source_role": "endorser_statement",
+        },
+    )
+    borrowed = """# Ada Hale
+
+## Identity
+
+The form is dated September 2, 2026[^2].
+
+## Endorsements
+
+River Fund endorsed Ada Hale recently[^1]. Friends of the Path announced on September 2, 2026[^2].
+"""
+    _item(root, "cand-ada", "candidate", borrowed, [claim])
+    errors = endorsement_record_errors(root)
+    assert any("2026-09-02" in error for error in errors), errors
+
+    own_entry = """# Ada Hale
+
+## Endorsements
+
+On September 2, 2026 River Fund endorsed Ada Hale[^1]. Friends of the Path announced later[^2].
+"""
+    _item(root, "cand-ada", "candidate", own_entry, [claim])
+    assert endorsement_record_errors(root) == []
+
+
+def test_party_change_row_ignores_a_place_name():
+    assert _PARTY_CHANGE_RE.search("She moved from Cedar Hollow in 2019") is None
+    assert _PARTY_CHANGE_RE.search("The label comes from Cedar") is None
+    rows = [row for _heading, group in _COMPARISON_GROUPS for row in group]
+    assigned = _assign_cells(
+        {"party": ("Party", "She moved from Cedar Hollow in 2019[^1].")},
+        {},
+        rows,
+    )
+    assert assigned["Party changes"] == NOT_FOUND_CELL
+    kept = _assign_cells(
+        {"party": ("Party", "The filing records a change from Green on 2015-01-01[^1].")},
+        {},
+        rows,
+    )
+    assert "Green" in kept["Party changes"]
+
+
+def test_attendance_cell_joins_a_split_count_and_median():
+    body = "Ada Hale attended 11 of 12 council meetings[^1]. The chamber median was 10 of 12[^2]."
+    rows = [row for _heading, group in _COMPARISON_GROUPS for row in group]
+    assigned = _assign_cells({"attendance": ("Attendance", body)}, {}, rows)
+    cell = assigned["Attendance"]
+    assert "11 of 12" in cell
+    assert "10 of 12" in cell
+    assert "median" in cell.lower()
+    short = _short_fact(cell, "Attendance")
+    assert "11 of 12" in short and "10 of 12" in short and "median" in short.lower()
+
+
+def test_similar_laws_need_distinct_source_urls(tmp_path: Path):
+    root = _workspace(tmp_path)
+    distinct_markers = "NCSL lists the posting law[^1]. OPPAGA reported the same outcome[^2]."
+    shared = "https://fictional.example/same"
+    _item(
+        root,
+        "bill-hb18",
+        "legislation",
+        _bill_draft(GAP, similar=distinct_markers),
+        [
+            _claim(
+                "bill-hb18.similar.001",
+                "similar",
+                "NCSL lists the posting law.",
+                sources=[_source(marker=1, url=shared)],
+            ),
+            _claim(
+                "bill-hb18.similar.002",
+                "similar",
+                "OPPAGA reported the same outcome.",
+                marker=2,
+                sources=[_source(marker=2, url=shared)],
+            ),
+        ],
+        status="signed-off",
+    )
+    errors = depth_record_errors(root)
+    assert any("two independent sources" in error for error in errors), errors
+
+    _item(
+        root,
+        "bill-hb18",
+        "legislation",
+        _bill_draft(GAP, similar=distinct_markers),
+        [
+            _claim(
+                "bill-hb18.similar.001",
+                "similar",
+                "NCSL lists the posting law.",
+                sources=[_source(marker=1, url="https://fictional.example/ncsl/posting")],
+            ),
+            _claim(
+                "bill-hb18.similar.002",
+                "similar",
+                "OPPAGA reported the same outcome.",
+                marker=2,
+                sources=[_source(marker=2, url="https://fictional.example/oppaga/posting")],
+            ),
+        ],
+        status="signed-off",
+    )
+    assert not any("two independent sources" in error for error in depth_record_errors(root))
+
+
+def test_color_check_uses_hue_for_red_and_blue_shades(tmp_path: Path):
+    assert _party_color_coded("The row uses #1d4ed8.")
+    assert _party_color_coded("The row uses #0033cc.")
+    assert _party_color_coded("The row uses #b91c1c.")
+    assert _party_color_coded("The chart uses #22c55e and #888888.") is False
+    root = _workspace(tmp_path)
+    final = root / "final"
+    final.mkdir()
+    (final / "guide.md").write_text("A class color: #1d4ed8 sits on the name.\n", encoding="utf-8")
+    assert any("colored" in error for error in rendered_party_errors(root))
 
 
 def test_sample_election_passes_the_record_gates():

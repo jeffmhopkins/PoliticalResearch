@@ -6,7 +6,7 @@ Open States and Congress.gov stay in their own scripts and run only with a key.
 
 from __future__ import annotations
 
-from portals.bill_parse import bill_chamber, title_chamber
+from portals.bill_parse import bill_chamber, title_matches_bill
 from portals.fl_campaign_finance import FloridaCampaignFinance
 from portals.fl_house import FloridaHouseBills
 from portals.fl_lobbyists import FloridaLobbyistRegistration, lobbyists_for_bill
@@ -74,11 +74,10 @@ def collect_legislation(state: str, bill: str, session: str, fetcher, *, base_ur
         record["notes"].append(
             "The bill id needs an HB or SB prefix. Neither chamber's bill was stored."
         )
-    found = title_chamber(str(chosen.get("title") or ""))
-    if kind and found != kind:
+    if kind and not title_matches_bill(str(chosen.get("title") or ""), bill):
         if chosen.get("title") or chosen.get("sponsors"):
             record["notes"].append(
-                "The fetched page was the other chamber's bill and was not stored."
+                "The fetched page was a different bill and was not stored."
             )
         chosen = {}
     record["title"] = chosen.get("title") or ""

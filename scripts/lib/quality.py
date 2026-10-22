@@ -1384,29 +1384,73 @@ def _is_newspaper_source(source: dict) -> bool:
     return re.search(r"\b(?:newspaper|news article)\b", _source_blob(source)) is not None
 
 
+# The whole document type, not a word inside a title. "Election blog" is none of these.
+_OFFICIAL_PARTY_DOC_TYPES = {
+    "ballot": "ballot",
+    "official ballot": "ballot",
+    "sample ballot": "ballot",
+    "official sample ballot": "ballot",
+    "official ballot label": "ballot",
+    "elections office": "elections_office",
+    "election office": "elections_office",
+    "elections office record": "elections_office",
+    "filing": "filing",
+    "candidate filing": "filing",
+    "ballot filing": "filing",
+    "registration": "voter_registration",
+    "voter registration": "voter_registration",
+    "voter registration extract": "voter_registration",
+}
+# "This is not a staff analysis" is a sentence, not this document type.
+_STAFF_ANALYSIS_DOC_TYPES = {
+    "staff analysis",
+    "house staff analysis",
+    "senate staff analysis",
+    "fiscal staff analysis",
+    "committee staff analysis",
+}
+_MONEY_AMOUNT_RE = re.compile(
+    r"(?:\$\s*)?\d[\d,]*(?:\.\d+)?(?:\s+dollars?|\s*%)\b",
+    re.IGNORECASE,
+)
+
+
+def _doc_type(source: dict) -> str:
+    return re.sub(r"\s+", " ", str(source.get("doc_type") or "")).strip().lower()
+
+
 def _is_official_party_source(source: dict) -> bool:
-    """A T1 ballot, elections office, filing, or voter-registration record. Not a news source."""
+    """A T1 source whose document type is a ballot, elections office, filing, or registration."""
     if str(source.get("tier") or "") != "T1":
         return False
     if _is_newspaper_source(source):
         return False
-    return re.search(r"\b(?:ballot|elections?|filing|registration|voter)\b", _source_blob(source)) is not None
+    return _OFFICIAL_PARTY_DOC_TYPES.get(_doc_type(source), "") != ""
 
 
 def _is_staff_analysis_source(source: dict) -> bool:
-    blob = f"{source.get('doc_type') or ''} {source.get('title') or ''}".lower()
-    return "staff analysis" in blob
+    """The document type is a staff analysis. A title that mentions those words is not."""
+    return _doc_type(source) in _STAFF_ANALYSIS_DOC_TYPES
 
 
 def _money_value_ok(value: str) -> bool:
-    """A finance bucket is a number with a citation, or a structured gap. Filler is neither."""
+    """A finance bucket is an amount or a date with a citation, or a structured gap.
+
+    A digit buried in a sentence, such as "see the 1 filing", is not an amount.
+    """
     text = str(value or "").strip()
     if not text:
         return False
-    if _has_gap_line(text) or _is_gap_text(text):
+    if _has_gap_line(text):
         return True
-    plain = MARKER_RE.sub("", text)
-    return "[^" in text and re.search(r"\d", plain) is not None
+    if "[^" not in text:
+        return False
+    plain = re.sub(r"\s+", " ", MARKER_RE.sub("", text)).strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", plain):
+        return True
+    if re.fullmatch(r"\$?\d[\d,]*(?:\.\d+)?", plain):
+        return True
+    return _MONEY_AMOUNT_RE.search(plain) is not None
 
 
 def _banner_key(sentence: str) -> str:
@@ -2877,7 +2921,8 @@ def endorsement_record_errors(workspace) -> list[str]:
             if str(record.get("endorser") or "").strip() and str(record.get("endorser")) not in str(claim.get("text") or ""):
                 errors.append(f"{item.name}: {claim.get('id')} does not name the endorser in the claim text")
             when = str(record.get("date") or "")
-            if when and not iso_date_appears(when, draft):
+            endorser = str(record.get("endorser") or "")
+            if when and not _endorsement_entry_has_date(sections.get("endorsements", ""), endorser, when):
                 errors.append(f"{item.name}: {claim.get('id')} endorsement date {when} is not in the draft")
         endorsements_body = sections.get("endorsements", "")
         if endorsements_body and _is_gap_text(endorsements_body):
@@ -2889,6 +2934,18 @@ def endorsement_record_errors(workspace) -> list[str]:
             ):
                 errors.append(f"{item.name}: endorsements section has no structured endorsement record")
     return errors
+
+
+def _endorsement_entry_has_date(section: str, endorser: str, when: str) -> bool:
+    """The date has to sit in the sentence that names this endorser, not elsewhere in the draft."""
+    if not section or not endorser or not when:
+        return False
+    for sentence in split_sentences(_bind_trailing_markers(section.replace("\n", " "))):
+        if endorser not in sentence:
+            continue
+        if iso_date_appears(when, sentence):
+            return True
+    return False
 
 
 def measure_side_errors(workspace) -> list[str]:
@@ -2960,12 +3017,57 @@ def legislation_depth_errors(workspace) -> list[str]:
 _PARTY_COLOR_RE = re.compile(
     r"party[-_\s]?(?:democrat(?:ic)?|republican|dem|rep|blue|red|d|r)\b"
     r"|(?:democrat(?:ic)?|republican)[-_\s](?:red|blue)\b"
-    r"|color\s*:\s*(?:#(?:ff0000|0000ff|0000ee|f00|00f)\b|red\b|blue\b|darkred\b|darkblue\b|crimson\b|navy\b)"
-    r"|#(?:ff0000|0000ff|0000ee)\b"
+    r"|color\s*:\s*(?:red|blue|darkred|darkblue|crimson|navy)\b"
     r"|rgb\(\s*255\s*,\s*0\s*,\s*0\s*\)"
     r"|rgb\(\s*0\s*,\s*0\s*,\s*(?:238|255)\s*\)",
     re.IGNORECASE,
 )
+_HEX_COLOR_RE = re.compile(r"#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})(?![0-9a-fA-F])")
+
+
+def _hex_rgb(token: str) -> tuple[int, int, int] | None:
+    digits = token
+    if len(digits) == 3:
+        digits = "".join(char * 2 for char in digits)
+    elif len(digits) == 8:
+        digits = digits[:6]
+    if len(digits) != 6:
+        return None
+    try:
+        return int(digits[0:2], 16), int(digits[2:4], 16), int(digits[4:6], 16)
+    except ValueError:
+        return None
+
+
+def _is_red_or_blue(red: int, green: int, blue: int) -> bool:
+    """True when a color is a saturated red or blue, judged by hue."""
+    peak = max(red, green, blue)
+    floor = min(red, green, blue)
+    if peak < 50 or peak == floor:
+        return False
+    saturation = (peak - floor) / peak
+    if saturation < 0.4:
+        return False
+    span = peak - floor
+    if peak == red:
+        hue = (60 * ((green - blue) / span) + 360) % 360
+    elif peak == green:
+        hue = 60 * ((blue - red) / span) + 120
+    else:
+        hue = 60 * ((red - green) / span) + 240
+    if hue <= 15 or hue >= 345:
+        return True
+    return 205 <= hue <= 255
+
+
+def _party_color_coded(text: str) -> bool:
+    if _PARTY_COLOR_RE.search(text or ""):
+        return True
+    for match in _HEX_COLOR_RE.finditer(text or ""):
+        rgb = _hex_rgb(match.group(1))
+        if rgb and _is_red_or_blue(*rgb):
+            return True
+    return False
 
 
 def rendered_party_errors(workspace) -> list[str]:
@@ -2975,7 +3077,7 @@ def rendered_party_errors(workspace) -> list[str]:
         return []
     text = guide_path.read_text(encoding="utf-8")
     errors = []
-    if _PARTY_COLOR_RE.search(text):
+    if _party_color_coded(text):
         errors.append("final/guide.md: party is colored or classed by party")
     ballot = load_yaml(workspace / "ballot.yaml") or {}
     contests = [contest for contest in (ballot.get("contests") or []) if isinstance(contest, dict)] if isinstance(ballot, dict) else []
@@ -3198,7 +3300,13 @@ def _legislation_depth_fields(item_name: str, doc: dict, sections: dict, distric
         lowered = similar.lower()
         if "ncsl" not in lowered and "oppaga" not in lowered:
             errors.append(f"{item_name}: similar laws cite NCSL or OPPAGA, or a not-found line")
-        if len(set(re.findall(r"\[\^(\d+)\]", similar))) < 2:
+        markers = {int(number) for number in re.findall(r"\[\^(\d+)\]", similar)}
+        urls = {
+            str(source.get("url") or "").strip()
+            for source in _sources_for_markers(doc, markers)
+            if str(source.get("url") or "").strip()
+        }
+        if len(urls) < 2:
             errors.append(f"{item_name}: a similar-law outcome needs two independent sources")
     legal = sections.get("legal and constitutional challenges", "")
     if legal and not _is_gap_text(legal) and re.search(r"\b(?:likely|probably)\b", legal, re.IGNORECASE):

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 
+from lib.util import STREET_RE
 from portals.base import PortalResult, classify_search_page
 from portals.bill_parse import table_with_headers
 from portals.fetch import PortalFetchError
@@ -15,20 +16,15 @@ from portals.fetch import PortalFetchError
 DEFAULT_BASE = "https://dos.elections.myflorida.com"
 CONTRIBUTIONS_PATH = "/campaign-finance/contributions/"
 _MARKERS = ("contributor", "amount")
-# The whole street span, not the suffix word. "12 Oak Street" leaves the name.
-_STREET_ADDRESS = re.compile(
-    r",?\s*\b(?:\d+[A-Za-z]?)\s+(?:[A-Za-z0-9.'#-]+\s+){0,8}"
-    r"(?:street|st|avenue|ave|boulevard|blvd|road|rd|drive|dr|lane|ln|court|ct|"
-    r"circle|cir|place|pl|terrace|ter|parkway|pkwy|highway|hwy|way|trail|trl)\b\.?",
-    re.IGNORECASE,
-)
-_PO_BOX = re.compile(r",?\s*\bP\.?\s*O\.?\s*Box\s+\d+\b", re.IGNORECASE)
 
 
 def strip_street_address(value: str) -> str:
-    """Drop a street address from a contributor cell. The person's name stays."""
-    text = _STREET_ADDRESS.sub(" ", value or "")
-    text = _PO_BOX.sub(" ", text)
+    """Drop a street address. The person's name or committee word stays.
+
+    Covers a house number, a spelled-out number, and a post office box. The
+    same spans are what the guide treats as a street.
+    """
+    text = STREET_RE.sub(" ", value or "")
     text = re.sub(r"\s+,", ",", text)
     return re.sub(r"\s+", " ", text).strip(" ,")
 
@@ -44,7 +40,7 @@ def parse_contributions(page: str, url: str = "") -> dict:
         record["contributions"].append(
             {
                 "contributor": strip_street_address(row.get("contributor") or ""),
-                "candidate": row.get("candidate") or row.get("recipient") or "",
+                "candidate": strip_street_address(row.get("candidate") or row.get("recipient") or ""),
                 "date": row.get("date") or "",
                 "amount": row.get("amount") or "",
             }
