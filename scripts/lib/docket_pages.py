@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import html
 import re
+from pathlib import Path
 
 from lib.party import endorsement_cell, is_nonpartisan_contest
 from lib.reader_substance import (
     _NONE_LEGAL,
     background_lines,
+    ballot_box_problem,
     fact_sentence,
     legal_sentence,
     loan_sentence,
@@ -29,11 +31,18 @@ _RANGE_RE = re.compile(
 )
 _QUARTER_RE = re.compile(r"\bquarter\b", re.IGNORECASE)
 _AMOUNT = r"(?:\$\s*\d[\d,]*(?:\.\d+)?|\d[\d,]*(?:\.\d+)?\s+dollars)"
+_BARE_AMOUNT = r"\$?\s*[\d,]+(?:\.\d+)?"
 _SPENT_RES = (
     re.compile(rf"({_AMOUNT})\s+spent\b", re.IGNORECASE),
     re.compile(rf"\bspent\s+({_AMOUNT})", re.IGNORECASE),
     re.compile(rf"\b(?:total\s+)?disbursements\s+of\s+({_AMOUNT})", re.IGNORECASE),
     re.compile(rf"({_AMOUNT})\s+in disbursements\b", re.IGNORECASE),
+    re.compile(rf"\bexpenditures\s+of\s+({_BARE_AMOUNT})", re.IGNORECASE),
+)
+_RAISED_RES = (
+    re.compile(rf"\b(?:total\s+)?(?:monetary\s+)?contributions\s+of\s+({_BARE_AMOUNT})", re.IGNORECASE),
+    re.compile(rf"\breceipts\s+of\s+({_BARE_AMOUNT})", re.IGNORECASE),
+    re.compile(rf"\braised\s+({_BARE_AMOUNT})", re.IGNORECASE),
 )
 _VOTE_RE = re.compile(
     r"\bthe (House|Senate) passed\b[^.]*?\b(\d+)\s+yeas?\s+and\s+(\d+)\s+nays?\b",
@@ -166,15 +175,24 @@ def coverage_months(text: str) -> str | None:
     return None
 
 
-def _spent_amount(text: str) -> str | None:
+def _labeled_amount(text: str, patterns: tuple) -> tuple[str, str] | None:
+    """A DOE-style amount, with the marker on the sentence that states it."""
     from lib.guide_layout import _format_dollars
 
-    plain = text or ""
-    for pattern in _SPENT_RES:
-        match = pattern.search(plain)
-        if match:
-            return _format_dollars(match.group(1))
+    for sentence in split_sentences(text or ""):
+        for pattern in patterns:
+            match = pattern.search(sentence)
+            if not match:
+                continue
+            amount = _format_dollars(match.group(1))
+            if amount:
+                return amount, _markers(sentence)
     return None
+
+
+def _spent_amount(text: str) -> str | None:
+    found = _labeled_amount(text, _SPENT_RES)
+    return found[0] if found else None
 
 
 def _numeric_cell(shown: str) -> bool:
@@ -412,8 +430,6 @@ def _office_lines(model, contest: dict, draft: str, sections: dict) -> list[str]
             _omit(model, sentence)
     lines.append(" ".join(kept) if kept else _gap_line("what this office does"))
     lines.append("")
-    if not re.search(r"\bpay\b|\bsalary\b", " ".join(kept) + (draft or ""), re.IGNORECASE):
-        lines.extend(["Pay was not in the sources checked.", ""])
     return lines
 
 
@@ -534,6 +550,19 @@ def _money_table(model, contest: dict, people: list[dict]) -> list[str]:
         for cells, (candidate, _sections, _profile) in zip(assigned, bundles):
             name = str(candidate.get("name") or "")
             shown.append(model._show_cell(cells.get(label if label != "Raised" else "Receipts", ""), "x", name, hint))
+        if label == "Raised":
+            filled = []
+            for cell, (_candidate, sections, _profile) in zip(shown, bundles):
+                if _numeric_cell(cell):
+                    filled.append(cell)
+                    continue
+                found = _labeled_amount(_raw_section(sections, "campaign funding"), _RAISED_RES)
+                if found:
+                    amount, mark = found
+                    filled.append(f'<span class="num">{amount}{mark}</span>')
+                else:
+                    filled.append(cell)
+            shown = filled
         if any(_numeric_cell(cell) for cell in shown):
             rows.append((label, [cell if _numeric_cell(cell) else NOT_FOUND_CELL for cell in shown]))
     spent_cells = []
@@ -594,7 +623,7 @@ def _money_table(model, contest: dict, people: list[dict]) -> list[str]:
             continue
         period = period_sentence(str(candidate.get("name") or ""), _raw_section(sections, "campaign funding"))
         if period:
-            lines.extend([period, ""])
+            lines.extend(["::: {.money-period}", "", period, "", ":::", ""])
     if not outside_numeric:
         lines.extend(
             [
@@ -842,16 +871,32 @@ def _positions(model, contest: dict, people: list[dict]) -> list[str]:
             else:
                 shown = f"No public statement found on {topic}."
             shown_rows.append(shown)
-            blocks.append([f"### {name}", "", shown, ""])
+            blocks.append([f"#### {name}", "", shown, ""])
         if all(row.lower().startswith("no public ") for row in shown_rows):
             lines.extend([f"No public statement found on {topic}.", ""])
             continue
+        stated = [
+            (candidate, shown)
+            for candidate, shown in zip(people, shown_rows)
+            if not shown.lower().startswith("no public ")
+        ]
+        if len(stated) < len(people):
+            blocks = [[f"#### {candidate.get('name') or ''}", "", shown, ""] for candidate, shown in stated]
+            if label == "positions":
+                lines.extend(["#### What has each candidate said?", ""])
+            elif label in {"own_words", "own words"}:
+                lines.extend(["#### In their own words", ""])
+            else:
+                lines.extend([f"#### What has each candidate said about {topic}?", ""])
+            lines.extend(_pair(blocks, len(stated), flow=True))
+            lines.extend(["No public statement found for the other candidates.", ""])
+            continue
         if label == "positions":
-            lines.extend(["### What has each candidate said?", ""])
+            lines.extend(["#### What has each candidate said?", ""])
         elif label in {"own_words", "own words"}:
-            lines.extend(["### In their own words", ""])
+            lines.extend(["#### In their own words", ""])
         else:
-            lines.extend([f"### What has each candidate said about {topic}?", ""])
+            lines.extend([f"#### What has each candidate said about {topic}?", ""])
         lines.extend(_pair(blocks, len(people), flow=True))
     return lines
 
@@ -883,14 +928,20 @@ _NOT_CAPTURED = "The full ballot wording was not captured."
 
 
 def _quote_is_complete(quote: str) -> bool:
-    """A stored ballot quote is the full wording only when it is one finished sentence."""
+    """A stored ballot quote is the full official question, not a clipped line.
+
+    The opener check lives in ballot_box_problem, so a real summary that starts
+    with "This amendment" or "To restore" counts, and a clipped "Muñiz of" does not.
+    """
     text = re.sub(r"\s+", " ", quote or "").strip()
     if len(text) < 40 or text[-1] not in ".!?":
         return False
-    words = re.findall(r"[A-Za-z']+", text)
-    if not words or words[-1].lower() in _DANGLING_QUOTE_END:
+    # A year or dollar amount is a real ending. Letter-only matching made "in 2027."
+    # look unfinished because the last word was the preposition.
+    tokens = re.findall(r"[A-Za-z']+|\d[\d,]*", text)
+    if not tokens or tokens[-1].lower() in _DANGLING_QUOTE_END:
         return False
-    return True
+    return not ballot_box_problem(text)
 
 
 def _single_ballot_quote(model, item_id: str) -> tuple[str, int] | None:
@@ -919,9 +970,11 @@ def _has_real_ballot_wording(text: str) -> bool:
     for part in split_sentences(text or ""):
         plain = re.sub(r"\s+", " ", MARKER_RE.sub("", part)).strip()
         lowered = plain.lower()
-        if "asks whether" in lowered or "official label is" in lowered:
+        if re.match(r"(?i)^the official label is\b", plain) and "asks whether" in lowered:
             return True
-        if re.match(r"(?i)(?:shall|proposing an amendment)\b", plain) and plain[-1:] in ".!?" and len(plain) >= 40:
+        if re.match(r"(?i)^shall\b", plain) and plain[-1:] == "?" and len(plain) >= 40:
+            return True
+        if re.match(r"(?i)^proposing an amendment\b", plain) and plain[-1:] in ".!?" and len(plain) >= 40:
             return True
     return False
 
@@ -938,14 +991,80 @@ def _first_title_sentence(text: str) -> str:
     return ""
 
 
+def _wording_rows(model, item_id: str) -> list[tuple[int, str, dict]]:
+    rows = []
+    for marker, found in (getattr(model, "index", None) or {}).items():
+        item, _claim, source = found
+        if item != item_id or not isinstance(source, dict):
+            continue
+        locator = str(source.get("locator") or "")
+        if not _WORDING_LOCATOR_RE.search(locator):
+            continue
+        quote = re.sub(r"\s+", " ", str(source.get("quote") or "")).strip()
+        if quote:
+            rows.append((int(marker), quote, source))
+    return rows
+
+
+def _cite_each_sentence(text: str, marker: int) -> str:
+    """One official question can be several sentences. Each one carries the marker."""
+    cited = []
+    for part in split_sentences(text or ""):
+        piece = part.strip()
+        if not piece:
+            continue
+        if piece[-1] in ".!?":
+            cited.append(f"{piece[:-1]}[^{marker}]{piece[-1]}")
+        else:
+            cited.append(f"{piece}[^{marker}].")
+    return " ".join(cited)
+
+
+def _recovered_ballot_words(model, contest: dict, item_id: str) -> str:
+    """The full English question from the sample-ballot PDF, when a quote is only a fragment."""
+    from lib.ballot_text import extract_ballot_text, official_english_question
+
+    rows = _wording_rows(model, item_id)
+    if not rows:
+        return ""
+    workspace = getattr(model, "workspace", None)
+    if workspace is None:
+        return ""
+    pdfs: list[Path] = []
+    for _marker, _quote, source in rows:
+        local = str(source.get("local_copy") or "").strip()
+        if not local.lower().endswith(".pdf"):
+            continue
+        path = Path(local)
+        if not path.is_absolute():
+            path = Path(workspace) / local
+        if path.is_file() and path not in pdfs:
+            pdfs.append(path)
+    if not pdfs:
+        return ""
+    fragments = [quote for _marker, quote, _source in rows]
+    title = str(contest.get("title") or "")
+    question = ""
+    try:
+        raw = "\n".join(extract_ballot_text(path) for path in pdfs)
+    except (OSError, RuntimeError):
+        return ""
+    question = official_english_question(raw, fragments, title)
+    if not question or ballot_box_problem(question, title):
+        return ""
+    marker = min(number for number, quote, _source in rows if quote and quote in question)
+    return _cite_each_sentence(question, marker)
+
+
 def _ballot_exact_words(model, contest: dict, item_id: str, sections: dict, section_name: str) -> str:
     """The official ballot summary, or the title plus a line that the wording was not captured."""
+    recovered = _recovered_ballot_words(model, contest, item_id)
+    if recovered:
+        return recovered
     found = _single_ballot_quote(model, item_id)
     if found:
         quote, marker = found
-        if quote[-1] in ".!?":
-            return f"{quote[:-1]}[^{marker}]{quote[-1]}"
-        return f"{quote}[^{marker}]."
+        return _cite_each_sentence(quote, marker)
     body = _section_text(model, sections, section_name)
     if body and _has_real_ballot_wording(body):
         return body
@@ -953,6 +1072,44 @@ def _ballot_exact_words(model, contest: dict, item_id: str, sections: dict, sect
     if label:
         return f"{label}\n\n{_NOT_CAPTURED}"
     return _NOT_CAPTURED
+
+
+_OPPONENT_SPEAKER_RE = re.compile(
+    r"\b(?:The\s+)?[A-Z][\w.'-]+(?:\s+(?:of|the|and|for)\s+[A-Z][\w.'-]+|\s+[A-Z][\w.'-]+){0,6}\s+"
+    r"(?:says|said|opposes|opposed|urged|wrote|told|criticized|signed)\b"
+    r"|(?i:\b(?:association|coalition|union|party|league|bureau|committee|foundation|grocer)s?\b"
+    r"[^.]{0,80}\bsigned\b)"
+)
+
+
+def _as_opposition(model, text: str) -> str:
+    """Keep a sentence only when it names someone who is arguing against the measure."""
+    kept = []
+    for sentence in split_sentences(text or ""):
+        cleaned = fact_sentence(sentence, "oppose")
+        if not cleaned:
+            _omit(model, sentence)
+            continue
+        cleaned = re.sub(r"\s*\(self-reported\)", "", cleaned, flags=re.IGNORECASE).strip()
+        plain = plain_of(cleaned)
+        named = _OPPONENT_SPEAKER_RE.search(plain) or re.search(r"(?i)\b[\w.'-]+\s+opposes\b", plain)
+        if not named:
+            _omit(model, sentence)
+            continue
+        if plain[-1:] not in ".!?":
+            cleaned = cleaned.rstrip(".") + "."
+        kept.append(cleaned)
+        if len(kept) == 2:
+            break
+    return " ".join(kept)
+
+
+def _opposition_text(sections: dict) -> str:
+    for name in ("organizations opposing", "arguments against"):
+        raw = _raw_section(sections, name)
+        if raw and "not found (searched" not in raw.lower() and "[^" in raw:
+            return raw
+    return ""
 
 
 def _summary_box(model, contest, group, item_id, about, yes, no, support, oppose, cost, exact, marker: str) -> list[str]:
@@ -966,8 +1123,8 @@ def _summary_box(model, contest, group, item_id, about, yes, no, support, oppose
     lines.extend(_vote_pair("YES", yes_body, "NO", no_body))
     lines.extend(["### Who supports it, and who opposes it?", ""])
     support_body = support if support and "[^" in support else "No public record found."
-    oppose_body = oppose if oppose and "[^" in oppose else "No public record found."
-    if support_body == oppose_body == "No public record found.":
+    oppose_body = oppose if oppose and "[^" in oppose else "No public record found for an opponent."
+    if "[^" not in support_body and "[^" not in oppose_body:
         lines.extend(["No public record found for supporters or opponents.", ""])
     else:
         lines.extend(
@@ -1011,11 +1168,7 @@ def _measure(model, contest: dict, group: str) -> list[str]:
         or _section_text(model, sections, "arguments for"),
         2,
     )
-    oppose = _lead(
-        _section_text(model, sections, "organizations opposing")
-        or _section_text(model, sections, "arguments against"),
-        2,
-    )
+    oppose = _as_opposition(model, _opposition_text(sections))
     cost = _lead(_section_text(model, sections, "fiscal impact"), 1)
     exact = _ballot_exact_words(model, contest, item_id, sections, "official title")
     lines = _sheet(
@@ -1114,7 +1267,7 @@ def _bill(model, contest: dict, group: str) -> list[str]:
     yes = _vote_sentence(draft, "yes") or _lead(_section_text(model, sections, "arguments for"), 2) or about
     no = _vote_sentence(draft, "no") or _lead(_section_text(model, sections, "arguments against"), 2)
     support = _lead(_section_text(model, sections, "arguments for"), 2)
-    oppose = _lead(_section_text(model, sections, "arguments against"), 2)
+    oppose = _as_opposition(model, _opposition_text(sections))
     cost = _lead(_section_text(model, sections, "fiscal note"), 1)
     exact = _section_text(model, sections, "bill identity")
     lines = _sheet(
@@ -1183,10 +1336,15 @@ def _retention(model, contest: dict, group: str) -> list[str]:
     lines.extend([f"## {name} {{#profile-{item_id} .profile-title}}", ""])
     bench = _kept_sentences(_raw_section(sections, "court and term"), "general")
     bench = [sentence for sentence in bench if not re.search(r"qualified|filed", plain_of(sentence), re.IGNORECASE)]
+    pay = [sentence for sentence in bench if re.search(r"\b(?:pay|salary)\b", plain_of(sentence), re.IGNORECASE)]
+    bench = bench[:3]
+    for sentence in pay:
+        if sentence not in bench:
+            bench.append(sentence)
     appointed = _kept_sentences(_raw_section(sections, "appointing authority"), "general")
     education = _kept_sentences(_raw_section(sections, "education"), "general")
     if bench:
-        lines.extend(["### On the bench", "", " ".join(bench[:3]), ""])
+        lines.extend(["### On the bench", "", " ".join(bench), ""])
     if appointed:
         lines.extend(["### Appointed", "", " ".join(appointed[:2]), ""])
     else:

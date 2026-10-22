@@ -59,7 +59,10 @@ _YEARS_IN_OFFICE_RE = re.compile(
     r"(?<![\w-])(?:\d+\s+years?\b(?!\s+term)|years?\s+in\s+(?:elected\s+)?office)\b",
     re.IGNORECASE,
 )
-_RECEIPTS_RE = re.compile(r"\breceipts\b", re.IGNORECASE)
+_RECEIPTS_RE = re.compile(
+    r"\breceipts\b|\bmonetary contributions\b|\bcontributions of\b",
+    re.IGNORECASE,
+)
 _CASH_RE = re.compile(r"cash on hand", re.IGNORECASE)
 _SELF_FUND_RE = re.compile(r"self-fund|self fund|loan", re.IGNORECASE)
 _SMALL_DONOR_RE = re.compile(r"small donor|under \$200|\$200|\b200 dollars\b", re.IGNORECASE)
@@ -1651,47 +1654,21 @@ class _GuideModel:
         return lines
 
     def _methodology(self, edition: str) -> list[str]:
+        """Plain words only. Review logs stay in the workspace, not in the guide."""
         if edition == "reader":
             return []
-        ballot = self.ballot if isinstance(self.ballot, dict) else {}
-        intake = self.intake if isinstance(self.intake, dict) else {}
-        counts = _finding_counts(self.workspace)
-        env_line = environment_rating_sentence(self.workspace)
-        flagged = 0
-        for _item, claim, source in self.index.values():
-            if source.get("suspected_injection") is True and not claim.get("removed"):
-                flagged += 1
-        subagents = "available" if intake.get("parallel_subagents") else "not used; roles run one at a time in fresh contexts"
-        lines = [
+        when = self.today
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", when or ""):
+            when = _display_date(when)
+        return [
             "# How we researched {#methodology .back-matter}",
             "",
-            f"Version {ballot.get('report_version') or 'v1.0'} assembled on {self.today}. {env_line}",
-            f"Sources flagged suspected_injection: {flagged}.",
-            f"Parallel subagents: {subagents}.",
-            f"Findings recorded: {counts['total']}. Accepted: {counts['accepted']}. Disputed: {counts['disputed']}.",
-            "Disputed and unconfirmed claims are not used in summaries. Blockers are removed rather than left disputed.",
-            "The reader edition and the full edition use the same contest pages. "
-            "Works cited, quotes, and the search log are in the sources addendum. "
-            "The full edition adds the marker index and the changelog.",
+            f"This guide was assembled on {when}.",
+            "The facts come from official records, candidate filings, and named news reports.",
+            "Where this guide did not find a public record, the page says so.",
+            "The sources edition lists the citation for each fact.",
             "",
         ]
-        lines.extend(["## Review state", ""])
-        for item in iter_items(self.workspace):
-            state = load_json(item / "loop-state.json") or {}
-            # Status is the prefix so a contest title may contain a colon.
-            lines.append(
-                f"- status {state.get('status')}, round {state.get('round')}, mode {state.get('mode')} — {item.name}"
-            )
-        lines.extend(["", "## Effort", ""])
-        lines.append("| Item | Searches | Fetches | Minutes |")
-        lines.append("| --- | --- | --- | --- |")
-        for item in iter_items(self.workspace):
-            effort = load_json(item / "effort.json") or {}
-            lines.append(
-                f"| {item.name} | {effort.get('searches', '')} | {effort.get('fetches', '')} | {effort.get('minutes', '')} |"
-            )
-        lines.extend(self._grouped_known_gaps())
-        return lines
 
     def _candidate_item_ids(self) -> list[str]:
         seen: list[str] = []
@@ -2432,10 +2409,15 @@ _DOLLAR_RE = re.compile(
 
 def _format_dollars(plain: str) -> str | None:
     """The amount only. Cents drop once the sum reaches 100. Missing amounts stay missing."""
-    match = _DOLLAR_RE.search(plain or "")
-    if not match:
+    text = (plain or "").strip()
+    bare = re.fullmatch(r"\$?\s*([\d,]+(?:\.\d+)?)", text)
+    match = None if bare else _DOLLAR_RE.search(text)
+    if bare:
+        raw = bare.group(1).replace(",", "")
+    elif match:
+        raw = (match.group(1) or match.group(2)).replace(",", "")
+    else:
         return None
-    raw = (match.group(1) or match.group(2)).replace(",", "")
     try:
         value = float(raw)
     except ValueError:

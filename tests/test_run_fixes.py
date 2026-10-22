@@ -35,6 +35,12 @@ def test_sentence_splitter_keeps_initials_degrees_and_hostnames():
     assert split_sentences("She holds a J.D. degree.") == ["She holds a J.D. degree."]
     assert split_sentences("See congress.gov today.") == ["See congress.gov today."]
     assert split_sentences("Hollow.John filed.") == ["Hollow.", "John filed."]
+    bill = split_sentences(
+        "Measure Number: H.R. 7147 (A bill making further consolidated appropriations "
+        "for the fiscal year ending September 30, 2026, and for other purposes. )"
+    )
+    assert len(bill) == 2
+    assert split_sentences("H.R. 1 passed. S. 2 failed.") == ["H.R. 1 passed.", "S. 2 failed."]
 
 
 def test_gap_notes_cannot_smuggle_a_second_clause():
@@ -418,7 +424,10 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "Tier T1" not in guide
     assert "fresh-context" not in guide
     assert "process gap" not in guide.lower()
-    assert "status signed-off, round 1, mode initial — cand-quinn" in full
+    assert "status signed-off, round 1, mode initial — cand-quinn" not in full
+    assert "This guide was assembled on October 20, 2026." in full
+    assert "Parallel subagents" not in full
+    assert "suspected_injection" not in full
     assert "Mayor of Cedar Hollow: status" not in guide
     assert "{#profile-cand-quinn" in guide
     assert "{#profile-cand-quinn" in full

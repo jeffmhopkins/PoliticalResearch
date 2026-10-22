@@ -133,7 +133,8 @@ def test_reader_pages_cover_a_race_a_measure_and_a_bill(tmp_path: Path):
     assert "::: pair count-many" not in body
     assert "::: {.pair}" in body
     assert 'class="contents"' in body
-    assert "No public statement found on positions." in body
+    assert "No public statement found for the other candidates." in body
+    assert "housing costs" in body
     assert "Months in this report" in body
     assert "21" in body and "15" in body
     assert "What is this about?" in body
@@ -163,6 +164,73 @@ def test_contents_page_column_blurbs_and_local_footnotes(tmp_path: Path):
     )
     assert not _quote_is_complete("Proposing an amendment to the State Constitution to")
     assert not _quote_is_complete("This amendment takes effect")
+    assert not _quote_is_complete("Muñiz of the Supreme Court be retained in office?")
+    assert not _quote_is_complete("Of the Fifth District Court of Appeal be retained in office?")
+    assert _quote_is_complete(
+        "Shall Justice Carlos G. Muñiz of the Supreme Court be retained in office?"
+    )
+    assert _quote_is_complete(
+        "This amendment increases the homestead exemption for non-school taxes to $150,000 in 2027."
+    )
+    assert _quote_is_complete(
+        "To restore the Indian River Lagoon, shall the county renew the half-cent sales tax for ten years?"
+    )
+    from lib.ballot_text import official_english_question
+
+    raw = """
+Justice of the Supreme Court
+Juez de la Corte Suprema
+Shall Justice Carlos G. Muñiz of the Supreme Court be retained in office?
+¿Deberá el juez seguir en su cargo?
+Yes / Sí
+No. 1 Constitutional Amendment
+Article III, Section 19
+Budget Stabilization Fund
+Proposing an amendment to the State Constitution to increase the reserve.
+Fondo de la Estabilización
+Yes / Sí
+No. 2 Constitutional Amendment
+Article VII, Section 3
+Exemption of Tangible Personal Property on Agricultural Land from Taxation
+Proposing an amendment to the State Constitution to exempt farm equipment from taxation.
+Exención Impositiva
+Yes / Sí
+Increased Homestead Exemption
+This amendment increases the homestead exemption to $150,000 in 2027. This amendment takes effect January 1, 2027.
+Mayor Exención
+Yes / Sí
+Renewal of the Save Our Indian River Lagoon Half-Cent Sales Tax
+To restore the Indian River Lagoon, shall the county renew the half-cent sales tax for ten years?
+Renovación del impuesto
+Yes / Sí
+"""
+    muniz = official_english_question(
+        raw,
+        ["Muñiz of the Supreme Court be retained in office?"],
+        "Justice of the Supreme Court: Shall Justice Carlos G. Muñiz of the Supreme Court be retained in office?",
+    )
+    assert muniz == "Shall Justice Carlos G. Muñiz of the Supreme Court be retained in office?"
+    farm = official_english_question(
+        raw,
+        ["Proposing an amendment to the State Constitution to"],
+        "No. 2 Constitutional Amendment: Exemption of Tangible Personal Property on Agricultural Land from Taxation",
+    )
+    assert farm.startswith("Proposing an amendment")
+    assert "farm equipment" in farm
+    assert "increase the reserve" not in farm
+    homestead = official_english_question(
+        raw,
+        ["This amendment takes effect"],
+        "Increased Homestead Exemption",
+    )
+    assert homestead.startswith("This amendment increases")
+    assert "takes effect January 1, 2027." in homestead
+    lagoon = official_english_question(
+        raw,
+        ["shall the county renew the half-cent sales tax"],
+        "Renewal of the Save Our Indian River Lagoon Half-Cent Sales Tax",
+    )
+    assert lagoon.startswith("To restore the Indian River Lagoon")
     dump_yaml(tmp_path / "ballot.yaml", {"fiction": True, "contests": []})
     dump_yaml(tmp_path / "intake.yaml", {})
     model = _GuideModel(tmp_path, "2026-10-22")

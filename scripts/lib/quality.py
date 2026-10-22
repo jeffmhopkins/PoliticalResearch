@@ -188,6 +188,24 @@ _GAP_BARE_YEAR_RE = re.compile(r"\b(\d{4})\b(?!-\d{2}-\d{2})")
 _GAP_WORD_RE = re.compile(r"[a-z]+(?:-[a-z]+)*", re.IGNORECASE)
 NEAR_COPY_RATIO = 0.85
 _FOREIGN_NAME_RE = re.compile(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b")
+# A two-word state is not a second person. One-word states never match the pattern above.
+_US_STATE_NAMES = frozenset(
+    {
+        "new hampshire",
+        "new jersey",
+        "new mexico",
+        "new york",
+        "north carolina",
+        "north dakota",
+        "rhode island",
+        "south carolina",
+        "south dakota",
+        "west virginia",
+        "united states",
+        "costa rica",
+        "puerto rico",
+    }
+)
 _FOREIGN_NAME_SKIP = {
     "a",
     "an",
@@ -224,6 +242,7 @@ _FOREIGN_NAME_ORG_WORDS = {
     "association",
     "authority",
     "bank",
+    "beach",
     "board",
     "bureau",
     "campaign",
@@ -240,11 +259,17 @@ _FOREIGN_NAME_ORG_WORDS = {
     "court",
     "department",
     "district",
+    "force",
+    "forces",
     "foundation",
     "fund",
     "group",
+    "guard",
     "guild",
+    "coast",
     "hall",
+    "high",
+    "hill",
     "hospital",
     "institute",
     "league",
@@ -258,8 +283,11 @@ _FOREIGN_NAME_ORG_WORDS = {
     "service",
     "services",
     "society",
+    "springs",
     "state",
+    "system",
     "temple",
+    "town",
     "union",
     "university",
     # Legal-entity words. A bare personal name has none of these.
@@ -345,6 +373,10 @@ _RUN_RECORD_SENTENCE_RE = re.compile(
     r"|The reader edition and the full edition use the same contest pages"
     r"|Works cited, quotes, and the search log are in the sources addendum"
     r"|The full edition adds the marker index and the changelog"
+    r"|This guide was assembled on (?:\d{4}-\d{2}-\d{2}|[A-Z][a-z]+ \d{1,2}, \d{4})"
+    r"|The facts come from official records, candidate filings, and named news reports"
+    r"|Where this guide did not find a public record, the page says so"
+    r"|The sources edition lists the citation for each fact"
     r"|Reviews: \d+ of \d+ candidate profiles were checked by a separate reviewer"
     r"(?:; (?:the rest|\d+) were checked in the same session, which is less independent)?"
     r"|The review column is fact-check, sourcing, neutrality, and privacy, in that order"
@@ -660,6 +692,23 @@ def reader_voice_errors(text: str) -> list[str]:
         elif _READER_VOICE_RE.search(stripped) and not stripped.startswith(":::"):
             errors.append(f"final/guide.md: reader process wording: {stripped[:160]}")
         if len(errors) >= 12:
+            break
+    return errors
+
+
+_PROCESS_LEAK_RE = re.compile(
+    r"suspected_?injection|parallel subagents|signed off in the same context|"
+    r"\bcloudflare\b|status signed-off, round \d+",
+    re.IGNORECASE,
+)
+
+
+def published_process_errors(text: str) -> list[str]:
+    """Review machinery stays out of both printed editions."""
+    errors = []
+    for match in _PROCESS_LEAK_RE.finditer(text or ""):
+        errors.append(f"final/guide.md: process note in the edition: {match.group(0)[:80]}")
+        if len(errors) >= 8:
             break
     return errors
 
@@ -1119,6 +1168,9 @@ def _foreign_name(sentence: str, record: dict) -> bool:
         # person-name span, including one stored as an organizations entry, is not.
         if phrase in _registered_organizations(record):
             continue
+        # Two-word state names, and a city built on one ("New York City"), are places.
+        if phrase in _US_STATE_NAMES or any(phrase.startswith(state + " ") for state in _US_STATE_NAMES):
+            continue
         # A month or an organization word is not itself a person. The words
         # beside it still are: "the John Smith Committee" names John Smith
         # unless that full organization is listed on this identity record.
@@ -1465,7 +1517,10 @@ _DOCKET_NOTES = {
     "no court cases, ethics findings, or campaign-finance penalties found in the records checked.",
     "no court cases, ethics findings, or campaign-finance penalties found for the other candidates in the records checked.",
 }
-_NO_STATEMENT_RE = re.compile(r"^no public statement found on [^.;:!]+$", re.IGNORECASE)
+_NO_STATEMENT_RE = re.compile(
+    r"^no public statement found (?:on [^.;:!]+|for the other candidates)$",
+    re.IGNORECASE,
+)
 _PUBLIC_RECORD_RE = re.compile(
     r"^no public records? found(?: for:? [^.;:!]+)?$",
     re.IGNORECASE,
@@ -2158,6 +2213,7 @@ def assembled_guide_errors(
     exempt = official_restatement_sentences(ballot)
     mapping = parse_display_markers(text)
     errors = prose_marker_errors(text, "final/guide.md", exempt)
+    errors.extend(published_process_errors(text))
     errors.extend(summary_errors(text, "final/guide.md", index, display_to_original=mapping))
     if reader:
         errors.extend(reader_contest_budget_errors(text))
@@ -2779,7 +2835,42 @@ def _local_archive_text(workspace, source: dict) -> tuple[str | None, str | None
         if result.returncode != 0 and not result.stdout:
             detail = (result.stderr or "pdftotext failed").strip()
             return None, f"could not read local copy {local}: {detail[:200]}"
-        return result.stdout, None
+        # Layout mode splits a bilingual ballot into columns, so a full question
+        # is contiguous only in reading order. Keep both, separated so a quote
+        # cannot be assembled from the end of one and the start of the other.
+        raw_text = ""
+        try:
+            raw_run = subprocess.run(
+                ["pdftotext", "-raw", "-nodiag", str(path), "-"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            raw_text = raw_run.stdout or ""
+        except (OSError, subprocess.TimeoutExpired):
+            raw_text = ""
+        # Layout mode keeps a salary table's columns on one line. Reading order
+        # keeps a ballot question together. Both are separated so a quote cannot
+        # be assembled from the end of one extraction and the start of another.
+        parts = [result.stdout or ""]
+        if raw_text:
+            parts.append(raw_text)
+        try:
+            layout_run = subprocess.run(
+                ["pdftotext", "-layout", str(path), "-"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            if layout_run.stdout:
+                parts.append(layout_run.stdout)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        if len(parts) == 1:
+            return parts[0], None
+        return "\n\n§§§\n\n".join(parts), None
     if suffix in {".html", ".htm"}:
         raw = path.read_text(encoding="utf-8", errors="replace")
         raw = re.sub(r"(?is)<script\b[^>]*>.*?</script>", " ", raw)

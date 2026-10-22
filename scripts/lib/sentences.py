@@ -80,8 +80,11 @@ def _prefix_blocks_split(prefix: str) -> bool:
     if token in _ABBREV_TOKENS:
         return True
     # "U.S" is stored without the trailing dot; "u.s" matches. "ph.d" too.
+    # "H.R." and "S.B." are initialisms, not sentence breaks.
     compact = re.sub(r"[^a-z.]", "", token)
-    return compact in _ABBREV_TOKENS
+    if compact in _ABBREV_TOKENS:
+        return True
+    return re.fullmatch(r"[a-z](?:\.[a-z])+", compact) is not None
 
 
 def split_sentences(text: str) -> list[str]:

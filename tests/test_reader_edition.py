@@ -682,14 +682,21 @@ def test_review_status_accepts_a_colon_in_the_contest_title(tmp_path: Path):
     model = _GuideModel(tmp_path, "2026-10-21")
     reader = "\n".join(model._methodology("reader"))
     full = "\n".join(model._methodology("full"))
-    assert "status signed-off, round 1, mode initial — measure-1" in full
+    assert "status signed-off, round 1, mode initial — measure-1" not in full
+    assert "This guide was assembled on October 21, 2026." in full
+    assert "The facts come from official records, candidate filings, and named news reports." in full
     assert "Avery Quinn was convicted of fraud" not in reader
     assert "Avery Quinn was convicted of fraud" not in full
     assert "Removed measure-1.title.001 at the round cap." not in reader
-    assert "Removed measure-1.title.001 at the round cap." in full
+    assert "Removed measure-1.title.001 at the round cap." not in full
     assert "fresh-context" not in reader
+    assert "fresh-context" not in full
     assert "process gap" not in reader.lower()
+    assert "process gap" not in full.lower()
     assert "signed off in the same context" not in reader
+    assert "signed off in the same context" not in full
+    assert "suspected_injection" not in full
+    assert "Parallel subagents" not in full
     assert prose_marker_errors(reader, "guide") == []
     assert prose_marker_errors(full, "guide") == []
 
@@ -749,12 +756,15 @@ def test_reader_edition_drops_duplicate_process_and_portal_logs(tmp_path: Path):
     assert "fresh-context" not in reader
     assert "process gap" not in reader.lower()
     assert "signed off in the same context" not in reader
+    assert "signed off in the same context" not in full
+    assert "Cloudflare" not in reader
+    assert "Cloudflare" not in full
     assert "Cloudflare" not in sources
     assert plain in sources
-    assert full.count(process) == 2
-    assert full.count(portal) == 2
-    assert "### cand-a" in full
-    assert "### cand-b" in full
+    assert process not in full
+    assert portal not in full
+    assert "Parallel subagents" not in full
+    assert "suspected_injection" not in full
     assert portal in full_sources
     assert reader_log_errors(reader) == []
     reader_method = "\n".join(model._methodology("reader"))

@@ -35,9 +35,7 @@ sources_edition: false
 
 ### What does this office do?
 
-The office of mayor of Cedar Hollow<a id="cite-1"></a>[<sup>1</sup>](guide-sources.md#source-1). The term and the seat are the ones printed on that ballot[<sup>1</sup>](guide-sources.md#source-1).
-
-Pay was not in the sources checked.
+The term and the seat are the ones printed on that ballot<a id="cite-1"></a>[<sup>1</sup>](guide-sources.md#source-1).
 
 ### Who is running?
 
@@ -73,13 +71,11 @@ The parks director appointed Blake Okonkwo of Cedar Hollow as a parks planner in
 
 ### Where do they stand?
 
-### What has each candidate said?
-
 ::: {.pair .flow}
 
 ::: card
 
-### Avery Quinn
+#### Avery Quinn
 
 The Cedar Hollow League of Voters asked Avery Quinn of Cedar Hollow the same parks question<a id="cite-4"></a>[<sup>4</sup>](guide-sources.md#source-4). Avery Quinn of Cedar Hollow answered, "I will ask the council to keep the levy at the amount."[<sup>4</sup>](guide-sources.md#source-4).
 
@@ -87,7 +83,7 @@ The Cedar Hollow League of Voters asked Avery Quinn of Cedar Hollow the same par
 
 ::: card
 
-### Blake Okonkwo
+#### Blake Okonkwo
 
 The Cedar Hollow League of Voters asked Blake Okonkwo of Cedar Hollow the same parks question<a id="cite-5"></a>[<sup>5</sup>](guide-sources.md#source-5). Blake Okonkwo of Cedar Hollow answered, "I will publish the parks repair list before I ask for a levy change."[<sup>5</sup>](guide-sources.md#source-5).
 
@@ -115,8 +111,6 @@ Amounts are rounded to the nearest dollar. Cash on hand is money the campaign st
 | Outside spending | <span class="num">$0<a id="cite-18"></a>[<sup>18</sup>](guide-sources.md#source-18)</span> | <span class="num">$0<a id="cite-19"></a>[<sup>19</sup>](guide-sources.md#source-19)</span> |
 
 :::
-
-### Who supports them?
 
 ::: {.pair}
 
@@ -148,7 +142,7 @@ No court cases, ethics findings, or campaign-finance penalties found in the reco
 
 ### Background
 
-Avery Quinn of Cedar Hollow as a teacher and does not list an ownership share in a business[<sup>2</sup>](guide-sources.md#source-2). The voters elected Avery Quinn of Cedar Hollow, rather than an appointment<a id="cite-22"></a>[<sup>22</sup>](guide-sources.md#source-22).
+Avery Quinn of Cedar Hollow is a teacher and does not list an ownership share in a business[<sup>2</sup>](guide-sources.md#source-2). The voters elected Avery Quinn of Cedar Hollow, rather than an appointment<a id="cite-22"></a>[<sup>22</sup>](guide-sources.md#source-22).
 
 | When | What happened |
 | --- | --- |
@@ -167,7 +161,7 @@ No public record found for city and state of residence, military service, earlie
 
 ### Background
 
-Blake Okonkwo of Cedar Hollow as an employee and does not list ownership of a firm[<sup>3</sup>](guide-sources.md#source-3). Blake Okonkwo of Cedar Hollow received a master of public administration degree in 2015<a id="cite-24"></a>[<sup>24</sup>](guide-sources.md#source-24).
+Blake Okonkwo of Cedar Hollow is an employee and does not list ownership of a firm[<sup>3</sup>](guide-sources.md#source-3). Blake Okonkwo of Cedar Hollow received a master of public administration degree in 2015<a id="cite-24"></a>[<sup>24</sup>](guide-sources.md#source-24).
 
 | When | What happened |
 | --- | --- |
@@ -252,11 +246,11 @@ Measure H is a referral<a id="cite-33"></a>[<sup>9</sup>](guide-sources.md#sourc
 
 ### Current law and proposed change
 
-The current parks levy, adopted in 2020, expires after the 2026 tax year[<sup>1</sup>](guide-sources.md#source-25). A yes vote replaces it at the same rate[<sup>2</sup>](guide-sources.md#source-26). A no vote lets it expire[<sup>4</sup>](guide-sources.md#source-28).
+The city code says the current parks levy, adopted in 2020, expires after the 2026 tax year[<sup>1</sup>](guide-sources.md#source-25). A yes vote replaces it at the same rate[<sup>2</sup>](guide-sources.md#source-26). A no vote lets it expire[<sup>4</sup>](guide-sources.md#source-28).
 
 ### Vote threshold
 
-The measure passes with more than half the votes cast on it<a id="cite-34"></a>[<sup>10</sup>](guide-sources.md#source-34).
+Westland's 2019 levy rule says the measure passes with more than half the votes cast on it<a id="cite-34"></a>[<sup>10</sup>](guide-sources.md#source-34).
 
 ### Funding by side
 
@@ -318,7 +312,7 @@ The Parks Workers Guild told the committee the public list would show which repa
 
 #### Opposes it
 
-The City Managers Association told the committee the posting repeats the inventory the city already keeps[<sup>3</sup>](guide-sources.md#source-41). The association said the extra page would not change which repair is done first[<sup>3</sup>](guide-sources.md#source-41).
+The City Managers Association told the committee the posting repeats the inventory the city already keeps[<sup>3</sup>](guide-sources.md#source-41).
 
 :::
 
@@ -428,7 +422,7 @@ House Bill 18 adds a public posting and does not change the tax rate<a id="cite-
 
 ### Similar laws
 
-A parks-posting law that Easton passed in 2024<a id="cite-66"></a>[<sup>28</sup>](guide-sources.md#source-66). OPPAGA reported that Easton clerks used the posting site in its first year<a id="cite-67"></a>[<sup>29</sup>](guide-sources.md#source-67).
+NCSL lists a parks-posting law that Easton passed in 2024<a id="cite-66"></a>[<sup>28</sup>](guide-sources.md#source-66). Easton clerks used the posting site in its first year<a id="cite-67"></a>[<sup>29</sup>](guide-sources.md#source-67).
 
 [Back to ballot](#your-ballot-at-a-glance)
 
