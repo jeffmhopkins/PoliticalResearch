@@ -147,6 +147,50 @@ def test_themes_keep_neutral_aa_contrast_and_drop_the_stray_bar():
         assert not re.search(r"democrat|republican|#0000ff|#ff0000|#0000ee", css, re.I)
 
 
+def test_docket_color_is_opt_in_and_neutral():
+    """Teal is a theme flag. The default stylesheet stays grayscale Docket."""
+    build = (ROOT / "scripts" / "build.sh").read_text(encoding="utf-8")
+    guide = (ROOT / "assets" / "guide.css").read_text(encoding="utf-8")
+    css = (ROOT / "assets" / "themes" / "docket-color.css").read_text(encoding="utf-8")
+    code = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
+    assert "PANDOC_CSS=(--css guide.css)" in build
+    assert "charter|folio|docket-color" in build
+    assert "#1D5C63" not in guide
+    assert "#161616" in guide
+    assert not re.search(r"(?m)^\s*gap\s*:", code)
+    assert "display:grid" not in code.replace(" ", "")
+    assert "display: table" not in code.lower()
+    assert re.search(r"\.vote-pair\s*\{[^}]*display:\s*flex", code)
+    assert "vote-box:first-child" not in css
+    assert "Not an official ballot" in css
+    assert "string(section, first)" in css
+    assert "content: counter(page)" in css
+    assert "print-color-adjust" in css
+    assert not re.search(r"democrat|republican|#0000ff|#ff0000|#0000ee|#008000|#00ff00", css, re.I)
+    allowed = {
+        "#1d5c63",
+        "#e8f0f0",
+        "#f5f1e8",
+        "#1f2328",
+        "#5a6470",
+        "#c9d3d4",
+        "#ffffff",
+    }
+    used = {color.lower() for color in re.findall(r"#[0-9a-fA-F]{6}", css)}
+    assert used <= allowed
+    assert _contrast("#1D5C63", "#FFFFFF") >= 7.0
+    assert _contrast("#1D5C63", "#E8F0F0") >= 4.5
+    assert _contrast("#1F2328", "#E8F0F0") >= 4.5
+    assert _contrast("#1F2328", "#F5F1E8") >= 4.5
+    assert _contrast("#5A6470", "#FFFFFF") >= 4.5
+    assert _luminance("#E8F0F0") >= 0.85
+    assert _luminance("#F5F1E8") >= 0.85
+    colors = _root_colors(css)
+    assert colors["band"].lower() == "#e8f0f0"
+    assert colors["band-text"].lower() == "#1d5c63"
+    assert "ink" not in colors
+
+
 def test_specimen_renders_one_page_per_theme(tmp_path: Path):
     if shutil.which("weasyprint") is None or shutil.which("pdftotext") is None:
         pytest.skip("weasyprint or pdftotext is not installed")
