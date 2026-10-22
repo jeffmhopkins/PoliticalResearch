@@ -1,5 +1,6 @@
-/* Docket Color. Opt-in only: scripts/build.sh --theme docket-color
-   Load after assets/guide.css. Omitting --theme keeps the grayscale Docket guide.
+/* Docket Color, the default printed guide.
+   Load after assets/guide.css. Omitting --theme selects this sheet.
+   scripts/build.sh --theme docket keeps the grayscale base alone.
 
    One teal accent. It is not party red, party blue, or yes-green.
    Body text stays near-black. Tint A is the header mist. Tint B is the

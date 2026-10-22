@@ -9,7 +9,7 @@ ELECTION=""
 THEME=""
 
 usage() {
-  echo "Usage: scripts/build.sh --workspace PATH | --election-id ID [--theme charter|folio|docket-color]" >&2
+  echo "Usage: scripts/build.sh --workspace PATH | --election-id ID [--theme docket|docket-color|charter|folio]" >&2
 }
 
 while [[ $# -gt 0 ]]; do
@@ -67,16 +67,17 @@ fi
 cp "$ROOT/assets/guide.css" "$WORKSPACE/final/guide.css"
 cp "$ROOT/assets/guide-narrow.css" "$WORKSPACE/final/guide-narrow.css"
 
-# Optional theme. The default stylesheet is always guide.css. A theme loads after it.
+# guide.css is the grayscale Docket base and always loads. Docket Color is the
+# default sheet on top of it. --theme docket keeps the base alone.
 case "$THEME" in
-  ""|charter|folio|docket-color) ;;
-  docket) echo "Docket is the default guide. Omit --theme." >&2; exit 2 ;;
-  *) echo "Unknown theme: $THEME (choose charter, folio, or docket-color)." >&2; exit 2 ;;
+  ""|docket-color) THEME=docket-color ;;
+  docket|charter|folio) ;;
+  *) echo "Unknown theme: $THEME (choose docket, docket-color, charter, or folio)." >&2; exit 2 ;;
 esac
 mkdir -p "$WORKSPACE/final/fonts"
 cp "$ROOT/assets/fonts/"*.ttf "$WORKSPACE/final/fonts/"
 PANDOC_CSS=(--css guide.css)
-if [[ -n "$THEME" ]]; then
+if [[ "$THEME" != "docket" ]]; then
   mkdir -p "$WORKSPACE/final/themes"
   cp "$ROOT/assets/themes/${THEME}.css" "$WORKSPACE/final/themes/${THEME}.css"
   PANDOC_CSS+=(--css "themes/${THEME}.css")

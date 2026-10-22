@@ -1,6 +1,6 @@
 /* Folio. A magazine theme: Monocle, with a Bloomberg-like openness.
    Load after assets/guide.css. Select with: scripts/build.sh --theme folio
-   The default guide is unchanged when --theme is omitted.
+   Omitting --theme uses Docket Color. --theme docket is the grayscale base.
 
    Type: Fraunces for titles and candidate names. Source Sans 3 for text,
    tables, labels, and the page number. Both are SIL Open Font License.

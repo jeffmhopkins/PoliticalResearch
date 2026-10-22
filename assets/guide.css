@@ -455,6 +455,26 @@ table.contents a.page-ref::after {
   page-break-before: avoid;
 }
 
+/* A two-row roll call stays with the veto lines that follow it. */
+table:has(+ h4) {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+/* The sponsor block and the roll call close the bill on one page. */
+.bill-close {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Two short profiles at the end of a race share a page. */
+.profile-pair {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 h2.profile-title {
   font-family: var(--serif);
   font-size: 1.05rem;
@@ -510,6 +530,22 @@ table.contents tbody tr:nth-child(even) td.page {
   display: flex;
   flex-wrap: wrap;
   margin: 0.15rem 0 0.4rem;
+}
+
+/* The question sits in the row so a tall card group cannot leave it behind. */
+.pair > h3.pair-label {
+  flex: 1 0 100%;
+  width: 100%;
+  margin: 0.85rem 0 0.35rem;
+}
+
+.pair:has(> h3.pair-label) { margin-top: 0; }
+
+ul.keep-together {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  break-before: avoid;
+  page-break-before: avoid;
 }
 
 .card {
@@ -886,7 +922,25 @@ h2.source-group {
 }
 
 h1.back-matter + h2.source-group,
-h1 + h2.source-group {
+h1 + h2.source-group,
+h1.sources-title + p + h2.source-group {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+/* The repeated notice shares the works-cited page instead of a page of its own. */
+blockquote + h1.back-matter {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+/* The last entries of a long list travel together onto the next page. */
+li.keep-tail {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+li.keep-tail + li.keep-tail {
   break-before: avoid;
   page-break-before: avoid;
 }

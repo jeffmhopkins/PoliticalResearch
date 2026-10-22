@@ -1,4 +1,4 @@
-"""The three print themes are optional. The default guide stylesheet stays in place."""
+"""Docket Color is the default print sheet. Grayscale Docket, Charter, and Folio are optional."""
 
 from __future__ import annotations
 
@@ -39,12 +39,16 @@ def _root_colors(css: str) -> dict[str, str]:
     return dict(re.findall(r"--([a-z0-9-]+):\s*(#[0-9a-fA-F]{6})", block.group(1)))
 
 
-def test_default_build_does_not_load_a_theme():
+def test_default_build_loads_docket_color():
     build = (ROOT / "scripts" / "build.sh").read_text(encoding="utf-8")
     guide = (ROOT / "assets" / "guide.css").read_text(encoding="utf-8")
     assert "PANDOC_CSS=(--css guide.css)" in build
-    assert "charter|folio" in build
+    assert '""|docket-color) THEME=docket-color' in build
+    assert '[[ "$THEME" != "docket" ]]' in build
+    assert "docket|charter|folio" in build
     assert "assets/themes" not in guide
+    assert "#1D5C63" not in guide
+    assert "#161616" in guide
     assert "h2.contest-title::before" not in guide
     assert "IBM Plex Sans" in guide
     assert "--band:" in guide
@@ -147,14 +151,14 @@ def test_themes_keep_neutral_aa_contrast_and_drop_the_stray_bar():
         assert not re.search(r"democrat|republican|#0000ff|#ff0000|#0000ee", css, re.I)
 
 
-def test_docket_color_is_opt_in_and_neutral():
-    """Teal is a theme flag. The default stylesheet stays grayscale Docket."""
+def test_docket_color_is_the_default_and_neutral():
+    """Teal is the default sheet. The grayscale base stays in guide.css."""
     build = (ROOT / "scripts" / "build.sh").read_text(encoding="utf-8")
     guide = (ROOT / "assets" / "guide.css").read_text(encoding="utf-8")
     css = (ROOT / "assets" / "themes" / "docket-color.css").read_text(encoding="utf-8")
     code = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
     assert "PANDOC_CSS=(--css guide.css)" in build
-    assert "charter|folio|docket-color" in build
+    assert '""|docket-color) THEME=docket-color' in build
     assert "#1D5C63" not in guide
     assert "#161616" in guide
     assert not re.search(r"(?m)^\s*gap\s*:", code)
@@ -195,6 +199,82 @@ def test_docket_color_is_opt_in_and_neutral():
     assert colors["band"].lower() == "#e8f0f0"
     assert colors["band-text"].lower() == "#1d5c63"
     assert "ink" not in colors
+
+
+def test_tall_card_rows_keep_their_heading_and_short_lists_stay_whole():
+    from polish_html import polish_html
+
+    css = (ROOT / "assets" / "guide.css").read_text(encoding="utf-8")
+    assert ".pair > h3.pair-label" in css
+    assert "flex: 1 0 100%" in css
+    assert "ul.keep-together" in css
+    assert "break-inside: avoid" in css
+    assert "table:has(+ h4)" in css
+    assert ".bill-close" in css
+    assert ".profile-pair" in css
+    assert "li.keep-tail + li.keep-tail" in css
+    assert "blockquote + h1.back-matter" in css
+    assert "h1.sources-title + p + h2.source-group" in css
+    html = """
+    <h3 id="office">What does this office do?</h3>
+    <p>The office runs the election.</p>
+    <h3 id="legal">Any legal or ethics issues?</h3>
+    <div class="pair count-many">
+    <section class="card"><h3>Ada</h3><p>A long card.</p></section>
+    </div>
+    <h3 id="where">Where do they stand?</h3>
+    <p>Candidates appear in ballot order.</p>
+    <div class="pair"><section class="card"><p>Stays put.</p></section></div>
+    <div class="vote-pair"><section class="vote-box"><h4>YES</h4></section></div>
+    <h3 id="gaps">retention-supreme-muniz</h3>
+    <ul>
+    <li>factcheck signed off.</li>
+    <li>sourcing signed off.</li>
+    <li>neutrality signed off.</li>
+    <li>privacy-legal signed off.</li>
+    </ul>
+    <h1 id="changelog">Changelog</h1>
+    <ul>
+    <li>one</li><li>two</li><li>three</li><li>four</li><li>five</li>
+    <li>six</li><li>seven</li><li>eight</li><li>nine</li><li>ten</li>
+    </ul>
+    <h2 class="source-group">Next contest</h2>
+    <h3 id="who-sponsored-it-and-who-drafted-it">Who sponsored it, and who drafted it?</h3>
+    <h4 id="sponsors-and-cosponsors">Sponsors and cosponsors</h4>
+    <p>The sponsor is McClure.</p>
+    <h3 id="how-did-the-chambers-vote">How did the chambers vote?</h3>
+    <div class="tail"><h3 id="who-is-affected">Who is affected</h3><p>Electors.</p></div>
+    """
+    polished = polish_html(html)
+    assert '<div class="pair count-many">' in polished
+    assert polished.index('id="legal"') < polished.index("A long card.")
+    assert polished.index("<div class=\"pair count-many\">") < polished.index('id="legal"')
+    assert 'id="office"' in polished
+    assert "The office runs the election." in polished
+    assert "<h3>Ada</h3>" in polished
+    assert "Where do they stand?" in polished
+    assert "Candidates appear in ballot order." in polished
+    assert '<div class="vote-pair">' in polished
+    assert "pair-label" not in polished.split("vote-pair", 1)[1]
+    assert '<ul class="keep-together">' in polished
+    assert polished.count("pair-label") == 1
+    assert polished.count("keep-tail") == 12
+    tail = polished.split("<h1 id=\"changelog\">", 1)[1]
+    assert "keep-tail" not in tail.split(">two<", 1)[0]
+    assert "keep-tail" in tail.split(">three<", 1)[0]
+    short = """
+    <section class="profile"><h2>Ada Short</h2><p>One line.</p></section>
+    <section class="profile"><h2>Bo Short</h2><p>One line.</p></section>
+    <p><a href="#your-ballot-at-a-glance">Back to ballot</a></p>
+    <div class="sheet opener"><h2>Next</h2></div>
+    """
+    paired = polish_html(short)
+    assert paired.count("profile-pair") == 1
+    assert paired.count("Ada Short") == 1
+    assert polish_html(paired).count("Ada Short") == 1
+    assert '<div class="bill-close">' in polished
+    assert polished.index("bill-close") < polished.index("who-sponsored-it-and-who-drafted-it")
+    assert polished.index("who-is-affected") < polished.index("</div>", polished.index("bill-close") + 1)
 
 
 def test_specimen_renders_one_page_per_theme(tmp_path: Path):
