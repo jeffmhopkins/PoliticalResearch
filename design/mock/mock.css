@@ -1,0 +1,333 @@
+/* Docket design sample. This file is not loaded by scripts/build.sh.
+   IBM Plex Sans for text, tables, and questions. IBM Plex Serif for the
+   race or measure title. Paper and ink match assets/guide.css.
+   Party is text. There is no red or blue coding.
+   Each section starts on a new page. The first section does not, so the
+   sample does not open on a blank page. */
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../assets/fonts/IBMPlexSans-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../assets/fonts/IBMPlexSans-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../assets/fonts/IBMPlexSans-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../assets/fonts/IBMPlexSans-Semibold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: "IBM Plex Serif";
+  src: url("../../assets/fonts/IBMPlexSerif-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "IBM Plex Serif";
+  src: url("../../assets/fonts/IBMPlexSerif-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "IBM Plex Serif";
+  src: url("../../assets/fonts/IBMPlexSerif-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+
+:root {
+  --ink: #161616;
+  --paper: #fbfbfa;
+  --rule: #5c5852;
+  --zebra: #f3f1ec;
+  --serif: "IBM Plex Serif", "Liberation Serif", "DejaVu Serif", "Times New Roman", Times, serif;
+  --sans: "IBM Plex Sans", "Liberation Sans", "DejaVu Sans", Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+@page {
+  size: letter portrait;
+  margin: 0.64in 0.62in 0.52in 0.62in;
+  background: #fbfbfa;
+  @top-left {
+    content: "Brevard County voter guide";
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 8.5pt;
+    font-weight: 500;
+    color: #161616;
+    width: 38%;
+    vertical-align: bottom;
+    padding-bottom: 3pt;
+    border-bottom: 0.4pt solid #161616;
+  }
+  @top-center { content: none; }
+  @top-right {
+    content: string(runhead);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 8.5pt;
+    font-weight: 500;
+    color: #161616;
+    width: 62%;
+    text-align: right;
+    vertical-align: bottom;
+    padding-bottom: 3pt;
+    border-bottom: 0.4pt solid #161616;
+  }
+  @bottom-left {
+    content: "Not an official ballot";
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 8.5pt;
+    color: #161616;
+    padding-top: 3pt;
+    border-top: 0.4pt solid #161616;
+  }
+  @bottom-right {
+    content: "page " counter(page) " of " counter(pages);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 8.5pt;
+    color: #161616;
+    text-align: right;
+    padding-top: 3pt;
+    border-top: 0.4pt solid #161616;
+  }
+}
+
+html { font-size: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 11pt;
+  line-height: 1.38;
+  font-weight: 400;
+}
+
+h1 { string-set: runhead attr(data-run); }
+
+.sheet {
+  break-before: page;
+  page-break-before: always;
+}
+
+.sheet-first {
+  break-before: auto;
+  page-break-before: auto;
+}
+
+h1 {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 18pt;
+  line-height: 1.15;
+  margin: 0 0 0.2rem;
+  padding-bottom: 0.12rem;
+  border-bottom: 0.6pt solid var(--ink);
+}
+
+h2 {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 12.5pt;
+  line-height: 1.25;
+  margin: 0.55rem 0 0.15rem;
+}
+
+h3 {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 11pt;
+  line-height: 1.25;
+  margin: 0 0 0.12rem;
+}
+
+p { margin: 0.15rem 0 0.35rem; }
+
+a { color: var(--ink); text-decoration: none; }
+
+.intro {
+  margin: 0.28rem 0 0.4rem;
+  font-size: 11pt;
+}
+
+.kicker {
+  margin: 0.38rem 0 0.08rem;
+  font-weight: 600;
+  font-size: 10.5pt;
+}
+
+.ballot {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ballot li {
+  margin: 0;
+  padding: 0.08rem 0;
+  border-bottom: 0.4pt solid var(--zebra);
+  font-size: 10.5pt;
+  line-height: 1.3;
+}
+
+.ballot .name { font-weight: 600; }
+
+.ballot a::after {
+  content: " (page " target-counter(attr(href), page) ")";
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.pair {
+  display: flex;
+  align-items: stretch;
+  margin: 0.2rem 0 0.4rem;
+}
+
+.card,
+.vote-box,
+.stack {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  border: 1.25pt solid var(--ink);
+  background: var(--paper);
+  padding: 0.38rem 0.45rem 0.45rem;
+}
+
+.card + .card,
+.vote-box + .vote-box,
+.stack + .stack { margin-left: 0.35rem; }
+
+.role {
+  display: block;
+  margin-top: 0.08rem;
+  font-weight: 400;
+  font-size: 10.5pt;
+}
+
+.card p,
+.vote-box p,
+.stack li,
+.answer p { margin: 0.12rem 0 0; }
+
+.answer {
+  margin: 0 0 0.38rem;
+  padding-bottom: 0.28rem;
+  border-bottom: 0.4pt solid var(--rule);
+}
+
+.answer:last-of-type { border-bottom: 0; }
+
+.mini {
+  list-style: none;
+  margin: 0.1rem 0 0;
+  padding: 0;
+}
+
+.mini li {
+  margin: 0.08rem 0;
+  font-size: 11pt;
+}
+
+.mini a::after {
+  content: leader(".") target-counter(attr(href), page);
+  font-variant-numeric: tabular-nums;
+}
+
+table.money {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.15rem 0 0.35rem;
+  font-size: 10.5pt;
+  line-height: 1.3;
+}
+
+table.money caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 11pt;
+  font-weight: 500;
+  margin: 0 0 0.28rem;
+}
+
+table.money th,
+table.money td {
+  border: 0.6pt solid var(--ink);
+  padding: 0.18rem 0.32rem;
+  vertical-align: top;
+  text-align: left;
+}
+
+table.money th {
+  font-weight: 600;
+  background: var(--zebra);
+}
+
+table.money td.num,
+table.money th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.box-label {
+  margin: 0 0 0.2rem;
+  font-weight: 600;
+  font-size: 11pt;
+  letter-spacing: 0.04em;
+}
+
+.ballot-words {
+  margin: 0.15rem 0 0.3rem;
+  padding: 0.4rem 0.5rem;
+  background: var(--zebra);
+  border: 1pt solid var(--rule);
+  font-size: 10.5pt;
+  line-height: 1.35;
+}
+
+.ballot-words p { margin: 0; }
+
+ul.plain {
+  margin: 0.1rem 0 0.35rem;
+  padding-left: 1.05rem;
+}
+
+ul.plain li { margin: 0.08rem 0; }
+
+#measure h2 { margin-top: 0.32rem; }
+#measure .intro { margin-bottom: 0.2rem; }
+#measure .notes { font-size: 8pt; }
+
+.notes {
+  margin: 0.28rem 0 0;
+  padding-left: 1.15rem;
+  font-size: 8.5pt;
+  line-height: 1.28;
+}
+
+.notes li { margin: 0 0 0.08rem; }
+
+sup {
+  font-size: 0.72em;
+  line-height: 0;
+  vertical-align: super;
+}
+
+sup a { font-weight: 500; }
