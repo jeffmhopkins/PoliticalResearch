@@ -11,6 +11,16 @@ import html
 import re
 
 from lib.party import endorsement_cell, is_nonpartisan_contest
+from lib.reader_substance import (
+    _NONE_LEGAL,
+    background_lines,
+    fact_sentence,
+    legal_sentence,
+    loan_sentence,
+    period_sentence,
+    plain_of,
+    vote_lines,
+)
 from lib.sentences import split_sentences
 from lib.util import load_yaml
 
@@ -114,6 +124,20 @@ def _markers(text: str) -> str:
     from lib.quality import MARKER_RE
 
     return "".join(f"[^{number}]" for number in MARKER_RE.findall(text or ""))
+
+
+def _omit(model, text: str) -> None:
+    bucket = getattr(model, "omitted_markers", None)
+    if bucket is None:
+        return
+    from lib.quality import MARKER_RE
+
+    bucket.update(int(number) for number in MARKER_RE.findall(text or ""))
+
+
+def _raw_section(sections: dict, name: str) -> str:
+    found = sections.get(name)
+    return found[1] if found else ""
 
 
 def _month_index(label: str) -> tuple[int, int, int] | None:
@@ -272,22 +296,36 @@ def _sheet(lines: list[str], opener: bool = False) -> list[str]:
     return body
 
 
+_SPOKEN_PARTY = {
+    "REP": "Republican",
+    "DEM": "Democrat",
+    "NPA": "No party affiliation",
+    "LPF": "Libertarian",
+    "WFP": "Working Families",
+    "GRE": "Green",
+    "CON": "Constitution",
+    "IND": "Independent",
+}
+
+
 def _card_party(model, candidate: dict, contest: dict) -> str:
     if is_nonpartisan_contest(contest):
         return "Nonpartisan"
     from lib.guide_layout import _party_abbr
 
     abbr = _party_abbr(model.workspace, candidate)
-    return abbr or "Nonpartisan"
+    return _SPOKEN_PARTY.get(abbr, abbr or "Nonpartisan")
 
 
-def _pair(people_blocks: list[list[str]], count: int) -> list[str]:
+def _pair(people_blocks: list[list[str]], count: int, *, flow: bool = False) -> list[str]:
+    bits = [".pair"]
+    if flow:
+        bits.append(".flow")
     if count <= 1:
-        klass = "{.pair .count-1}"
+        bits.append(".count-1")
     elif count >= 3:
-        klass = "{.pair .count-many}"
-    else:
-        klass = "{.pair}"
+        bits.append(".count-many")
+    klass = "{" + " ".join(bits) + "}"
     lines = [f"::: {klass}", ""]
     for block in people_blocks:
         lines.extend(["::: card", ""])
@@ -349,23 +387,32 @@ def _title_lines(model, contest: dict, item_id: str, group: str = "") -> list[st
 
 
 def _office_lines(model, contest: dict, draft: str, sections: dict) -> list[str]:
-    from lib.guide_layout import _TERM_LENGTH_RE, _gap_line, _matching_cited
+    from lib.guide_layout import _gap_line
 
     lines = ["### What does this office do?", ""]
-    duties = ""
-    for name in ("what the office controls", "contest", "court and term", "retention question"):
-        duties = _section_text(model, sections, name)
-        if duties:
-            break
-    if not duties:
-        cited = _lead(draft, 1)
-        duties = cited if "[^" in cited else ""
-    lines.append(duties or _gap_line("what this office does"))
+    names = [
+        str(candidate.get("name") or "")
+        for candidate in (contest.get("candidates") or [])
+        if isinstance(candidate, dict) and candidate.get("name")
+    ]
+    duty_body = _raw_section(sections, "what the office controls")
+    source = duty_body or _raw_section(sections, "contest") or _raw_section(sections, "court and term")
+    if duty_body:
+        _omit(model, _raw_section(sections, "contest"))
+    kept = []
+    for sentence in split_sentences(source):
+        plain = plain_of(sentence)
+        if any(name and name in plain for name in names):
+            _omit(model, sentence)
+            continue
+        cleaned = fact_sentence(sentence, "office")
+        if cleaned:
+            kept.append(cleaned)
+        else:
+            _omit(model, sentence)
+    lines.append(" ".join(kept) if kept else _gap_line("what this office does"))
     lines.append("")
-    term = _matching_cited(draft, _TERM_LENGTH_RE) or ""
-    if term:
-        lines.extend([model._show_prose(term), ""])
-    if not re.search(r"\bpay\b|\bsalary\b", draft or "", re.IGNORECASE):
+    if not re.search(r"\bpay\b|\bsalary\b", " ".join(kept) + (draft or ""), re.IGNORECASE):
         lines.extend(["Pay was not in the sources checked.", ""])
     return lines
 
@@ -387,10 +434,16 @@ def _people_cards(model, contest: dict, people: list[dict]) -> list[str]:
         from lib.guide_layout import _section_dict
 
         sections = _section_dict(draft)
-        job = _section_text(model, sections, "occupational history") or _section_text(
-            model, sections, "prior offices and public service"
+        job_raw = _raw_section(sections, "occupational history") or _raw_section(
+            sections, "prior offices and public service"
         )
-        job = _lead(job, 1) if job else ""
+        job = ""
+        for sentence in split_sentences(job_raw):
+            cleaned = fact_sentence(sentence, "card")
+            if cleaned:
+                job = cleaned
+                break
+            _omit(model, sentence)
         block = [
             f"### {name} {{#candidate-{item_id} .candidate-name}}",
             "",
@@ -442,7 +495,14 @@ def _money_table(model, contest: dict, people: list[dict]) -> list[str]:
     if not bundles:
         return []
     names = [str(candidate.get("name") or "") for candidate, _sections, _profile in bundles]
-    assigned = [_assign_cells(sections, profile, _MONEY_ROWS) for _candidate, sections, profile in bundles]
+    assigned = []
+    for _candidate, sections, profile in bundles:
+        cells = _assign_cells(sections, profile, _MONEY_ROWS)
+        funding = _raw_section(sections, "campaign funding")
+        loan = loan_sentence(funding)
+        if loan:
+            cells["Self-funding or loans"] = loan
+        assigned.append(cells)
     rows: list[tuple[str, list[str]]] = []
     month_cells = []
     outside_numeric = False
@@ -499,13 +559,13 @@ def _money_table(model, contest: dict, people: list[dict]) -> list[str]:
         ("Self-funding or loans", "Self-funding or loans"),
         ("Share from small donors", "Share from small donors"),
         ("Large donors", "Large donors"),
-        ("PAC money", "PAC money"),
+        ("Political action committee money", "PAC money"),
         ("Party money", "Party money"),
     ):
         shown = []
         keep = False
         for cells in assigned:
-            cell = model._show_cell(cells.get(label, ""), "x", "x", hint)
+            cell = model._show_cell(cells.get(label) or cells.get(hint, ""), "x", "x", hint)
             if _numeric_cell(cell):
                 keep = True
                 shown.append(cell)
@@ -522,7 +582,19 @@ def _money_table(model, contest: dict, people: list[dict]) -> list[str]:
         kept.append((label, cells))
     if not kept:
         return ["No public record found for campaign funds.", ""]
+    raised_row = next((cells for label, cells in kept if label == "Raised"), None)
+    if raised_row:
+        keep_idx = [index for index, cell in enumerate(raised_row) if _numeric_cell(cell)]
+        if keep_idx and len(keep_idx) * 2 < len(raised_row):
+            names = [names[index] for index in keep_idx]
+            kept = [(label, [cells[index] for index in keep_idx]) for label, cells in kept]
     lines = ["### Who is paying for their campaign?", ""]
+    for candidate, sections, _profile in bundles:
+        if str(candidate.get("name") or "") not in names:
+            continue
+        period = period_sentence(str(candidate.get("name") or ""), _raw_section(sections, "campaign funding"))
+        if period:
+            lines.extend([period, ""])
     if not outside_numeric:
         lines.extend(
             [
@@ -554,26 +626,28 @@ def _support_lines(model, contest: dict, people: list[dict]) -> list[str]:
         claims = claims_doc.get("claims") if isinstance(claims_doc, dict) else []
         endorsed = endorsement_cell(claims if isinstance(claims, list) else [])
         if not endorsed:
-            endorsed = _section_text(model, sections, "endorsements")
-        endorsed = _lead(endorsed, 1)
+            endorsed = _raw_section(sections, "endorsements")
+        endorsed_shown = ""
+        for sentence in split_sentences(endorsed):
+            cleaned = fact_sentence(sentence, "endorsement")
+            if cleaned:
+                endorsed_shown = cleaned
+                break
+            _omit(model, sentence)
         endorse_blocks.append(
             [
                 f"### {name}",
                 "",
-                _gap_or(model, endorsed, "a dated endorsement"),
+                endorsed_shown or "No public record found for a dated endorsement.",
                 "",
             ]
         )
-        legal = _section_text(model, sections, "legal issues")
-        legal = _lead(legal, 2)
-        legal_blocks.append(
-            [
-                f"### {name}",
-                "",
-                _gap_or(model, legal, "legal or ethics issues"),
-                "",
-            ]
-        )
+        legal_raw = _raw_section(sections, "legal issues")
+        shown = legal_sentence(legal_raw)
+        for sentence in split_sentences(legal_raw):
+            if shown == _NONE_LEGAL or marker_missing(sentence, shown):
+                _omit(model, sentence)
+        legal_blocks.append((name, shown))
         profile = load_yaml(model.workspace / "items" / item_id / "profile.yaml") or {}
         sweep = profile.get("legal_sweep") if isinstance(profile, dict) else None
         if not isinstance(sweep, dict):
@@ -584,42 +658,66 @@ def _support_lines(model, contest: dict, people: list[dict]) -> list[str]:
             if status != "not_checked":
                 all_unchecked = False
     endorse_found = any("[^" in "\n".join(block) for block in endorse_blocks)
-    legal_found = any("[^" in "\n".join(block) for block in legal_blocks)
     lines = ["### Who supports them?", ""]
     if endorse_found:
         lines.extend(_pair(endorse_blocks, len(people)))
     else:
         lines.extend(["No public record found for a dated endorsement.", ""])
     lines.extend(["### Any legal or ethics issues?", ""])
-    if legal_found:
-        lines.extend(_pair(legal_blocks, len(people)))
-    elif all_unchecked:
-        lines.extend(["No public record found for legal, labor, consumer, or misuse-of-office checks.", ""])
+    notable = [(name, shown) for name, shown in legal_blocks if shown != _NONE_LEGAL]
+    if not notable:
+        lines.extend([_NONE_LEGAL, ""])
     else:
-        lines.extend(["No public record found for legal or ethics issues.", ""])
+        lines.extend(
+            _pair(
+                [[f"### {name}", "", shown, ""] for name, shown in notable],
+                len(notable),
+            )
+        )
+        if len(notable) < len(legal_blocks):
+            lines.extend(
+                [
+                    "No court cases, ethics findings, or campaign-finance penalties found for the other candidates in the records checked.",
+                    "",
+                ]
+            )
     return lines
 
 
-def _profile_fields(model, sections: dict, mapped: dict | None = None) -> list[str]:
-    filled = []
-    empty = []
-    for heading, key, label in _PROFILE_HEADS:
-        rendered = mapped[key] if mapped is not None else _section_text(model, sections, key)
-        if rendered and "[^" in rendered:
-            filled.append((heading, rendered))
-        else:
-            empty.append(label)
-    lines: list[str] = []
-    for heading, rendered in filled:
-        lines.extend([f"### {heading}", "", rendered, ""])
-    if empty:
-        lines.extend([f"No public records found for: {', '.join(empty)}.", ""])
+def marker_missing(sentence: str, shown: str) -> bool:
+    from lib.quality import MARKER_RE
+
+    for number in MARKER_RE.findall(sentence or ""):
+        if f"[^{number}]" not in shown:
+            return True
+    return False
+
+
+def _profile_fields(model, sections: dict, *, limited: bool = False) -> list[str]:
+    raw = {
+        "background": _raw_section(sections, "background"),
+        "education": _raw_section(sections, "education"),
+        "occupational history": _raw_section(sections, "occupational history"),
+        "prior offices and public service": _raw_section(sections, "prior offices and public service"),
+        "record vs rhetoric": _raw_section(sections, "record vs rhetoric"),
+        "identity": _raw_section(sections, "identity"),
+    }
+    lines = background_lines(raw, limited=limited)
+    if limited:
+        return lines
+    votes = vote_lines(raw["record vs rhetoric"], index=getattr(model, "index", None))
+    for sentence in split_sentences(raw["record vs rhetoric"]):
+        cleaned = fact_sentence(sentence, "votes", index=getattr(model, "index", None))
+        if not cleaned:
+            _omit(model, sentence)
+    if votes:
+        lines.extend(["### Recorded votes", "", " ".join(votes[:5]), ""])
     return lines
 
 
-def _profile_block(model, item_id: str, name: str, sections: dict, mapped: dict | None = None) -> list[str]:
+def _profile_block(model, item_id: str, name: str, sections: dict, *, limited: bool = False) -> list[str]:
     body = [f"## {name} {{#profile-{item_id} .profile-title}}", ""]
-    body.extend(_profile_fields(model, sections, mapped))
+    body.extend(_profile_fields(model, sections, limited=limited))
     if model.edition != "reader":
         body.extend(model._access_note_lines(item_id))
     lines = ["::: {.profile}", ""]
@@ -642,7 +740,15 @@ def _profiles(model, contest: dict, people: list[dict], group: str) -> list[str]
             continue
         name = str(candidate.get("name") or model.titles.get(item_id) or item_id)
         sections = _section_dict(model._draft(item_id))
-        lines.extend(_profile_block(model, item_id, name, sections))
+        lines.extend(
+            _profile_block(
+                model,
+                item_id,
+                name,
+                sections,
+                limited=bool(candidate.get("limited_public_record")),
+            )
+        )
     return lines
 
 
@@ -720,16 +826,33 @@ def _positions(model, contest: dict, people: list[dict]) -> list[str]:
         questions.append((key, fresh))
     for label, cells in questions:
         topic = "positions" if label == "positions" else label.replace("_", " ")
-        lines.extend([f"### What has each candidate said about {topic}?", ""])
         blocks = []
+        shown_rows = []
         for candidate, cell in zip(people, cells):
             name = str(candidate.get("name") or "")
             if cell and cell != NOT_FOUND_CELL and "[^" in cell:
-                shown = model._show_prose(_lead(cell, 3))
+                kept = []
+                for sentence in split_sentences(_lead(cell, 3)):
+                    cleaned = fact_sentence(sentence, "position")
+                    if cleaned:
+                        kept.append(cleaned)
+                    else:
+                        _omit(model, sentence)
+                shown = " ".join(kept) if kept else f"No public statement found on {topic}."
             else:
                 shown = f"No public statement found on {topic}."
+            shown_rows.append(shown)
             blocks.append([f"### {name}", "", shown, ""])
-        lines.extend(_pair(blocks, len(people)))
+        if all(row.lower().startswith("no public ") for row in shown_rows):
+            lines.extend([f"No public statement found on {topic}.", ""])
+            continue
+        if label == "positions":
+            lines.extend(["### What has each candidate said?", ""])
+        elif label in {"own_words", "own words"}:
+            lines.extend(["### In their own words", ""])
+        else:
+            lines.extend([f"### What has each candidate said about {topic}?", ""])
+        lines.extend(_pair(blocks, len(people), flow=True))
     return lines
 
 
@@ -934,7 +1057,7 @@ def _bill_deeper(model, contest: dict) -> list[str]:
             used.add(name)
             found = sections.get(name)
             raw = found[0] if found else name
-            rendered = _section_text(model, sections, name)
+            rendered = _clean_reader_block(_section_text(model, sections, name))
             if not rendered:
                 continue
             any_part = True
@@ -1003,6 +1126,20 @@ def _bill(model, contest: dict, group: str) -> list[str]:
     return lines
 
 
+def _clean_reader_block(text: str) -> str:
+    kept = [fact_sentence(sentence, "bill") for sentence in split_sentences(text or "")]
+    return " ".join(part for part in kept if part)
+
+
+def _kept_sentences(text: str, slot: str = "general") -> list[str]:
+    kept = []
+    for sentence in split_sentences(text or ""):
+        cleaned = fact_sentence(sentence, slot)
+        if cleaned and not cleaned.lower().startswith("no public"):
+            kept.append(cleaned)
+    return kept
+
+
 def _retention(model, contest: dict, group: str) -> list[str]:
     from lib.guide_layout import _section_dict, _section_pairs
 
@@ -1010,35 +1147,58 @@ def _retention(model, contest: dict, group: str) -> list[str]:
     draft = model._draft(item_id)
     sections = _section_dict(draft)
     model._log_section_gaps(str(contest.get("title") or item_id), _section_pairs(draft))
-    question = _section_text(model, sections, "retention question") or _section_text(model, sections, "court and term")
-    about = _lead(question, 3)
-    yes = _vote_sentence(draft, "yes") or about
-    no = _vote_sentence(draft, "no")
-    lines = _summary_box(
-        model,
-        contest,
-        group,
-        item_id,
-        about,
-        yes,
-        no,
-        _lead(_section_text(model, sections, "endorsements"), 1),
-        "",
-        _lead(_section_text(model, sections, "fiscal impact"), 1),
-        _lead(question, 1),
-        "docket-measure",
+    about = " ".join(_kept_sentences(_raw_section(sections, "court role"), "office")[:2])
+    if not about:
+        about = " ".join(_kept_sentences(_raw_section(sections, "court and term"), "office")[:2])
+    yes = fact_sentence(_vote_sentence(draft, "yes") or "", "general")
+    no = fact_sentence(_vote_sentence(draft, "no") or "", "general")
+    exact = _ballot_exact_words(model, contest, item_id, sections, "retention question")
+    lines = [""]
+    lines.extend(_title_lines(model, contest, item_id, group))
+    lines.extend(["### What is this about?", "", about or "No public record found.", ""])
+    from lib.guide_layout import _vote_pair
+
+    lines.extend(
+        _vote_pair(
+            "YES",
+            yes or "No public record found.",
+            "NO",
+            no or "No public record found.",
+        )
     )
-    mapped = {
-        "education": _section_text(model, sections, "education"),
-        "occupational history": _section_text(model, sections, "appointing authority"),
-        "prior offices and public service": _section_text(model, sections, "court and term"),
-        "record vs rhetoric": _section_text(model, sections, "notable rulings"),
-    }
+    lines.extend(
+        [
+            "::: ballot-words",
+            "",
+            "#### Exact words on your ballot",
+            "",
+            exact or "No public record found.",
+            "",
+            ":::",
+            "",
+        ]
+    )
     name = display_contest_title(str(contest.get("title") or model.titles.get(item_id) or item_id))
-    # The profile and the back link stay one block, so a one-line link is not left on its own page.
     lines.extend(["::: {.profile}", ""])
     lines.extend([f"## {name} {{#profile-{item_id} .profile-title}}", ""])
-    lines.extend(_profile_fields(model, sections, mapped))
+    bench = _kept_sentences(_raw_section(sections, "court and term"), "general")
+    bench = [sentence for sentence in bench if not re.search(r"qualified|filed", plain_of(sentence), re.IGNORECASE)]
+    appointed = _kept_sentences(_raw_section(sections, "appointing authority"), "general")
+    education = _kept_sentences(_raw_section(sections, "education"), "general")
+    if bench:
+        lines.extend(["### On the bench", "", " ".join(bench[:3]), ""])
+    if appointed:
+        lines.extend(["### Appointed", "", " ".join(appointed[:2]), ""])
+    else:
+        lines.extend(["No public record found for the appointing governor.", ""])
+    if education:
+        lines.extend(["### Education", "", " ".join(education[:2]), ""])
+    rulings = _kept_sentences(_raw_section(sections, "notable rulings"), "general")
+    discipline = _kept_sentences(_raw_section(sections, "discipline record"), "general")
+    if rulings or discipline:
+        lines.extend(["### Notable rulings", "", " ".join((rulings + discipline)[:3]), ""])
+    else:
+        lines.extend(["No public record found for notable rulings and discipline.", ""])
     if model.edition != "reader":
         lines.extend(model._access_note_lines(item_id))
     lines.extend(["[Back to ballot](#your-ballot-at-a-glance)", "", ":::", ""])

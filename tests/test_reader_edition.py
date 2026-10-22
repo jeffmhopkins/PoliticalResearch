@@ -849,7 +849,8 @@ def test_glance_is_a_list_and_markers_renumber_in_reading_order(tmp_path: Path):
     assert "[^8412]" not in body
     contents = body.split("</table>", 1)[0]
     assert "<sup>" not in contents
-    assert "3 candidates." in contents
+    assert "3 candidates." not in contents
+    assert "Represents Florida in the U.S. Senate." in contents
     assert "Ballot status" not in body
     assert "No public record found" in body
     assert "PAC money line" not in body

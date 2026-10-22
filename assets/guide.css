@@ -442,8 +442,10 @@ table.contents a.page-ref::after {
 }
 
 .profile {
-  break-inside: avoid;
-  page-break-inside: avoid;
+  break-inside: auto;
+  page-break-inside: auto;
+  break-before: avoid;
+  page-break-before: avoid;
   margin: 0.85rem 0 0.35rem;
 }
 
@@ -469,10 +471,23 @@ table:has(+ h4) {
   page-break-inside: avoid;
 }
 
-/* Two short profiles at the end of a race share a page. */
+/* Two short profiles at the end of a race share a page when they fit. */
 .profile-pair {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+/* A short closing profile stays with the link back to the ballot. */
+.link-keep {
   break-inside: avoid;
   page-break-inside: avoid;
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+p.back-link {
+  break-before: avoid;
+  page-break-before: avoid;
 }
 
 h2.profile-title {
@@ -530,6 +545,19 @@ table.contents tbody tr:nth-child(even) td.page {
   display: flex;
   flex-wrap: wrap;
   margin: 0.15rem 0 0.4rem;
+}
+
+/* Positions stay in normal flow so the first answer can share the opener page.
+   A flex row is unbreakable, and that was pushing the whole question forward. */
+.pair.flow {
+  display: block;
+}
+
+.pair.flow > .card {
+  display: block;
+  width: auto;
+  flex: none;
+  margin: 0 0 0.45rem 0;
 }
 
 /* The question sits in the row so a tall card group cannot leave it behind. */

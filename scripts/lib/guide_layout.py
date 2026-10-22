@@ -291,6 +291,8 @@ class _GuideModel:
         self.edition = "reader"
         self.addendum_name = "guide-sources.md"
         self.body_name = "guide.md"
+        self.omitted_markers: set[int] = set()
+        self.sources_only_markers: set[int] = set()
         self.bill_folds: dict[str, list[dict]] = {}
         self.folded_bill_ids: set[str] = set()
 
@@ -334,6 +336,8 @@ class _GuideModel:
         self.search_log = []
         self._logged = set()
         self.details = []
+        self.omitted_markers = set()
+        self.sources_only_markers = set()
         self.edition = edition
         if edition == "full":
             self.addendum_name = "guide-full-sources.md"
@@ -361,11 +365,21 @@ class _GuideModel:
         if edition == "full":
             parts.extend(self._changelog())
         body = "\n".join(parts).rstrip() + "\n"
+        self.omitted_markers = set(getattr(self, "omitted_markers", set()))
+        before_markers = marker_numbers(body)
         if edition == "reader":
             body = plain_reader_document(body)
-        used = marker_numbers(body)
+        from lib.reader_substance import substance_document
+
+        body = substance_document(body, self.index)
+        self.sources_only_markers = set(self.omitted_markers)
+        self.sources_only_markers |= before_markers - marker_numbers(body)
+        self.sources_only_markers -= marker_numbers(body)
+        used = marker_numbers(body) | self.sources_only_markers
         addendum = self._sources_addendum(used)
-        body, addendum, mapping = _renumber_markers(body, addendum)
+        body, addendum, mapping = _renumber_markers(
+            body, addendum, extra=sorted(self.sources_only_markers)
+        )
         body = _separate_adjacent_markers(body)
         body = _collapse_marker_runs(body)
         if edition == "full" and mapping:
@@ -923,8 +937,8 @@ class _GuideModel:
             job = _office_job(title)
             count = _candidate_count_clause(contest)
             if job:
-                return f"{job}; {count}."
-            return f"{count[:1].upper()}{count[1:]}."
+                return f"{job}."
+            return "The office on this ballot."
         if kind == "judicial-retention" or contest.get("level") == "judicial":
             return _retention_blurb(title)
         effect = self._measure_effect(contest)
@@ -1941,7 +1955,8 @@ class _GuideModel:
             )
             for number in markers:
                 seen.add(number)
-                parts.extend(self._source_entry(number))
+                back = f"contest-{item_id}" if number in self.sources_only_markers else ""
+                parts.extend(self._source_entry(number, back_anchor=back))
             if details:
                 parts.extend(["### Cell detail", ""])
                 for anchor, label, full in details:
@@ -1967,7 +1982,7 @@ class _GuideModel:
                 parts.extend([f"- {owner} — {section}: {text}", ""])
         return "\n".join(parts).rstrip() + "\n"
 
-    def _source_entry(self, number: int) -> list[str]:
+    def _source_entry(self, number: int, back_anchor: str = "") -> list[str]:
         _item, claim, source = self.index[number]
         lines = [
             f"### Source {number} {{#source-{number} .source-entry}}",
@@ -1981,7 +1996,8 @@ class _GuideModel:
         claim_text = str(claim.get("text") or "").strip()
         if claim_text:
             lines.extend([f"Claim {claim.get('id')}: {claim_text}", ""])
-        lines.extend([f"[Back to the guide]({self.body_name}#cite-{number})", ""])
+        target = back_anchor or f"cite-{number}"
+        lines.extend([f"[Back to the guide]({self.body_name}#{target})", ""])
         return lines
 
     def _works_cited(self, used: set[int]) -> list[str]:
@@ -2459,7 +2475,9 @@ def _short_fact(sentence: str, hint: str = "") -> str:
     return f"{body}{markers}"
 
 
-def _renumber_markers(body: str, addendum: str) -> tuple[str, str, dict[int, int]]:
+def _renumber_markers(
+    body: str, addendum: str, extra: list[int] | None = None
+) -> tuple[str, str, dict[int, int]]:
     """Replace claim-file marker ids with 1, 2, 3… in the order the body first uses them.
 
     The returned map is display number to original number. Tokens are swapped in
@@ -2469,6 +2487,10 @@ def _renumber_markers(body: str, addendum: str) -> tuple[str, str, dict[int, int
     seen: set[int] = set()
     for match in MARKER_RE.finditer(body):
         number = int(match.group(1))
+        if number not in seen:
+            seen.add(number)
+            order.append(number)
+    for number in extra or []:
         if number not in seen:
             seen.add(number)
             order.append(number)
@@ -2490,7 +2512,6 @@ def _renumber_markers(body: str, addendum: str) -> tuple[str, str, dict[int, int
             text = re.sub(rf"#cite-{original}(?!\d)", f"#cite-{token}", text)
             text = re.sub(rf"(### Source ){original}(?!\d)", rf"\g<1>{token}", text)
             text = re.sub(rf"(?m)^\[{original}\] ", f"[{token}] ", text)
-            text = re.sub(rf"(?m)^\| {original} \|", f"| {token} |", text)
 
         def finish(match: re.Match) -> str:
             return str(original_to_display[int(match.group(1))])
@@ -2809,9 +2830,9 @@ def _office_job(title: str) -> str:
     if "attorney general" in lowered:
         return "Serves as the state's chief legal officer"
     if "chief financial officer" in lowered:
-        return "Serves as the state's chief fiscal officer"
+        return "Keeps the state's funds and settles its accounts"
     if "agriculture" in lowered:
-        return "Heads the state agriculture department"
+        return "Serves on the Florida Cabinet"
     if "state representative" in lowered:
         where = f"District {district}" if district else "this district"
         return f"Represents {where} in the Florida House"

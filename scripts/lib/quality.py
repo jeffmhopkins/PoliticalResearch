@@ -1462,6 +1462,8 @@ _DOCKET_NOTES = {
     "amounts are rounded to the nearest dollar.",
     "cash on hand is money the campaign still reported having.",
     "the full ballot wording was not captured.",
+    "no court cases, ethics findings, or campaign-finance penalties found in the records checked.",
+    "no court cases, ethics findings, or campaign-finance penalties found for the other candidates in the records checked.",
 }
 _NO_STATEMENT_RE = re.compile(r"^no public statement found on [^.;:!]+$", re.IGNORECASE)
 _PUBLIC_RECORD_RE = re.compile(
@@ -2162,6 +2164,9 @@ def assembled_guide_errors(
         errors.extend(reader_log_errors(text))
         errors.extend(reader_voice_errors(text))
         errors.extend(reader_truncation_errors(text))
+        from lib.reader_substance import substance_errors
+
+        errors.extend(substance_errors(text, ballot))
     errors.extend(docket_layout_errors(text))
     cited_text = addendum or text
     cited = works_cited_numbers(cited_text)
@@ -3813,6 +3818,9 @@ def content_gate_errors(workspace, today: date, *, include_guide: bool = True) -
     errors.extend(depth_record_errors(workspace))
     if include_guide:
         errors.extend(rendered_party_errors(workspace))
+    from lib.reader_substance import draft_street_errors
+
+    errors.extend(draft_street_errors(workspace))
     return errors
 
 

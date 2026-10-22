@@ -392,8 +392,8 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "Exact words on your ballot" in guide
     assert "What is the history of this bill?" in guide
     assert "How did your legislators vote?" in guide
-    assert "### Education" in guide and "### Work" in guide
-    assert "### Time in elected office" in guide and "### Recorded votes" in guide
+    assert "### Background" in guide
+    assert "### Education" not in guide and "### Work" not in guide
     for phrase in (
         "The two cards are the same size",
         "A missing statement stays a one-line gap",
@@ -429,7 +429,7 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert 'id="cite-1"' in guide or "#cite-1" in guide
     assert "[Back to ballot](#your-ballot-at-a-glance)" in guide
     assert "four-year term" in guide
-    assert "2018 certificate" in guide
+    assert "rather than an appointment" in guide
     assert "Ballot status" not in guide
     table = {}
     for line in guide.splitlines():

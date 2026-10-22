@@ -148,8 +148,9 @@ def test_reader_pages_cover_a_race_a_measure_and_a_bill(tmp_path: Path):
     assert "Related litigation" in body
     assert "The two cards are the same size" not in body
     assert "..." not in body
-    assert "### Education" in body
-    assert "No public records found for:" in body
+    assert "### Background" in body
+    assert "degree in 2001" in body
+    assert "No public record found for" in body
     assert "### Where do they stand?" in body
 
 

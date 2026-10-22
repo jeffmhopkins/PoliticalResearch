@@ -23,9 +23,9 @@ Each marker in the guide links to an entry here. Each entry links back. Quotes a
 
 [Back to Mayor of Cedar Hollow](guide.md#contest-race-mayor)
 
-### Source 23 {#source-23 .source-entry}
+### Source 22 {#source-22 .source-entry}
 
-[23] Cedar Hollow Clerk (fictional). "City council election certificate, 2018." Election certificate, published 2018-11-20. https://fictional.example/cedar-hollow/certificates/2018-council — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Certificate body.
+[22] Cedar Hollow Clerk (fictional). "City council election certificate, 2018." Election certificate, published 2018-11-20. https://fictional.example/cedar-hollow/certificates/2018-council — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Certificate body.
 
 Quote:
 
@@ -33,7 +33,7 @@ Quote:
 
 Claim cand-quinn.prior-offices.001: Avery Quinn was elected to the Cedar Hollow council for a term that began in 2018.
 
-[Back to the guide](guide.md#cite-23)
+[Back to the guide](guide.md#cite-22)
 
 ### Source 2 {#source-2 .source-entry}
 
@@ -47,9 +47,9 @@ Claim cand-quinn.occupation.001: Avery Quinn worked as a classroom teacher from 
 
 [Back to the guide](guide.md#cite-2)
 
-### Source 22 {#source-22 .source-entry}
+### Source 23 {#source-23 .source-entry}
 
-[22] State University of Westland (fictional). "Registrar confirmation letter." Education record, published 2004-05-20. https://fictional.example/suw/registrar/quinn-2004 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Degree line.
+[23] State University of Westland (fictional). "Registrar confirmation letter." Education record, published 2004-05-20. https://fictional.example/suw/registrar/quinn-2004 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Degree line.
 
 Quote:
 
@@ -57,7 +57,7 @@ Quote:
 
 Claim cand-quinn.education.001: Avery Quinn received a bachelor of arts degree from the State University of Westland in 2004.
 
-[Back to the guide](guide.md#cite-22)
+[Back to the guide](guide.md#cite-23)
 
 ### Source 6 {#source-6 .source-entry}
 
@@ -71,9 +71,9 @@ Claim cand-quinn.funding.001: Avery Quinn's Cedar Hollow committee reported 4820
 
 [Back to the guide](guide.md#cite-6)
 
-### Source 24 {#source-24 .source-entry}
+### Source 68 {#source-68 .source-entry}
 
-[24] Cedar Hollow Clerk (fictional). "Council minutes, June 4, 2024." Meeting minutes, published 2024-06-04. https://fictional.example/cedar-hollow/minutes/2024-06-04 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Vote table, parks budget.
+[68] Cedar Hollow Clerk (fictional). "Council minutes, June 4, 2024." Meeting minutes, published 2024-06-04. https://fictional.example/cedar-hollow/minutes/2024-06-04 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Vote table, parks budget.
 
 Quote:
 
@@ -81,7 +81,7 @@ Quote:
 
 Claim cand-quinn.record.001: Mayor Avery Quinn of Cedar Hollow voted yes on the city parks budget on June 4, 2024.
 
-[Back to the guide](guide.md#cite-24)
+[Back to the guide](guide.md#contest-race-mayor)
 
 ### Source 4 {#source-4 .source-entry}
 
@@ -119,9 +119,9 @@ Claim cand-okonkwo.occupation.001: The city appointed Blake Okonkwo as a parks p
 
 [Back to the guide](guide.md#cite-3)
 
-### Source 25 {#source-25 .source-entry}
+### Source 24 {#source-24 .source-entry}
 
-[25] Westland State College (fictional). "Registrar confirmation letter." Education record, published 2015-05-18. https://fictional.example/wsc/registrar/okonkwo-2015 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Degree line.
+[24] Westland State College (fictional). "Registrar confirmation letter." Education record, published 2015-05-18. https://fictional.example/wsc/registrar/okonkwo-2015 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Degree line.
 
 Quote:
 
@@ -129,11 +129,11 @@ Quote:
 
 Claim cand-okonkwo.education.001: Blake Okonkwo received a master of public administration degree from Westland State College in 2015.
 
-[Back to the guide](guide.md#cite-25)
+[Back to the guide](guide.md#cite-24)
 
-### Source 26 {#source-26 .source-entry}
+### Source 69 {#source-69 .source-entry}
 
-[26] Cedar Hollow Parks (fictional). "River path project closeout, 2025." Department report, published 2025-12-01. https://fictional.example/cedar-hollow/parks/river-path-2025 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Project lead line.
+[69] Cedar Hollow Parks (fictional). "River path project closeout, 2025." Department report, published 2025-12-01. https://fictional.example/cedar-hollow/parks/river-path-2025 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Project lead line.
 
 Quote:
 
@@ -141,7 +141,7 @@ Quote:
 
 Claim cand-okonkwo.record.001: A 2025 Cedar Hollow parks report names Blake Okonkwo as the lead on the river path repair.
 
-[Back to the guide](guide.md#cite-26)
+[Back to the guide](guide.md#contest-race-mayor)
 
 ### Source 7 {#source-7 .source-entry}
 
@@ -365,9 +365,9 @@ Claim cand-okonkwo.outside.001: Independent expenditures for and against Blake O
 
 [Back to Measure H, Cedar Hollow parks levy](guide.md#contest-measure-h)
 
-### Source 34 {#source-34 .source-entry}
+### Source 32 {#source-32 .source-entry}
 
-[34] Oak County Elections (fictional). "Measure H ballot label." Official ballot label, published 2026-09-15. https://fictional.example/oak-county/2026/measure-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Ballot label, verbatim.
+[32] Oak County Elections (fictional). "Measure H ballot label." Official ballot label, published 2026-09-15. https://fictional.example/oak-county/2026/measure-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Ballot label, verbatim.
 
 Quote:
 
@@ -375,11 +375,11 @@ Quote:
 
 Claim measure-h.title.001: The official label is Measure H, Parks levy.
 
-[Back to the guide](guide.md#cite-34)
+[Back to the guide](guide.md#cite-32)
 
-### Source 35 {#source-35 .source-entry}
+### Source 33 {#source-33 .source-entry}
 
-[35] Cedar Hollow Council (fictional). "Resolution 2026-14, referring Measure H." Council resolution, published 2026-07-09. https://fictional.example/cedar-hollow/resolutions/2026-14 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Referral clause.
+[33] Cedar Hollow Council (fictional). "Resolution 2026-14, referring Measure H." Council resolution, published 2026-07-09. https://fictional.example/cedar-hollow/resolutions/2026-14 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Referral clause.
 
 Quote:
 
@@ -387,11 +387,11 @@ Quote:
 
 Claim measure-h.qualification.001: The city council referred Measure H to the ballot.
 
-[Back to the guide](guide.md#cite-35)
+[Back to the guide](guide.md#cite-33)
 
-### Source 27 {#source-27 .source-entry}
+### Source 25 {#source-25 .source-entry}
 
-[27] Cedar Hollow Code (fictional). "Parks levy chapter." Municipal code, published 2020-01-01. https://fictional.example/cedar-hollow/code/parks-levy — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Expiration section.
+[25] Cedar Hollow Code (fictional). "Parks levy chapter." Municipal code, published 2020-01-01. https://fictional.example/cedar-hollow/code/parks-levy — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Expiration section.
 
 Quote:
 
@@ -399,11 +399,11 @@ Quote:
 
 Claim measure-h.law.001: The current parks levy, adopted in 2020, expires after the 2026 tax year.
 
-[Back to the guide](guide.md#cite-27)
+[Back to the guide](guide.md#cite-25)
 
-### Source 28 {#source-28 .source-entry}
+### Source 26 {#source-26 .source-entry}
 
-[28] Oak County Elections (fictional). "Measure H ballot label." Official ballot label, published 2026-09-15. https://fictional.example/oak-county/2026/measure-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Yes effect sentence.
+[26] Oak County Elections (fictional). "Measure H ballot label." Official ballot label, published 2026-09-15. https://fictional.example/oak-county/2026/measure-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Yes effect sentence.
 
 Quote:
 
@@ -411,11 +411,11 @@ Quote:
 
 Claim measure-h.yes.001: A yes vote replaces the expiring levy at the same rate.
 
-[Back to the guide](guide.md#cite-28)
+[Back to the guide](guide.md#cite-26)
 
-### Source 30 {#source-30 .source-entry}
+### Source 28 {#source-28 .source-entry}
 
-[30] Oak County Elections (fictional). "Measure H ballot label." Official ballot label, published 2026-09-15. https://fictional.example/oak-county/2026/measure-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: No effect sentence.
+[28] Oak County Elections (fictional). "Measure H ballot label." Official ballot label, published 2026-09-15. https://fictional.example/oak-county/2026/measure-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: No effect sentence.
 
 Quote:
 
@@ -423,11 +423,11 @@ Quote:
 
 Claim measure-h.no.001: A no vote lets the current levy expire.
 
-[Back to the guide](guide.md#cite-30)
+[Back to the guide](guide.md#cite-28)
 
-### Source 29 {#source-29 .source-entry}
+### Source 27 {#source-27 .source-entry}
 
-[29] Westland fiscal office (fictional). "Measure H fiscal note." Official fiscal note, published 2026-08-01. https://fictional.example/westland-fiscal/measure-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Estimate table.
+[27] Westland fiscal office (fictional). "Measure H fiscal note." Official fiscal note, published 2026-08-01. https://fictional.example/westland-fiscal/measure-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Estimate table.
 
 Quote:
 
@@ -435,11 +435,11 @@ Quote:
 
 Claim measure-h.fiscal.001: The official note estimates 1.2 million dollars a year for parks if the levy passes.
 
-[Back to the guide](guide.md#cite-29)
+[Back to the guide](guide.md#cite-27)
 
-### Source 36 {#source-36 .source-entry}
+### Source 34 {#source-34 .source-entry}
 
-[36] Westland Elections Code (fictional). "Local levy approval rule." Statute, published 2019-01-01. https://fictional.example/westland-code/levy-threshold — Archived: https://fictional.example/archive/levy-threshold. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 4. Local copy: saved/levy-threshold.html.
+[34] Westland Elections Code (fictional). "Local levy approval rule." Statute, published 2019-01-01. https://fictional.example/westland-code/levy-threshold — Archived: https://fictional.example/archive/levy-threshold. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 4. Local copy: saved/levy-threshold.html.
 
 Quote:
 
@@ -447,11 +447,11 @@ Quote:
 
 Claim measure-h.threshold.001: Under the 2019 levy rule, the measure needs more than half the votes cast on it.
 
-[Back to the guide](guide.md#cite-36)
+[Back to the guide](guide.md#cite-34)
 
-### Source 37 {#source-37 .source-entry}
+### Source 35 {#source-35 .source-entry}
 
-[37] Westland campaign finance office (fictional). "Yes on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/yes-on-h-q3 — Archived: https://fictional.example/archive/yes-on-h-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line. Local copy: saved/yes-on-h-q3.html.
+[35] Westland campaign finance office (fictional). "Yes on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/yes-on-h-q3 — Archived: https://fictional.example/archive/yes-on-h-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line. Local copy: saved/yes-on-h-q3.html.
 
 Quote:
 
@@ -459,11 +459,11 @@ Quote:
 
 Claim measure-h.funding.001: Yes on H reported 20000 dollars in receipts for the quarter ending September 30, 2026.
 
-[Back to the guide](guide.md#cite-37)
+[Back to the guide](guide.md#cite-35)
 
-### Source 38 {#source-38 .source-entry}
+### Source 36 {#source-36 .source-entry}
 
-[38] Westland campaign finance office (fictional). "No on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/no-on-h-q3 — Archived: https://fictional.example/archive/no-on-h-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line. Local copy: saved/no-on-h-q3.html.
+[36] Westland campaign finance office (fictional). "No on H committee, quarter ending September 30, 2026." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/no-on-h-q3 — Archived: https://fictional.example/archive/no-on-h-q3. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Receipts line. Local copy: saved/no-on-h-q3.html.
 
 Quote:
 
@@ -471,11 +471,11 @@ Quote:
 
 Claim measure-h.funding.002: No on H reported 18000 dollars in receipts for the quarter ending September 30, 2026.
 
-[Back to the guide](guide.md#cite-38)
+[Back to the guide](guide.md#cite-36)
 
-### Source 31 {#source-31 .source-entry}
+### Source 29 {#source-29 .source-entry}
 
-[31] Cedar Hollow pamphlet (fictional). "Official arguments, Measure H." Voter pamphlet, published 2026-09-20. https://fictional.example/oak-county/2026/pamphlet-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Argument for, signature block.
+[29] Cedar Hollow pamphlet (fictional). "Official arguments, Measure H." Voter pamphlet, published 2026-09-20. https://fictional.example/oak-county/2026/pamphlet-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Argument for, signature block.
 
 Quote:
 
@@ -483,11 +483,11 @@ Quote:
 
 Claim measure-h.supporters.001: The parks board and the library board signed the argument for Measure H.
 
-[Back to the guide](guide.md#cite-31)
+[Back to the guide](guide.md#cite-29)
 
-### Source 32 {#source-32 .source-entry}
+### Source 30 {#source-30 .source-entry}
 
-[32] Cedar Hollow pamphlet (fictional). "Official arguments, Measure H." Voter pamphlet, published 2026-09-20. https://fictional.example/oak-county/2026/pamphlet-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Argument against, signature block.
+[30] Cedar Hollow pamphlet (fictional). "Official arguments, Measure H." Voter pamphlet, published 2026-09-20. https://fictional.example/oak-county/2026/pamphlet-h — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Argument against, signature block.
 
 Quote:
 
@@ -495,11 +495,11 @@ Quote:
 
 Claim measure-h.opponents.001: A homeowners association and a grocer signed the argument against Measure H.
 
-[Back to the guide](guide.md#cite-32)
+[Back to the guide](guide.md#cite-30)
 
-### Source 33 {#source-33 .source-entry}
+### Source 31 {#source-31 .source-entry}
 
-[33] Westland Civic Ledger (fictional). "Parks levy estimate, Measure H." News report, published 2026-08-03. https://fictional.example/westland-ledger/measure-h-estimate — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T2. Locator: Estimate paragraph.
+[31] Westland Civic Ledger (fictional). "Parks levy estimate, Measure H." News report, published 2026-08-03. https://fictional.example/westland-ledger/measure-h-estimate — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T2. Locator: Estimate paragraph.
 
 Quote:
 
@@ -507,11 +507,11 @@ Quote:
 
 Claim measure-h.fiscal.001: The official note estimates 1.2 million dollars a year for parks if the levy passes.
 
-[Back to the guide](guide.md#cite-33)
+[Back to the guide](guide.md#cite-31)
 
-### Source 39 {#source-39 .source-entry}
+### Source 37 {#source-37 .source-entry}
 
-[39] Cedar Hollow Council (fictional). "Resolution 2026-14, referring Measure H." Council resolution, published 2026-07-09. https://fictional.example/cedar-hollow/resolutions/2026-14 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Sponsor clause.
+[37] Cedar Hollow Council (fictional). "Resolution 2026-14, referring Measure H." Council resolution, published 2026-07-09. https://fictional.example/cedar-hollow/resolutions/2026-14 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Sponsor clause.
 
 Quote:
 
@@ -519,11 +519,11 @@ Quote:
 
 Claim measure-h.sponsor.001: The council resolution names Yes on H as the sponsor committee for Measure H.
 
-[Back to the guide](guide.md#cite-39)
+[Back to the guide](guide.md#cite-37)
 
-### Source 40 {#source-40 .source-entry}
+### Source 38 {#source-38 .source-entry}
 
-[40] Westland campaign finance office (fictional). "Yes on H itemized receipts." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/yes-on-h-q3-items — Archived: https://fictional.example/archive/yes-on-h-items. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Largest receipt. Local copy: saved/measure-funders.html.
+[38] Westland campaign finance office (fictional). "Yes on H itemized receipts." Campaign filing, published 2026-10-12. https://fictional.example/westland-finance/yes-on-h-q3-items — Archived: https://fictional.example/archive/yes-on-h-items. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Largest receipt. Local copy: saved/measure-funders.html.
 
 Quote:
 
@@ -531,7 +531,7 @@ Quote:
 
 Claim measure-h.funders.001: Yes on H reported 8000 dollars from the Cedar Hollow Parks Foundation.
 
-[Back to the guide](guide.md#cite-40)
+[Back to the guide](guide.md#cite-38)
 
 ### Search log
 
@@ -541,9 +541,9 @@ Claim measure-h.funders.001: Yes on H reported 8000 dollars from the Cedar Hollo
 
 [Back to House Bill 18, parks repair reporting](guide.md#contest-bill-hb18)
 
-### Source 45 {#source-45 .source-entry}
+### Source 43 {#source-43 .source-entry}
 
-[45] Westland House (fictional). "House Bill 18, bill page." Bill page, published 2026-03-01. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Title line.
+[43] Westland House (fictional). "House Bill 18, bill page." Bill page, published 2026-03-01. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Title line.
 
 Quote:
 
@@ -551,11 +551,11 @@ Quote:
 
 Claim bill-hb18.identity.001: House Bill 18 is titled parks repair reporting.
 
-[Back to the guide](guide.md#cite-45)
+[Back to the guide](guide.md#cite-43)
 
-### Source 55 {#source-55 .source-entry}
+### Source 53 {#source-53 .source-entry}
 
-[55] Westland House (fictional). "House Bill 18 sponsors." Bill page, published 2026-03-01. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Sponsor line.
+[53] Westland House (fictional). "House Bill 18 sponsors." Bill page, published 2026-03-01. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Sponsor line.
 
 Quote:
 
@@ -563,11 +563,11 @@ Quote:
 
 Claim bill-hb18.sponsors.001: Morgan Hale, a Democrat from House district 4, is the primary sponsor, and Riley Chen, a Republican from House district 9, is the cosponsor.
 
-[Back to the guide](guide.md#cite-55)
+[Back to the guide](guide.md#cite-53)
 
-### Source 56 {#source-56 .source-entry}
+### Source 54 {#source-54 .source-entry}
 
-[56] Westland House (fictional). "House Bill 18 staff analysis." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Drafting note.
+[54] Westland House (fictional). "House Bill 18 staff analysis." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Drafting note.
 
 Quote:
 
@@ -575,11 +575,11 @@ Quote:
 
 Claim bill-hb18.drafting.001: Legislative counsel drafted the posted text of House Bill 18.
 
-[Back to the guide](guide.md#cite-56)
+[Back to the guide](guide.md#cite-54)
 
-### Source 57 {#source-57 .source-entry}
+### Source 55 {#source-55 .source-entry}
 
-[57] Westland Civic Ledger (fictional). "Parks posting language." News report, published 2026-03-20. https://fictional.example/westland-ledger/hb18-model — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T3. Locator: Comparison paragraph.
+[55] Westland Civic Ledger (fictional). "Parks posting language." News report, published 2026-03-20. https://fictional.example/westland-ledger/hb18-model — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T3. Locator: Comparison paragraph.
 
 Quote:
 
@@ -587,11 +587,11 @@ Quote:
 
 Claim bill-hb18.model.001: A Westland Ledger article said the posting lines resemble a union model bill.
 
-[Back to the guide](guide.md#cite-57)
+[Back to the guide](guide.md#cite-55)
 
-### Source 46 {#source-46 .source-entry}
+### Source 44 {#source-44 .source-entry}
 
-[46] Westland House (fictional). "House Bill 7 of 2024." Bill page, published 2024-02-01. https://fictional.example/westland-house/2024/hb7 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary line.
+[44] Westland House (fictional). "House Bill 7 of 2024." Bill page, published 2024-02-01. https://fictional.example/westland-house/2024/hb7 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Summary line.
 
 Quote:
 
@@ -599,11 +599,11 @@ Quote:
 
 Claim bill-hb18.history.001: House Bill 7 of 2024 required a parks inventory and did not require a public posting.
 
-[Back to the guide](guide.md#cite-46)
+[Back to the guide](guide.md#cite-44)
 
-### Source 47 {#source-47 .source-entry}
+### Source 45 {#source-45 .source-entry}
 
-[47] Westland House (fictional). "House Bill 18 staff analysis." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Change note.
+[45] Westland House (fictional). "House Bill 18 staff analysis." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Change note.
 
 Quote:
 
@@ -611,11 +611,11 @@ Quote:
 
 Claim bill-hb18.history.002: The 2026 text adds a yearly public posting.
 
-[Back to the guide](guide.md#cite-47)
+[Back to the guide](guide.md#cite-45)
 
-### Source 49 {#source-49 .source-entry}
+### Source 47 {#source-47 .source-entry}
 
-[49] Westland House (fictional). "House Bill 18 history." Bill history, published 2026-03-12. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: History row.
+[47] Westland House (fictional). "House Bill 18 history." Bill history, published 2026-03-12. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: History row.
 
 Quote:
 
@@ -623,11 +623,11 @@ Quote:
 
 Claim bill-hb18.committee.001: The Local Government Committee heard House Bill 18 on March 12, 2026.
 
-[Back to the guide](guide.md#cite-49)
+[Back to the guide](guide.md#cite-47)
 
-### Source 50 {#source-50 .source-entry}
+### Source 48 {#source-48 .source-entry}
 
-[50] Westland House (fictional). "House Bill 18 amendment." Amendment, published 2026-03-12. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Amendment text.
+[48] Westland House (fictional). "House Bill 18 amendment." Amendment, published 2026-03-12. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Amendment text.
 
 Quote:
 
@@ -635,11 +635,11 @@ Quote:
 
 Claim bill-hb18.committee.002: The committee adopted an amendment that sets the posting date as June 1.
 
-[Back to the guide](guide.md#cite-50)
+[Back to the guide](guide.md#cite-48)
 
-### Source 51 {#source-51 .source-entry}
+### Source 49 {#source-49 .source-entry}
 
-[51] Westland Senate (fictional). "Senate Bill 22." Bill page, published 2026-03-15. https://fictional.example/westland-senate/2026/sb22 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Companion line.
+[49] Westland Senate (fictional). "Senate Bill 22." Bill page, published 2026-03-15. https://fictional.example/westland-senate/2026/sb22 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Companion line.
 
 Quote:
 
@@ -647,11 +647,11 @@ Quote:
 
 Claim bill-hb18.companion.001: Senate Bill 22 is the companion bill.
 
-[Back to the guide](guide.md#cite-51)
+[Back to the guide](guide.md#cite-49)
 
-### Source 48 {#source-48 .source-entry}
+### Source 46 {#source-46 .source-entry}
 
-[48] Westland House (fictional). "House Bill 18 history." Bill history, published 2026-04-02. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Passage row.
+[46] Westland House (fictional). "House Bill 18 history." Bill history, published 2026-04-02. https://fictional.example/westland-house/2026/hb18 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Passage row.
 
 Quote:
 
@@ -659,11 +659,11 @@ Quote:
 
 Claim bill-hb18.status.001: The House passed House Bill 18 on April 2, 2026, and the bill is in the Senate.
 
-[Back to the guide](guide.md#cite-48)
+[Back to the guide](guide.md#cite-46)
 
-### Source 41 {#source-41 .source-entry}
+### Source 39 {#source-39 .source-entry}
 
-[41] Westland House (fictional). "House Bill 18 digest." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Digest.
+[39] Westland House (fictional). "House Bill 18 digest." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Digest.
 
 Quote:
 
@@ -671,11 +671,11 @@ Quote:
 
 Claim bill-hb18.summary.001: House Bill 18 would require a city to post its parks repair list each year.
 
-[Back to the guide](guide.md#cite-41)
+[Back to the guide](guide.md#cite-39)
 
-### Source 54 {#source-54 .source-entry}
+### Source 52 {#source-52 .source-entry}
 
-[54] Westland Code (fictional). "Parks inventory section." Statute, published 2020-01-01. https://fictional.example/westland-code/parks — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 12.
+[52] Westland Code (fictional). "Parks inventory section." Statute, published 2020-01-01. https://fictional.example/westland-code/parks — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 12.
 
 Quote:
 
@@ -683,11 +683,11 @@ Quote:
 
 Claim bill-hb18.law.001: City code requires a parks inventory and does not require a public posting.
 
-[Back to the guide](guide.md#cite-54)
+[Back to the guide](guide.md#cite-52)
 
-### Source 66 {#source-66 .source-entry}
+### Source 64 {#source-64 .source-entry}
 
-[66] Westland House (fictional). "House Bill 18 staff analysis." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Effect paragraph.
+[64] Westland House (fictional). "House Bill 18 staff analysis." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Effect paragraph.
 
 Quote:
 
@@ -695,11 +695,11 @@ Quote:
 
 Claim bill-hb18.affected.001: The staff analysis says the bill applies to cities that run a parks department.
 
-[Back to the guide](guide.md#cite-66)
+[Back to the guide](guide.md#cite-64)
 
-### Source 44 {#source-44 .source-entry}
+### Source 42 {#source-42 .source-entry}
 
-[44] Westland fiscal office (fictional). "House Bill 18 fiscal note." Official fiscal note, published 2026-03-08. https://fictional.example/westland-fiscal/hb18 — Archived: https://fictional.example/archive/hb18. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Estimate line. Local copy: saved/bill-hb18.html.
+[42] Westland fiscal office (fictional). "House Bill 18 fiscal note." Official fiscal note, published 2026-03-08. https://fictional.example/westland-fiscal/hb18 — Archived: https://fictional.example/archive/hb18. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Estimate line. Local copy: saved/bill-hb18.html.
 
 Quote:
 
@@ -707,11 +707,11 @@ Quote:
 
 Claim bill-hb18.fiscal.001: The fiscal note estimates 40000 dollars for the posting website.
 
-[Back to the guide](guide.md#cite-44)
+[Back to the guide](guide.md#cite-42)
 
-### Source 67 {#source-67 .source-entry}
+### Source 65 {#source-65 .source-entry}
 
-[67] Westland House (fictional). "House Bill 18 staff analysis." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Present situation.
+[65] Westland House (fictional). "House Bill 18 staff analysis." Staff analysis, published 2026-03-10. https://fictional.example/westland-house/2026/hb18/analysis — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Present situation.
 
 Quote:
 
@@ -719,11 +719,11 @@ Quote:
 
 Claim bill-hb18.staff.001: The House staff analysis says House Bill 18 adds a public posting and does not change the tax rate.
 
-[Back to the guide](guide.md#cite-67)
+[Back to the guide](guide.md#cite-65)
 
-### Source 63 {#source-63 .source-entry}
+### Source 61 {#source-61 .source-entry}
 
-[63] Westland House (fictional). "House Bill 18 roll call." Roll call, published 2026-04-02. https://fictional.example/westland-house/2026/hb18/votes — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Vote totals.
+[61] Westland House (fictional). "House Bill 18 roll call." Roll call, published 2026-04-02. https://fictional.example/westland-house/2026/hb18/votes — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Vote totals.
 
 Quote:
 
@@ -731,11 +731,11 @@ Quote:
 
 Claim bill-hb18.roll.001: The House vote on April 2, 2026 was 28 yes and 12 no.
 
-[Back to the guide](guide.md#cite-63)
+[Back to the guide](guide.md#cite-61)
 
-### Source 64 {#source-64 .source-entry}
+### Source 62 {#source-62 .source-entry}
 
-[64] Westland House (fictional). "House Bill 18 roll call by party." Roll call, published 2026-04-02. https://fictional.example/westland-house/2026/hb18/votes — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Party lines.
+[62] Westland House (fictional). "House Bill 18 roll call by party." Roll call, published 2026-04-02. https://fictional.example/westland-house/2026/hb18/votes — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Party lines.
 
 Quote:
 
@@ -743,11 +743,11 @@ Quote:
 
 Claim bill-hb18.parties.001: Democrats cast 18 yes and 2 no, and Republicans cast 10 yes and 10 no.
 
-[Back to the guide](guide.md#cite-64)
+[Back to the guide](guide.md#cite-62)
 
-### Source 59 {#source-59 .source-entry}
+### Source 57 {#source-57 .source-entry}
 
-[59] Westland lobbyist index (fictional). "Lobbyist registrations, 2026." Lobbyist registration, published 2026-03-01. https://fictional.example/westland-lobby/2026 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Guild row.
+[57] Westland lobbyist index (fictional). "Lobbyist registrations, 2026." Lobbyist registration, published 2026-03-01. https://fictional.example/westland-lobby/2026 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Guild row.
 
 Quote:
 
@@ -755,11 +755,11 @@ Quote:
 
 Claim bill-hb18.lobby.001: The Parks Workers Guild registered to lobby for House Bill 18.
 
-[Back to the guide](guide.md#cite-59)
+[Back to the guide](guide.md#cite-57)
 
-### Source 60 {#source-60 .source-entry}
+### Source 58 {#source-58 .source-entry}
 
-[60] Westland lobbyist index (fictional). "Lobbyist registrations, 2026." Lobbyist registration, published 2026-03-01. https://fictional.example/westland-lobby/2026 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Managers row.
+[58] Westland lobbyist index (fictional). "Lobbyist registrations, 2026." Lobbyist registration, published 2026-03-01. https://fictional.example/westland-lobby/2026 — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Managers row.
 
 Quote:
 
@@ -767,11 +767,11 @@ Quote:
 
 Claim bill-hb18.lobby.002: The City Managers Association registered to lobby against House Bill 18.
 
-[Back to the guide](guide.md#cite-60)
+[Back to the guide](guide.md#cite-58)
 
-### Source 61 {#source-61 .source-entry}
+### Source 59 {#source-59 .source-entry}
 
-[61] Westland House (fictional). "Local Government Committee hearing." Hearing record, published 2026-03-12. https://fictional.example/westland-house/2026/hb18/hearing — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Witness line.
+[59] Westland House (fictional). "Local Government Committee hearing." Hearing record, published 2026-03-12. https://fictional.example/westland-house/2026/hb18/hearing — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Witness line.
 
 Quote:
 
@@ -779,11 +779,11 @@ Quote:
 
 Claim bill-hb18.testimony.001: A guild witness told the committee the posting would show delayed repairs.
 
-[Back to the guide](guide.md#cite-61)
+[Back to the guide](guide.md#cite-59)
 
-### Source 62 {#source-62 .source-entry}
+### Source 60 {#source-60 .source-entry}
 
-[62] Westland campaign finance office (fictional). "Hale contributions, 2024." Campaign filing, published 2024-06-01. https://fictional.example/westland-finance/hale-2024 — Archived: https://fictional.example/archive/hb18. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Guild receipt. Local copy: saved/bill-hb18.html.
+[60] Westland campaign finance office (fictional). "Hale contributions, 2024." Campaign filing, published 2024-06-01. https://fictional.example/westland-finance/hale-2024 — Archived: https://fictional.example/archive/hb18. Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Guild receipt. Local copy: saved/bill-hb18.html.
 
 Quote:
 
@@ -791,11 +791,11 @@ Quote:
 
 Claim bill-hb18.gift.001: The Parks Workers Guild gave Morgan Hale 500 dollars in 2024.
 
-[Back to the guide](guide.md#cite-62)
+[Back to the guide](guide.md#cite-60)
 
-### Source 42 {#source-42 .source-entry}
+### Source 40 {#source-40 .source-entry}
 
-[42] Parks Workers Guild (fictional). "Hearing statement." Hearing record, published 2026-03-12. https://fictional.example/westland-house/2026/hb18/hearing — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T4. Locator: Guild statement.
+[40] Parks Workers Guild (fictional). "Hearing statement." Hearing record, published 2026-03-12. https://fictional.example/westland-house/2026/hb18/hearing — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T4. Locator: Guild statement.
 
 Quote:
 
@@ -803,11 +803,11 @@ Quote:
 
 Claim bill-hb18.for.001: The guild said the public list would show which repairs are waiting.
 
-[Back to the guide](guide.md#cite-42)
+[Back to the guide](guide.md#cite-40)
 
-### Source 43 {#source-43 .source-entry}
+### Source 41 {#source-41 .source-entry}
 
-[43] City Managers Association (fictional). "Hearing statement." Hearing record, published 2026-03-12. https://fictional.example/westland-house/2026/hb18/hearing — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T4. Locator: Managers statement.
+[41] City Managers Association (fictional). "Hearing statement." Hearing record, published 2026-03-12. https://fictional.example/westland-house/2026/hb18/hearing — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T4. Locator: Managers statement.
 
 Quote:
 
@@ -815,11 +815,11 @@ Quote:
 
 Claim bill-hb18.against.001: The managers association said the posting repeats the inventory the city already keeps.
 
-[Back to the guide](guide.md#cite-43)
+[Back to the guide](guide.md#cite-41)
 
-### Source 52 {#source-52 .source-entry}
+### Source 50 {#source-50 .source-entry}
 
-[52] Westland House (fictional). "House Bill 18, section 12." Bill text, published 2026-03-01. https://fictional.example/westland-house/2026/hb18/text — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 12.
+[50] Westland House (fictional). "House Bill 18, section 12." Bill text, published 2026-03-01. https://fictional.example/westland-house/2026/hb18/text — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Section 12.
 
 Quote:
 
@@ -827,11 +827,11 @@ Quote:
 
 Claim bill-hb18.redline.001: Section 12 would add a yearly public posting, effective July 1, 2027.
 
-[Back to the guide](guide.md#cite-52)
+[Back to the guide](guide.md#cite-50)
 
-### Source 53 {#source-53 .source-entry}
+### Source 51 {#source-51 .source-entry}
 
-[53] Westland House (fictional). "House Bill 18 effective date." Bill text, published 2026-03-01. https://fictional.example/westland-house/2026/hb18/text — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Effective date.
+[51] Westland House (fictional). "House Bill 18 effective date." Bill text, published 2026-03-01. https://fictional.example/westland-house/2026/hb18/text — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Effective date.
 
 Quote:
 
@@ -839,11 +839,11 @@ Quote:
 
 Claim bill-hb18.effective.001: House Bill 18 takes effect on July 1, 2027.
 
-[Back to the guide](guide.md#cite-53)
+[Back to the guide](guide.md#cite-51)
 
-### Source 58 {#source-58 .source-entry}
+### Source 56 {#source-56 .source-entry}
 
-[58] Westland House (fictional). "House Bill 18 implementing agency." Bill text, published 2026-03-01. https://fictional.example/westland-house/2026/hb18/text — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Agency line.
+[56] Westland House (fictional). "House Bill 18 implementing agency." Bill text, published 2026-03-01. https://fictional.example/westland-house/2026/hb18/text — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: Agency line.
 
 Quote:
 
@@ -851,11 +851,11 @@ Quote:
 
 Claim bill-hb18.agency.001: The bill names the Parks Division as the implementing agency.
 
-[Back to the guide](guide.md#cite-58)
+[Back to the guide](guide.md#cite-56)
 
-### Source 65 {#source-65 .source-entry}
+### Source 63 {#source-63 .source-entry}
 
-[65] Westland House (fictional). "House Bill 18 roll call." Roll call, published 2026-04-02. https://fictional.example/westland-house/2026/hb18/votes — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: District 4.
+[63] Westland House (fictional). "House Bill 18 roll call." Roll call, published 2026-04-02. https://fictional.example/westland-house/2026/hb18/votes — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T1. Locator: District 4.
 
 Quote:
 
@@ -863,11 +863,11 @@ Quote:
 
 Claim bill-hb18.member.001: The member for Westland House district 4 voted yes on House Bill 18.
 
-[Back to the guide](guide.md#cite-65)
+[Back to the guide](guide.md#cite-63)
 
-### Source 68 {#source-68 .source-entry}
+### Source 66 {#source-66 .source-entry}
 
-[68] NCSL (fictional extract). "Parks posting laws." 50-state table, published 2026-05-01. https://fictional.example/ncsl/parks-posting — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T2. Locator: Easton row.
+[66] NCSL (fictional extract). "Parks posting laws." 50-state table, published 2026-05-01. https://fictional.example/ncsl/parks-posting — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T2. Locator: Easton row.
 
 Quote:
 
@@ -875,11 +875,11 @@ Quote:
 
 Claim bill-hb18.similar.001: NCSL lists a parks-posting law Easton passed in 2024.
 
-[Back to the guide](guide.md#cite-68)
+[Back to the guide](guide.md#cite-66)
 
-### Source 69 {#source-69 .source-entry}
+### Source 67 {#source-67 .source-entry}
 
-[69] OPPAGA (fictional extract). "Easton posting site note." Government evaluation, published 2026-06-01. https://fictional.example/oppaga/easton-posting — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T2. Locator: Use finding.
+[67] OPPAGA (fictional extract). "Easton posting site note." Government evaluation, published 2026-06-01. https://fictional.example/oppaga/easton-posting — Archived: capture failed (Fictional example; no live document exists.). Retrieved 2026-10-20 09:30 ET. Tier T2. Locator: Use finding.
 
 Quote:
 
@@ -887,7 +887,7 @@ Quote:
 
 Claim bill-hb18.similar.002: OPPAGA reported that Easton clerks used the posting site in its first year.
 
-[Back to the guide](guide.md#cite-69)
+[Back to the guide](guide.md#cite-67)
 
 ### Search log
 

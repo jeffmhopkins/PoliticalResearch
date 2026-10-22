@@ -147,8 +147,10 @@ _PROFILE_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 _BACK_LINK_RE = re.compile(
-    r'<p><a href="#your-ballot-at-a-glance">Back to ballot</a></p>',
+    r'<p(?:\s+class="back-link")?><a href="#your-ballot-at-a-glance">Back to ballot</a></p>',
+    re.IGNORECASE,
 )
+_BACK_LINK_HTML = '<p class="back-link"><a href="#your-ballot-at-a-glance">Back to ballot</a></p>'
 
 
 def _plain_len(html: str) -> int:
@@ -182,6 +184,28 @@ def _pair_short_profiles(html: str) -> str:
     return "".join(pieces)
 
 
+_KEEP_WITH_LINK_RE = re.compile(
+    r"(<div class=\"profile-pair\">.*?</div>|<section\b[^>]*\bclass=\"[^\"]*\bprofile\b[^\"]*\"[^>]*>.*?</section>)"
+    r"\s*(<p(?:\s+class=\"back-link\")?><a href=\"#your-ballot-at-a-glance\">Back to ballot</a></p>)",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _keep_back_link(html: str) -> str:
+    """Keep the ballot link with a short profile. A long profile may split."""
+
+    def repl(match: re.Match) -> str:
+        if "link-keep" in html[max(0, match.start() - 80) : match.start()]:
+            return match.group(0)
+        block = match.group(1)
+        # A long biography has to be able to start on the page before it.
+        if _plain_len(block) > 900:
+            return block + _BACK_LINK_HTML
+        return f'<div class="link-keep">{block}{_BACK_LINK_HTML}</div>'
+
+    return _KEEP_WITH_LINK_RE.sub(repl, html)
+
+
 def polish_html(html: str) -> str:
     """Add not-found styling hooks and column scope. The visible text stays."""
 
@@ -207,7 +231,9 @@ def polish_html(html: str) -> str:
     text = _keep_short_lists(text)
     text = _keep_list_tails(text)
     text = _keep_bill_closing(text)
-    return _pair_short_profiles(text)
+    text = _pair_short_profiles(text)
+    text = _BACK_LINK_RE.sub(_BACK_LINK_HTML, text)
+    return _keep_back_link(text)
 
 
 def main(argv: list[str] | None = None) -> int:
