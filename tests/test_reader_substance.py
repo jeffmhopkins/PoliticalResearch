@@ -199,6 +199,20 @@ def test_a_percent_does_not_take_a_dollar_sign_and_a_source_lead_becomes_the_fac
     )
     assert "Staff analysis" not in staff
     assert "Back to ballot" in staff
+    cards = drop_empty_headings(
+        "### Who supports them?\n\n"
+        "::: {.pair}\n\n::: card\n\n### Avery Quinn\n\n"
+        "Cedar Hollow Firefighters Association (union), 2026-09-02, endorser's own statement.\n\n"
+        ":::\n\n:::\n\n### Any legal or ethics issues?\n\nNo cases found.\n"
+    )
+    assert "Who supports them?" in cards
+    assert "Avery Quinn" in cards
+    tail = drop_empty_headings(
+        "### Staff analysis\n\n[Back to ballot](#your-ballot-at-a-glance)\n\n"
+        "::: {.tail}\n\n### Extra note\n\nThe note is a separate section.\n\n:::\n"
+    )
+    assert "Staff analysis" not in tail
+    assert "Extra note" in tail
     same_quarter = fact_sentence(
         "No on H reported 18000 dollars in receipts for that same quarter[^28]."
     )

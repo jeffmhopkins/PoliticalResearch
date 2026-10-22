@@ -112,6 +112,8 @@ Amounts are rounded to the nearest dollar. Cash on hand is money the campaign st
 
 :::
 
+### Who supports them?
+
 ::: {.pair}
 
 ::: card

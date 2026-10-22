@@ -1398,21 +1398,48 @@ def _heading_has_content(body: list[str]) -> bool:
     return False
 
 
+def _group_fence_depth(lines: list[str]) -> list[int]:
+    """How many open card or pair fences precede each line.
+
+    A candidate card uses the same heading rank as the section that introduces
+    it. Those inner titles belong to the section. A tail fence does not.
+    """
+    depth = 0
+    before: list[int] = []
+    for line in lines:
+        before.append(depth)
+        stripped = line.strip()
+        if stripped == ":::":
+            depth = max(0, depth - 1)
+        elif stripped.startswith(":::") and (".pair" in stripped or re.search(r"\bcard\b", stripped)):
+            depth += 1
+    return before
+
+
+def _section_end(lines: list[str], headings: list[tuple[int, int]], index: int, group_depth: list[int]) -> int:
+    start, level = headings[index]
+    parent_groups = group_depth[start]
+    for later in range(index + 1, len(headings)):
+        later_start, later_level = headings[later]
+        if later_level <= level and group_depth[later_start] <= parent_groups:
+            return later_start
+    return len(lines)
+
+
 def empty_headings(text: str) -> list[str]:
     """Headings with no sentence, table, or list before the next heading of the same rank."""
     lines = (text or "").splitlines()
     found: list[tuple[int, int, str]] = []
+    headings: list[tuple[int, int]] = []
     for index, line in enumerate(lines):
         match = re.match(r"^(#{2,4})\s+\S", line.strip())
         if match:
             found.append((index, len(match.group(1)), line.strip()))
+            headings.append((index, len(match.group(1))))
+    group_depth = _group_fence_depth(lines)
     empty = []
-    for index, (start, level, label) in enumerate(found):
-        end = len(lines)
-        for later in range(index + 1, len(found)):
-            if found[later][1] <= level:
-                end = found[later][0]
-                break
+    for index, (start, _level, label) in enumerate(found):
+        end = _section_end(lines, headings, index, group_depth)
         if "{#" in label:
             continue
         if not _heading_has_content(lines[start + 1 : end]):
@@ -1428,13 +1455,10 @@ def drop_empty_headings(text: str) -> str:
         match = re.match(r"^(#{2,4})\s+\S", line.strip())
         if match:
             headings.append((index, len(match.group(1))))
+    group_depth = _group_fence_depth(lines)
     drop: set[int] = set()
-    for index, (start, level) in enumerate(headings):
-        end = len(lines)
-        for later in range(index + 1, len(headings)):
-            if headings[later][1] <= level:
-                end = headings[later][0]
-                break
+    for index, (start, _level) in enumerate(headings):
+        end = _section_end(lines, headings, index, group_depth)
         label = lines[start].strip()
         if "{#" in label:
             continue
