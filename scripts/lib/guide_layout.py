@@ -1145,6 +1145,11 @@ class _GuideModel:
             if index is None:
                 break
             del blocks[index]
+        # Nameplates repeat the table headers. Experience and positions stay in
+        # the full edition. Drop those reader blocks only when the contest is
+        # still over the budget, and drop the same blocks for every candidate.
+        if reader_visible_word_count("\n".join(line for block in blocks for line in block)) > READER_CONTEST_WORD_BUDGET:
+            blocks = _drop_reader_overflow(blocks)
         out: list[str] = []
         for block in blocks:
             if out and out[-1] != "":
@@ -1971,9 +1976,58 @@ def _named_gap(raw: str, body: str) -> str:
     return _gap_line(raw)
 
 
+_OVERFLOW_READER_HEADINGS = {"Experience and background", "Positions"}
+
+
+def _drop_reader_overflow(blocks: list[list[str]]) -> list[list[str]]:
+    """Shorten one reader contest that is still over the word budget.
+
+    The candidate index repeats names that are already the table headers.
+    Experience and positions remain in the full edition. The same headings
+    are removed for every candidate in the contest.
+    """
+    lines: list[str] = []
+    for block in blocks:
+        if lines and lines[-1] != "":
+            lines.append("")
+        lines.extend(block)
+    kept: list[str] = []
+    depth = 0
+    skip = False
+    for line in lines:
+        stripped = line.strip()
+        if depth == 0 and stripped == "::: candidate-index":
+            depth = 1
+            continue
+        if depth:
+            if stripped.startswith(":::") and stripped != ":::":
+                depth += 1
+            elif stripped == ":::":
+                depth -= 1
+            continue
+        if line.startswith("### "):
+            title = re.sub(r"\s*\{#.*$", "", line[4:]).strip()
+            skip = title in _OVERFLOW_READER_HEADINGS
+            if skip:
+                continue
+        if skip:
+            continue
+        kept.append(line)
+    blocks_out: list[list[str]] = [[]]
+    for line in kept:
+        if line.strip() == "":
+            if blocks_out[-1]:
+                blocks_out.append([])
+            continue
+        blocks_out[-1].append(line)
+    return [block for block in blocks_out if any(part.strip() for part in block)]
+
+
 def _gap_line(subject: str) -> str:
     inner = re.sub(r"\s+", " ", subject).strip().strip(".")
     inner = inner.replace(";", ",").replace(":", ",")
+    # "J." and "Dr." are initials, not a second sentence inside the gap.
+    inner = re.sub(r"\.(?=\s)", "", inner)
     return f"Not found (searched: {inner})."
 
 
@@ -1987,7 +2041,18 @@ def _published_known_gap(gap: str) -> str:
     removed = re.fullmatch(r"Removed ([A-Za-z0-9_.-]+): .+", text)
     if removed:
         return f"Removed {removed.group(1)} at the round cap."
-    return text
+    from lib.quality import _is_known_gap_sentence
+
+    def allowed(part: str) -> bool:
+        return _is_known_gap_sentence(part) or _is_gap_text(part)
+
+    if allowed(text) or (split_sentences(text) and all(allowed(part) for part in split_sentences(text))):
+        return text
+    note = plain_access_note(text)
+    if note:
+        return note
+    # A free-text research note is not a citation. Keep it in loop state only.
+    return ""
 
 
 def _cell_has_marker(text: str) -> bool:
@@ -2372,6 +2437,19 @@ def _cited_sentences(body: str) -> list[str]:
     found = []
     text = HTML_COMMENT_RE.sub("", body or "")
     for paragraph in re.split(r"\n\s*\n", text):
+        lines = paragraph.splitlines()
+        table = [line for line in lines if line.strip()]
+        if table and all(line.strip().startswith("|") for line in table):
+            for line in table:
+                compact = line.replace("|", "").replace(":", "").replace("-", "").replace(" ", "")
+                if not compact:
+                    continue
+                for cell in line.strip().strip("|").split("|"):
+                    cleaned = re.sub(r"\s+", " ", cell).strip()
+                    if "[^" not in cleaned or _gap_sentence(MARKER_RE.sub("", cleaned)):
+                        continue
+                    found.append(cleaned)
+            continue
         flat = _bind_trailing_markers(paragraph.replace("\n", " "))
         for sentence in split_sentences(flat):
             cleaned = sentence.strip()
