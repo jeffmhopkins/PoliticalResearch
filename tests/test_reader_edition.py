@@ -847,8 +847,13 @@ def test_glance_is_a_list_and_markers_renumber_in_reading_order(tmp_path: Path):
     assert "<!-- marker-map:" in body
     assert "[^1050]" not in body
     assert "[^8412]" not in body
-    adjacent = re.search(r"\[<sup>2</sup>\]\([^)]*\), \[<sup>3</sup>\]", body)
-    assert adjacent, body[body.find("<sup>2</sup>") : body.find("<sup>2</sup>") + 180]
+    # The contents sentence is the first cited text, so those two markers are 1 and 2.
+    adjacent = re.search(
+        r"United States Senator<a id=\"cite-1\"></a>\[<sup>1</sup>\]\([^)]*\), "
+        r"<a id=\"cite-2\"></a>\[<sup>2</sup>\]",
+        body,
+    )
+    assert adjacent, body[body.find("United States Senator") : body.find("United States Senator") + 280]
     assert "Ballot status" not in body
     assert "Not found" in body
     assert "PAC money line" not in body

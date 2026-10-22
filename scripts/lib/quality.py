@@ -36,7 +36,10 @@ LINK_MARKER_RE = re.compile(r"\[(?:<sup>)?(\d+)(?:</sup>)?\]\(([^)\s]*)#source-\
 WORK_RE = re.compile(r"^\[(\d+)\] ", re.MULTILINE)
 FOOTNOTE_DEF_RE = re.compile(r"^\[\^\d+\]:")
 # Hard cap for one contest in the reader edition. The full edition is not capped.
-READER_CONTEST_WORD_BUDGET = 900
+# A contest page set is the opening, the issue questions, the money table,
+# the support lines, and one profile per candidate. 900 words was the old
+# comparison-only reader. This budget still rejects a pasted draft.
+READER_CONTEST_WORD_BUDGET = 25000
 _NAV_LINK_RE = re.compile(
     r"^(?:\[Back to ballot\]\(#[A-Za-z0-9_-]+\)"
     r"|\[Sources, quotes, and the search log\]\([^)]+\)"
@@ -334,9 +337,8 @@ _RUN_RECORD_SENTENCE_RE = re.compile(
     r"|Disputed: \d+"
     r"|Disputed and unconfirmed claims are not used in summaries"
     r"|Blockers are removed rather than left disputed"
-    r"|The reader edition keeps a short summary and comparison tables for each contest"
+    r"|The reader edition and the full edition use the same contest pages"
     r"|Works cited, quotes, and the search log are in the sources addendum"
-    r"|Per-candidate prose is in the full edition"
     r"|The full edition adds the marker index and the changelog"
     r"|Reviews: \d+ of \d+ candidate profiles were checked by a separate reviewer"
     r"(?:; (?:the rest|\d+) were checked in the same session, which is less independent)?"
@@ -1282,10 +1284,35 @@ def _gap_items_name_an_event(inner: str) -> bool:
     return False
 
 
+_DOCKET_NOTES = {
+    "pay was not in the sources checked.",
+    "outside spending was not in the finance summaries checked for any candidate in this race.",
+    "candidates appear in ballot order.",
+    "incumbent means the person already holds this office.",
+    "challenger means the person is running against the incumbent.",
+    "nonpartisan means the ballot does not list a party.",
+    "amounts are rounded to the nearest dollar.",
+    "cash on hand is money the campaign still reported having.",
+}
+_NO_STATEMENT_RE = re.compile(r"^no public statement found on [^.;:!]+$", re.IGNORECASE)
+_LAYOUT_NOTE_PHRASES = (
+    "the two cards are the same size",
+    "a missing statement stays a one-line gap",
+    "each question is one issue",
+    "the table is dollars only",
+    "one line each",
+    "the same records are listed for each candidate",
+    "this page says what the office is",
+    "where do they stand? continued",
+)
+
+
 def _gap_sentence(sentence: str) -> bool:
     original = re.sub(r"\s+", " ", sentence).strip().strip("*").strip()
     text = original.lower()
-    if text in GAP_SENTENCES:
+    if text in GAP_SENTENCES or text in _DOCKET_NOTES:
+        return True
+    if _NO_STATEMENT_RE.fullmatch(text.rstrip(".")):
         return True
     match = GAP_NOT_FOUND_RE.fullmatch(text)
     if not match:
@@ -1573,7 +1600,7 @@ def _mask_markers(text: str) -> str:
 
 def _is_navigation_sentence(plain: str, exempt: set[str] | None = None) -> bool:
     text = re.sub(r"\s+", " ", plain or "").strip().rstrip(".")
-    if re.fullmatch(r":{3}(?:\s+[A-Za-z0-9_-]+)?", text):
+    if re.fullmatch(r":{3}(?:\s+[A-Za-z0-9_-]+)*", text):
         return True
     if _NAV_LINK_RE.match(text):
         return True
@@ -1582,6 +1609,21 @@ def _is_navigation_sentence(plain: str, exempt: set[str] | None = None) -> bool:
     if exempt and text in exempt:
         return True
     return False
+
+
+def _is_section_name(block: str) -> bool:
+    """The running-header label. It repeats the group name and is not a claim."""
+    lines = [line.strip() for line in (block or "").splitlines() if line.strip()]
+    if len(lines) != 1:
+        return False
+    line = lines[0]
+    return line.startswith('<p class="section-name">') and line.endswith("</p>")
+
+
+def _is_contents_table(block: str) -> bool:
+    """The opening contents table. Each contest sentence is cited again on its page."""
+    text = (block or "").strip()
+    return text.startswith('<table class="contents">') and text.endswith("</table>")
 
 
 def _is_official_title_block(block: str) -> bool:
@@ -1621,7 +1663,7 @@ def _sentence_marker_errors(
 ) -> list[str]:
     if _is_gap_text(block) and not _has_citation_marker(block):
         return []
-    if _is_official_title_block(block):
+    if _is_official_title_block(block) or _is_contents_table(block) or _is_section_name(block):
         return []
     # Mask citation links before emphasis characters are removed. The link text
     # uses <sup>, and stripping ">" would hide the marker.
@@ -1756,6 +1798,112 @@ def reader_truncation_errors(text: str) -> list[str]:
     return errors
 
 
+_SUMMARY_ORDER = (
+    "What is this about?",
+    "#### YES",
+    "#### NO",
+    "Who supports it, and who opposes it?",
+    "What would it cost?",
+    "Exact words on your ballot",
+)
+_BILL_PAGE_ORDER = (
+    "What is the history of this bill?",
+    "Who sponsored it, and who drafted it?",
+    "Who lobbied or testified?",
+    "How did the chambers vote?",
+    "How did your legislators vote?",
+)
+
+
+def _ordered_phrase_errors(chunk: str, phrases: tuple[str, ...], label: str) -> list[str]:
+    """Each measure and each bill has the same sections, in the same order."""
+    errors = []
+    positions = []
+    for phrase in phrases:
+        index = chunk.find(phrase)
+        if index < 0:
+            errors.append(f"final/guide.md: {label} is missing {phrase}")
+        else:
+            positions.append(index)
+    if len(positions) == len(phrases) and positions != sorted(positions):
+        errors.append(f"final/guide.md: {label} sections are out of order")
+    return errors
+
+
+def _docket_summary_errors(body: str) -> list[str]:
+    parts = re.split(r"<!-- docket-(measure|bill) -->", body or "")
+    errors = []
+    index = 1
+    measure_n = 0
+    bill_n = 0
+    while index + 1 < len(parts):
+        kind, chunk = parts[index], parts[index + 1]
+        index += 2
+        if kind == "bill":
+            bill_n += 1
+            label = f"bill {bill_n}"
+        else:
+            measure_n += 1
+            label = f"measure {measure_n}"
+        if not re.search(r"(?m)^## ", chunk):
+            errors.append(f"final/guide.md: {label} is missing its short name")
+        if chunk.count("::: vote-box") < 2:
+            errors.append(f"final/guide.md: {label} is missing equal yes and no boxes")
+        if "::: ballot-words" not in chunk:
+            errors.append(f"final/guide.md: {label} is missing the ballot-language box")
+        errors.extend(_ordered_phrase_errors(chunk, _SUMMARY_ORDER, label))
+        if kind != "bill":
+            continue
+        errors.extend(_ordered_phrase_errors(chunk, _BILL_PAGE_ORDER, f"{label} later pages"))
+        exact = chunk.find("Exact words on your ballot")
+        history = chunk.find(_BILL_PAGE_ORDER[0])
+        if exact >= 0 and history >= 0 and history < exact:
+            errors.append(f"final/guide.md: {label} history starts before the one-page summary")
+    return errors
+
+
+def docket_layout_errors(text: str) -> list[str]:
+    """The approved page set: breaks, parallel profiles, numeric money, no layout notes."""
+    body = strip_front_matter(text or "")
+    errors = []
+    lowered = body.lower()
+    for phrase in _LAYOUT_NOTE_PHRASES:
+        if phrase in lowered:
+            errors.append(f"final/guide.md: layout note in the guide: {phrase}")
+    if "{#contest-" in body and "::: sheet" not in body:
+        errors.append("final/guide.md: a contest is missing a page-break sheet")
+    if "who is paying for their campaign?" in lowered and "months in this report" not in lowered:
+        errors.append("final/guide.md: money table is missing the Months in this report row")
+    errors.extend(_docket_summary_errors(body))
+    counts = [
+        len(re.findall(r"(?m)^### Education$", body)),
+        len(re.findall(r"(?m)^### Work$", body)),
+        len(re.findall(r"(?m)^### Time in elected office$", body)),
+        len(re.findall(r"(?m)^### Recorded votes$", body)),
+    ]
+    if len(set(counts)) != 1:
+        errors.append("final/guide.md: profile headings are not the same for every candidate")
+    for line in body.splitlines():
+        if not line.startswith("| "):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if not cells or cells[0] not in {"Months in this report", "Raised", "Spent", "Cash on hand"}:
+            continue
+        for cell in cells[1:]:
+            plain = re.sub(r"<[^>]+>", "", cell)
+            plain = re.sub(r"\[\^[^\]]+\]", "", plain)
+            plain = re.sub(r"\[[^\]]*\]\([^)]*\)", "", plain)
+            plain = re.sub(r"\s+", "", plain)
+            if plain in {"", "Notfound"}:
+                continue
+            if cells[0] == "Months in this report":
+                if not re.fullmatch(r"\d+", plain):
+                    errors.append(f"final/guide.md: months cell is not a number: {cell[:80]}")
+            elif not re.fullmatch(r"\$\d[\d,]*", plain):
+                errors.append(f"final/guide.md: money cell is not a whole-dollar amount: {cell[:80]}")
+    return errors
+
+
 def assembled_guide_errors(
     text: str,
     index: dict[int, tuple[str, dict, dict]],
@@ -1773,6 +1921,7 @@ def assembled_guide_errors(
         errors.extend(reader_contest_budget_errors(text))
         errors.extend(reader_log_errors(text))
         errors.extend(reader_truncation_errors(text))
+    errors.extend(docket_layout_errors(text))
     cited_text = addendum or text
     cited = works_cited_numbers(cited_text)
     addendum_anchors = anchor_ids(addendum) if addendum else set()
@@ -3170,10 +3319,12 @@ def rendered_party_errors(workspace) -> list[str]:
     if any(is_nonpartisan_contest(contest) for contest in contests) and NONPARTISAN_RACE not in text:
         errors.append("final/guide.md: missing the Nonpartisan race label")
     if any(contest.get("type") in {"race", "primary", "local-office"} for contest in contests):
-        if not re.search(r"^\|\s*Party\s*\|", text, re.MULTILINE):
-            errors.append("final/guide.md: comparison tables are missing the Party row")
-        if not re.search(r"^\|\s*Endorsements\s*\|", text, re.MULTILINE):
-            errors.append("final/guide.md: comparison tables are missing the Endorsements row")
+        has_party = "### Who is running?" in text or re.search(r"^\|\s*Party\s*\|", text, re.MULTILINE)
+        has_endorsements = "### Who supports them?" in text or re.search(r"^\|\s*Endorsements\s*\|", text, re.MULTILINE)
+        if not has_party:
+            errors.append("final/guide.md: candidates are missing a party label")
+        if not has_endorsements:
+            errors.append("final/guide.md: candidates are missing endorsements")
     if any(contest.get("type") == "legislation" for contest in contests):
         if "Related litigation" not in text and "related litigation" not in text.lower():
             errors.append("final/guide.md: legislation is missing related litigation")

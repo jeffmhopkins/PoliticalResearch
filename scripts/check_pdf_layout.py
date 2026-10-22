@@ -17,7 +17,8 @@ import sys
 from html.parser import HTMLParser
 from pathlib import Path
 
-MIN_TEXT_PT = 7.5
+MIN_TEXT_PT = 9.0
+LETTER = (612.0, 792.0)
 MIN_MARKER_PT = 5.0
 OVERFLOW_PT = 1.0
 MIN_COLUMN_PT = 108.0
@@ -127,6 +128,11 @@ def errors_from_bbox(xml: str, *, min_text_pt: float = MIN_TEXT_PT) -> list[str]
         box = _attrs(page.group(1))
         width = box.get("width", 0)
         height = box.get("height", 0)
+        size = tuple(sorted((width, height)))
+        if abs(size[0] - LETTER[0]) > 1.5 or abs(size[1] - LETTER[1]) > 1.5:
+            errors.append(
+                f"page {index}: size {width:.1f}x{height:.1f} pt is not US Letter"
+            )
         end = pages[index].start() if index < len(pages) else len(xml)
         chunk = xml[page.end() : end]
         words: list[tuple] = []

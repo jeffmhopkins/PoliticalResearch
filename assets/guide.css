@@ -162,6 +162,10 @@ h4 {
   color: var(--ink);
 }
 
+p, li, blockquote {
+  overflow-wrap: anywhere;
+}
+
 p { margin: 0.22rem 0 0.45rem; }
 
 /* Cover */
@@ -411,6 +415,58 @@ a.page-ref::after {
   margin: 0.05rem 0 0.15rem;
 }
 
+.sheet {
+  break-before: page;
+  page-break-before: always;
+}
+
+table.contents {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.2rem 0 0.6rem;
+  font-size: 11pt;
+}
+
+table.contents th,
+table.contents td {
+  border-bottom: 0.6pt solid var(--ink);
+  padding: 0.28rem 0.4rem 0.28rem 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+table.contents td.page,
+table.contents th.page {
+  width: 0.7in;
+  text-align: right;
+  padding-right: 0;
+}
+
+.pair {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0.15rem 0 0.4rem;
+}
+
+.card {
+  flex: 1 1 46%;
+  margin: 0 0.35rem 0.45rem 0;
+  padding-top: 0.2rem;
+  border-top: 1.5pt solid var(--ink);
+  min-width: 0;
+}
+
+.pair.count-1 .card { flex-basis: 100%; }
+
+.pair.count-many .card { flex-basis: 30%; }
+
+.ballot-words {
+  margin: 0.35rem 0 0.5rem;
+  padding: 0.4rem 0.5rem;
+  background: #f3f1ec;
+  border: 0.6pt solid var(--ink);
+}
+
 span.num {
   /* Stay in the column. A right-aligned block amount starts at the right edge,
      so a short figure such as $0 begins less than 1.5 inches from the next column. */
@@ -651,6 +707,8 @@ th {
   border: 0;
 }
 
+th a { color: var(--band-text); }
+
 tbody tr:nth-child(even) td { background: var(--zebra); }
 
 .comparison table th,
@@ -756,7 +814,7 @@ footer {
   @top-left {
     content: string(section, first);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 8.5pt;
+    font-size: 9pt;
     font-weight: 500;
     font-variant: small-caps;
     letter-spacing: 0.06em;
@@ -771,7 +829,7 @@ footer {
   @top-right {
     content: counter(page);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 8.5pt;
+    font-size: 9pt;
     font-weight: 500;
     font-variant: small-caps;
     letter-spacing: 0.06em;
@@ -786,7 +844,7 @@ footer {
   @bottom-left {
     content: "Not an official ballot";
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 8.5pt;
+    font-size: 9pt;
     font-weight: 400;
     color: #161616;
     background: transparent;
@@ -818,7 +876,7 @@ footer {
   @top-left {
     content: string(section, first);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 8.5pt;
+    font-size: 9pt;
     font-weight: 500;
     font-variant: small-caps;
     letter-spacing: 0.06em;
@@ -833,7 +891,7 @@ footer {
   @top-right {
     content: counter(page);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 8.5pt;
+    font-size: 9pt;
     font-weight: 500;
     color: #161616;
     background: transparent;
@@ -846,7 +904,7 @@ footer {
   @bottom-left {
     content: "Not an official ballot";
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 8.5pt;
+    font-size: 9pt;
     color: #161616;
     width: 100%;
     padding-top: 3pt;
@@ -863,7 +921,7 @@ footer {
   @top-left {
     content: string(section, first);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 8.5pt;
+    font-size: 9pt;
     font-weight: 500;
     font-variant: small-caps;
     letter-spacing: 0.06em;
@@ -878,7 +936,7 @@ footer {
   @top-right {
     content: counter(page);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 8.5pt;
+    font-size: 9pt;
     font-weight: 500;
     color: #161616;
     background: transparent;
@@ -891,7 +949,7 @@ footer {
   @bottom-left {
     content: "Not an official ballot";
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 8.5pt;
+    font-size: 9pt;
     color: #161616;
     width: 100%;
     padding-top: 3pt;

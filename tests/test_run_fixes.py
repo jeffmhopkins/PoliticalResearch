@@ -381,9 +381,24 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     sources = (EXAMPLE / "final" / "guide-sources.md").read_text(encoding="utf-8")
     full = (EXAMPLE / "final" / "guide-full.md").read_text(encoding="utf-8")
     full_sources = (EXAMPLE / "final" / "guide-full-sources.md").read_text(encoding="utf-8")
-    assert "# Your ballot at a glance" in guide
-    assert "# Compare across the ballot" in guide
+    assert "# What's on your ballot" in guide
+    assert "<table class=\"contents\">" in guide
+    assert "Contest" in guide and "What it is" in guide and "Page" in guide
     assert "# Official election office links" in guide
+    assert "::: sheet" in guide
+    assert "Months in this report" in guide
+    assert "What is this about?" in guide
+    assert "Exact words on your ballot" in guide
+    assert "What is the history of this bill?" in guide
+    assert "How did your legislators vote?" in guide
+    assert "### Education" in guide and "### Work" in guide
+    assert "### Time in elected office" in guide and "### Recorded votes" in guide
+    for phrase in (
+        "The two cards are the same size",
+        "A missing statement stays a one-line gap",
+        "The table is dollars only",
+    ):
+        assert phrase not in guide
     assert "# Search log" not in guide
     assert "# Works cited" not in guide
     assert "# Search log" in sources or "### Search log" in sources
@@ -404,7 +419,7 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "process gap" not in guide.lower()
     assert "status signed-off, round 1, mode initial — cand-quinn" in full
     assert "Mayor of Cedar Hollow: status" not in guide
-    assert "{#profile-cand-quinn" not in guide
+    assert "{#profile-cand-quinn" in guide
     assert "{#profile-cand-quinn" in full
     assert "guide-full.md#profile-cand-quinn" in guide
     assert "guide-sources.md#source-" in guide
@@ -412,28 +427,21 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "#cite-1" in sources
     assert 'id="cite-1"' in guide or "#cite-1" in guide
     assert "[Back to ballot](#your-ballot-at-a-glance)" in guide
-    assert "Not found (searched: years in elected office)." in guide
-    assert not any(line.startswith("| Years in elected office |") for line in guide.splitlines())
+    assert "four-year term" in guide
+    assert "2018 certificate" in guide
+    assert "Ballot status" not in guide
     table = {}
     for line in guide.splitlines():
         if line.startswith("| ") and line.count("|") >= 4:
             cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
             table[cells[0]] = cells
-    assert "$48,200" in table["Receipts"][1]
+    assert "$48,200" in table["Raised"][1]
+    assert "$30,100" in table["Raised"][2]
     assert "$17,200" in table["Cash on hand"][1]
-    assert table["Receipts"][1] != table["Cash on hand"][1]
-    assert "$30,100" in table["Receipts"][2]
     assert "$11,700" in table["Cash on hand"][2]
-    assert "Ballot status" not in table
-    assert "four-year term" in table["Current or most recent office"][1]
-    assert "2018 certificate" in table["Prior offices"][1]
-    assert table["Current or most recent office"][1] != table["Prior offices"][1]
-    assert len(table["Receipts"][1]) < 180
-    quinn_money = next(line for line in guide.splitlines() if line.startswith("| Mayor of Cedar Hollow | Avery Quinn |"))
-    quinn_cells = [cell.strip() for cell in quinn_money.strip().strip("|").split("|")]
-    assert "$48,200" in quinn_cells[2]
-    assert "$17,200" in quinn_cells[3]
-    assert quinn_cells[2] != quinn_cells[3]
+    assert table["Raised"][1] != table["Cash on hand"][1]
+    assert table["Months in this report"][1] != ""
+    assert "..." not in table["Raised"][1]
     assert "# Marker index" in full
     assert "# Changelog" in full
     assert "# Works cited" not in full

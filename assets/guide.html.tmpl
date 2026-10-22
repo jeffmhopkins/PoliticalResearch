@@ -37,8 +37,6 @@ $if(sources_edition)$
 $else$
     <h2>How to use this guide</h2>
     <ol class="how-to">
-      <li>Start with the ballot at a glance, then read one contest at a time.</li>
-      <li>Every candidate in a race has the same rows. Read across a row to compare, or down a column for one person.</li>
       <li>A small number after a sentence opens the sources addendum, where the record and the quote are.</li>
       <li>Not found means those places were searched and the fact was not in them.</li>
       <li>This guide does not rank candidates, score them, or recommend a vote.</li>
@@ -49,13 +47,7 @@ $if(version)$
 $endif$
   </section>
   <main id="content">
-    <a class="runhead" href="$if(sources_edition)$#TOC$else$#your-ballot-at-a-glance$endif$" aria-label="$if(sources_edition)$Back to contents$else$Back to the ballot at a glance$endif$">&#8203;</a>
-$if(toc)$
-    <nav id="TOC" aria-label="Table of contents">
-      <h2 id="toc-title">Contents</h2>
-$toc$
-    </nav>
-$endif$
+    <a class="runhead" href="$if(sources_edition)$#works-cited$else$#your-ballot-at-a-glance$endif$" aria-label="$if(sources_edition)$Back to the works cited$else$Back to the ballot$endif$">&#8203;</a>
 $body$
   </main>
   <footer>

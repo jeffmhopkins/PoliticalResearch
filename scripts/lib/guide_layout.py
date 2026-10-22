@@ -14,6 +14,7 @@ import html
 import re
 from pathlib import Path
 
+from lib.docket_pages import build_docket_contest
 from lib.party import endorsement_cell
 from lib.quality import (
     HTML_COMMENT_RE,
@@ -366,9 +367,7 @@ class _GuideModel:
         parts.extend([f"# {heading} {{.guide-title}}", ""])
         parts.extend(self._election_office())
         parts.extend(self._precinct_line())
-        parts.extend(self._at_a_glance())
-        parts.extend(self._how_to_read())
-        parts.extend(self._compare())
+        parts.extend(self._contents())
         parts.extend(self._contests())
         parts.extend(self._glossary())
         parts.extend(self._methodology(edition))
@@ -806,15 +805,46 @@ class _GuideModel:
             contests = grouped.get(name) or []
             if not contests:
                 continue
-            lines.extend([f"# {name} {{.ballot-group}}", ""])
-            for contest in contests:
-                lines.extend(self._one_contest(contest))
+            for index, contest in enumerate(contests):
+                lines.extend(self._docket_contest(contest, name if index == 0 else ""))
         return lines
 
     def _one_contest(self, contest: dict) -> list[str]:
-        if self.edition == "reader":
-            return self._fit_contest_budget(self._reader_contest(contest))
-        return self._full_contest(contest)
+        return self._docket_contest(contest, "")
+
+    def _contents(self) -> list[str]:
+        """Three columns: the contest, what it is, and the page it starts on."""
+        lines = [
+            '# What\'s on your ballot {#your-ballot-at-a-glance .ballot-glance}',
+            "",
+            '<table class="contents">',
+            "<thead>",
+            '<tr><th scope="col">Contest</th><th scope="col">What it is</th><th scope="col">Page</th></tr>',
+            "</thead>",
+            "<tbody>",
+        ]
+        for contest in self._contests_raw():
+            item_id = str(contest.get("item_id") or contest.get("id"))
+            title = str(contest.get("title") or self.titles.get(item_id) or item_id)
+            short, _subtitle = _title_pair(title)
+            draft = self._draft(item_id)
+            summary = _cap_summary(_summary_paragraph(draft), sentences=1, words=40)
+            if "[^" not in summary:
+                summary = ""
+            what = html.escape(summary) if summary else "Not found (searched: a summary for this contest)."
+            href = f"#contest-{item_id}"
+            lines.append(
+                "<tr>"
+                f'<th scope="row"><a href="{html.escape(href, quote=True)}">{html.escape(short)}</a></th>'
+                f"<td>{what}</td>"
+                f'<td class="page"><a class="page-ref" href="{html.escape(href, quote=True)}">page</a></td>'
+                "</tr>"
+            )
+        lines.extend(["</tbody>", "</table>", ""])
+        return lines
+
+    def _docket_contest(self, contest: dict, group: str) -> list[str]:
+        return build_docket_contest(self, contest, group)
 
     def _contest_title_lines(self, contest: dict, title: str, item_id: str, sections) -> list[str]:
         """Sentence-case a long or all-caps title, and keep the official wording under it."""
@@ -1501,9 +1531,8 @@ class _GuideModel:
             f"Parallel subagents: {subagents}.",
             f"Findings recorded: {counts['total']}. Accepted: {counts['accepted']}. Disputed: {counts['disputed']}.",
             "Disputed and unconfirmed claims are not used in summaries. Blockers are removed rather than left disputed.",
-            "The reader edition keeps a short summary and comparison tables for each contest. "
+            "The reader edition and the full edition use the same contest pages. "
             "Works cited, quotes, and the search log are in the sources addendum. "
-            "Per-candidate prose is in the full edition. "
             "The full edition adds the marker index and the changelog.",
             "",
         ]
@@ -1746,7 +1775,7 @@ class _GuideModel:
             [
                 "> **Not an official ballot and not voting instructions:** confirm contests, deadlines, and polling places with the election office linked in the guide.",
                 "",
-                "# Works cited {.back-matter .sources-title}",
+                "# Works cited {#works-cited .back-matter .sources-title}",
                 "",
                 "Each marker in the guide links to an entry here. Each entry links back. "
                 "Quotes are the archived words. The search log lists places that were checked.",

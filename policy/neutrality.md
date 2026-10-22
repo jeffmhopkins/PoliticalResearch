@@ -23,7 +23,7 @@ The draft keeps every core heading. The reader edition of the guide may collapse
 
 Issue rows come from issues at least two candidates addressed in their own words. Every candidate gets that row. Sort candidates and offices in ballot order. Do not sort by party, money, or any score.
 
-The reader edition opens with the ballot, then one contest at a time, inside a per-contest word budget. Comparison cells are short. Per-candidate prose is in `final/guide-full.md`, which also adds the marker index and the changelog. Works cited, quotes, and the search log are in `final/guide-sources.md` and `final/guide-full-sources.md`. Neither edition recommends a vote.
+The reader edition and the full edition use the same contest pages: a three-column contents table, then each race, measure, retention, and bill on its own page. A race opens with what the office does and equal candidate cards. Positions are questions in ballot order. Money tables are numbers, with a months row. Profiles use the same headings for every candidate. A measure or bill opens with the one-page summary, and a bill continues with history, sponsors, lobbying, votes, and the requester's legislators. Works cited, quotes, and the search log are in `final/guide-sources.md` and `final/guide-full-sources.md`. The full edition also adds the marker index and the changelog. Neither edition recommends a vote.
 
 ## Wording
 

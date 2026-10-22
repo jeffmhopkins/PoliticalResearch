@@ -96,7 +96,6 @@ build_one() {
       --standalone \
       --template "$ROOT/assets/guide.html.tmpl" \
       "${PANDOC_CSS[@]}" \
-      --toc --toc-depth=2 \
       --metadata lang=en \
       --variable version="$VERSION" \
       --variable content-hash="$hash" \
