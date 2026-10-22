@@ -5,9 +5,15 @@
 <!-- summary -->
 Not found (searched: not started).
 
+## What the office controls
+
+<!-- Two or three sentences on the everyday job: who the office represents or what it runs, what it votes on or decides, and the term. Cite the constitution or the statute. Do not name the candidates. Filing dates stay in Contest and in the sources edition. -->
+
+Not found (searched: not started).
+
 ## Contest
 
-<!-- Office, seat, term, and the official filing source. -->
+<!-- Office, seat, term, and the official filing source. The reader uses What the office controls for the job sentences and leaves filing trivia in the sources edition. -->
 
 Not found (searched: not started).
 

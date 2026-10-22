@@ -1,0 +1,591 @@
+/* Docket Color, the default printed guide.
+   Load after assets/guide.css. Omitting --theme selects this sheet.
+   scripts/build.sh --theme docket keeps the grayscale base alone.
+
+   One teal accent. It is not party red, party blue, or yes-green.
+   Body text stays near-black. Tint A is the header mist. Tint B is the
+   ballot-wording sand. Grayscale still reads: dark text plus two pale tints.
+   Nothing is conveyed by hue alone. YES and NO use the same strip.
+
+   Do not change the flex rows. WeasyPrint drops display:grid, nested flex,
+   table-cell, and gap. This file does not set those. */
+
+:root {
+  --accent: #1D5C63;
+  --tint-a: #E8F0F0;
+  --tint-b: #F5F1E8;
+  --text: #1F2328;
+  --quiet: #5A6470;
+  --hair: #C9D3D4;
+  --paper: #ffffff;
+  --band: #E8F0F0;
+  --band-text: #1D5C63;
+  --zebra: transparent;
+  --link: #1D5C63;
+  --muted: #5A6470;
+}
+
+html, body, th, td, .vote-box, .vote-box h4, .ballot-words, .card, table.contents thead th {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+body {
+  color: #1F2328;
+  background: #ffffff;
+}
+
+a {
+  color: #1D5C63;
+  text-decoration: none;
+}
+
+sup { color: #1D5C63; }
+
+h1,
+h1.ballot-glance,
+h1.guide-title,
+h1.back-matter,
+h1.sources-title {
+  color: #1F2328;
+  border-bottom-color: #1D5C63;
+}
+
+h2.contest-title {
+  color: #1F2328;
+  border-bottom: 1.5pt solid #1D5C63;
+}
+
+h3 { color: #1D5C63; }
+
+.card h3,
+h3.candidate-name,
+h3.glance-contest,
+h3.source-entry {
+  color: #1F2328;
+}
+
+.cover h1 {
+  color: #1D5C63;
+  border-bottom: 2.5pt solid #1D5C63;
+}
+
+.cover-kicker,
+.cover-date,
+.cover-place,
+.cover-version {
+  color: #5A6470;
+}
+
+/* Contents stays a fixed three-column table. No dotted leaders.
+   Header padding matches the body cells on the left and right. */
+table.contents thead th {
+  background: #E8F0F0;
+  color: #1D5C63;
+  font-weight: 600;
+  font-size: 9pt;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  line-height: 1.15;
+  vertical-align: middle;
+  padding: 6pt 0.45rem 6pt 0;
+  border-top: 0.9pt solid #1D5C63;
+  border-bottom: 0.4pt solid #C9D3D4;
+  border-left: 0;
+  border-right: 0;
+}
+
+table.contents thead th:first-child,
+table.contents tbody th {
+  padding-left: 9pt;
+}
+
+table.contents tbody th,
+table.contents tbody td,
+table.contents tbody tr:nth-child(even) th,
+table.contents tbody tr:nth-child(even) td {
+  padding-top: 4pt;
+  padding-bottom: 4pt;
+  font-size: 11pt;
+  font-weight: 400;
+  line-height: 1.35;
+  vertical-align: top;
+}
+
+table.contents a.page-ref,
+table.contents a.page-ref::after {
+  font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  font-weight: 400;
+  line-height: 1.35;
+  margin: 0;
+  padding: 0;
+  color: #1F2328;
+}
+
+table.contents tbody th,
+table.contents tbody td,
+table.contents tbody tr:nth-child(even) td,
+table.contents tbody tr:nth-child(even) th {
+  background: transparent;
+  color: #1F2328;
+  border: 0;
+}
+
+table.contents th a,
+table.contents td a {
+  color: #1F2328;
+  text-decoration: none;
+}
+
+table.contents thead th.page,
+table.contents td.page,
+table.contents th.page,
+table.contents tbody tr:nth-child(even) td.page {
+  width: 8%;
+  text-align: right;
+  white-space: nowrap;
+  padding-right: 9pt;
+  padding-left: 0.12rem;
+  vertical-align: top;
+}
+
+/* Candidate cards are identical. Party stays the official-title text. */
+.card {
+  background: #ffffff;
+  border: 0.75pt solid #C9D3D4;
+  border-top: 3pt solid #1D5C63;
+  padding: 8pt 9pt;
+}
+
+.card .official-title,
+p.official-title {
+  color: #1F2328;
+  background: transparent;
+}
+
+.candidate-index,
+.nameplate,
+.meta-item,
+.summary-box {
+  border-color: #1D5C63;
+}
+
+.candidate-index h3.candidate-name + h3.candidate-name,
+.candidate-index > .nameplate + .nameplate,
+.vote-box + .vote-box {
+  border-left-color: #C9D3D4;
+}
+
+/* YES and NO share one rule. No first-child color, no icons. */
+.vote-pair {
+  display: flex;
+  align-items: stretch;
+  border: 0.75pt solid #C9D3D4;
+  border-top: 0.9pt solid #1D5C63;
+}
+
+.vote-box {
+  flex: 1 1 0;
+  min-width: 0;
+  background: #ffffff;
+}
+
+.vote-box h4,
+.card:has(> h4) > h4 {
+  margin: 0;
+  padding: 6pt 9pt;
+  background: #E8F0F0;
+  color: #1D5C63;
+  border: 0;
+  border-bottom: 0.4pt solid #C9D3D4;
+  font-size: 9pt;
+  font-weight: 600;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  line-height: 1.15;
+  vertical-align: middle;
+}
+
+.vote-box p {
+  padding: 4pt 9pt 0;
+}
+
+.card:has(> h4) {
+  padding-top: 0;
+  padding-left: 9pt;
+  padding-right: 9pt;
+  border-top: 0.9pt solid #1D5C63;
+}
+
+.card:has(> h4) > h4 {
+  margin: 0 -9pt 0.4rem;
+  padding: 6pt 9pt;
+}
+
+.ballot-words {
+  background: #F5F1E8;
+  border: 0;
+  border-left: 2pt solid #1D5C63;
+}
+
+.ballot-words h4 {
+  background: transparent;
+  color: #1D5C63;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+}
+
+/* One teal rule above the header, a hairline below. Body rows get 4pt. */
+thead th {
+  background: #E8F0F0;
+  color: #1D5C63;
+  padding: 6pt 8pt;
+  font-size: 9pt;
+  font-weight: 600;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  line-height: 1.15;
+  vertical-align: middle;
+  border-top: 0.9pt solid #1D5C63;
+  border-bottom: 0.4pt solid #C9D3D4;
+  border-left: 0;
+  border-right: 0;
+}
+
+th a { color: #1D5C63; }
+
+tbody td {
+  background: #ffffff;
+  color: #1F2328;
+  padding-top: 4pt;
+  padding-bottom: 4pt;
+  border-bottom: 0.4pt solid #C9D3D4;
+  border-left: 0;
+  border-right: 0;
+}
+
+tbody tr:nth-child(even) td,
+tbody tr:nth-child(even) td.not-found {
+  background: #ffffff;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0.75pt solid #1D5C63;
+}
+
+.comparison table thead th,
+.comparison table tbody td {
+  padding-left: 8pt;
+  padding-right: 8pt;
+}
+
+thead th:first-child,
+tbody th:first-child,
+tbody td:first-child,
+.comparison table thead th:first-child,
+.comparison table tbody td:first-child {
+  padding-left: 9pt;
+}
+
+thead th:last-child,
+tbody td:last-child,
+.comparison table thead th:last-child,
+.comparison table tbody td:last-child {
+  padding-right: 9pt;
+}
+
+.comparison td,
+.comparison span.num,
+span.num {
+  color: #1F2328;
+}
+
+p.not-found,
+td.not-found,
+tbody tr:nth-child(even) td.not-found {
+  color: #5A6470;
+  background: transparent;
+  font-style: italic;
+}
+
+main a[href="#your-ballot-at-a-glance"] {
+  color: #1D5C63;
+}
+
+@page {
+  size: letter portrait;
+  margin: 0.58in 0.62in 0.52in 0.62in;
+  background: #ffffff;
+  @top-left {
+    content: string(section, first);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    font-weight: 500;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: #5A6470;
+    background: transparent;
+    width: 78%;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.5pt solid #1D5C63;
+  }
+  @top-center { content: none; background: transparent; }
+  @top-right {
+    content: counter(page);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    font-weight: 500;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: #5A6470;
+    background: transparent;
+    width: 22%;
+    text-align: right;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.5pt solid #1D5C63;
+  }
+  @bottom-left {
+    content: "Not an official ballot";
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    font-weight: 400;
+    color: #5A6470;
+    background: transparent;
+    width: 68%;
+    vertical-align: top;
+    padding-top: 3pt;
+    border-top: 0.5pt solid #1D5C63;
+  }
+  @bottom-center { content: none; }
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    font-weight: 400;
+    color: #5A6470;
+    background: transparent;
+    width: 32%;
+    text-align: right;
+    vertical-align: top;
+    padding-top: 3pt;
+    border-top: 0.5pt solid #1D5C63;
+  }
+}
+
+@page cover {
+  size: letter portrait;
+  margin: 0.7in;
+  background: #ffffff;
+  @top-left { content: none; background: transparent; }
+  @top-center { content: none; background: transparent; }
+  @top-right { content: none; background: transparent; }
+  @bottom-left { content: none; border: 0; background: transparent; }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; border: 0; background: transparent; }
+}
+
+@page toc {
+  size: letter portrait;
+  margin: 0.58in 0.62in 0.52in 0.62in;
+  background: #ffffff;
+  @top-left {
+    content: string(section, first);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    font-weight: 500;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: #5A6470;
+    background: transparent;
+    width: 78%;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.5pt solid #1D5C63;
+  }
+  @top-center { content: none; background: transparent; }
+  @top-right {
+    content: counter(page);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    font-weight: 500;
+    color: #5A6470;
+    background: transparent;
+    width: 22%;
+    text-align: right;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.5pt solid #1D5C63;
+  }
+  @bottom-left {
+    content: "Not an official ballot";
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    color: #5A6470;
+    width: 68%;
+    padding-top: 3pt;
+    border-top: 0.5pt solid #1D5C63;
+  }
+  @bottom-center { content: none; }
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    color: #5A6470;
+    width: 32%;
+    text-align: right;
+    padding-top: 3pt;
+    border-top: 0.5pt solid #1D5C63;
+  }
+}
+
+@page landscape {
+  size: letter landscape;
+  margin: 0.55in 0.48in 0.48in 0.48in;
+  background: #ffffff;
+  @top-left {
+    content: string(section, first);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    font-weight: 500;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: #5A6470;
+    background: transparent;
+    width: 78%;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.5pt solid #1D5C63;
+  }
+  @top-center { content: none; background: transparent; }
+  @top-right {
+    content: counter(page);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    font-weight: 500;
+    color: #5A6470;
+    background: transparent;
+    width: 22%;
+    text-align: right;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.5pt solid #1D5C63;
+  }
+  @bottom-left {
+    content: "Not an official ballot";
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    color: #5A6470;
+    width: 68%;
+    padding-top: 3pt;
+    border-top: 0.5pt solid #1D5C63;
+  }
+  @bottom-center { content: none; }
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    color: #5A6470;
+    width: 32%;
+    text-align: right;
+    padding-top: 3pt;
+    border-top: 0.5pt solid #1D5C63;
+  }
+}
+
+@media print {
+  body {
+    background: #ffffff;
+    color: #1F2328;
+  }
+
+  thead th,
+  .comparison table thead th {
+    padding: 6pt 8pt;
+    font-size: 9pt;
+    line-height: 1.15;
+    vertical-align: middle;
+    border-top: 0.9pt solid #1D5C63;
+    border-bottom: 0.4pt solid #C9D3D4;
+  }
+
+  tbody td,
+  .comparison table tbody td {
+    padding-top: 4pt;
+    padding-bottom: 4pt;
+  }
+
+  .comparison table thead th,
+  .comparison table tbody td {
+    padding-left: 8pt;
+    padding-right: 8pt;
+  }
+
+  .comparison table thead th:first-child,
+  .comparison table tbody td:first-child {
+    padding-left: 9pt;
+  }
+
+  .comparison table thead th:last-child,
+  .comparison table tbody td:last-child {
+    padding-right: 9pt;
+  }
+
+  table.contents thead th {
+    padding: 6pt 0.45rem 6pt 0;
+    font-size: 9pt;
+    line-height: 1.15;
+    vertical-align: middle;
+  }
+
+  table.contents thead th:first-child,
+  table.contents tbody th {
+    padding-left: 9pt;
+  }
+
+  table.contents thead th.page,
+  table.contents td.page,
+  table.contents th.page,
+  table.contents tbody tr:nth-child(even) td.page {
+    padding-top: 6pt;
+    padding-bottom: 6pt;
+    padding-right: 9pt;
+    padding-left: 0.12rem;
+    text-align: right;
+    vertical-align: top;
+  }
+
+  table.contents tbody th,
+  table.contents tbody td,
+  table.contents tbody tr:nth-child(even) td,
+  table.contents tbody tr:nth-child(even) th {
+    padding-top: 4pt;
+    padding-bottom: 4pt;
+    font-size: 11pt;
+    font-weight: 400;
+    line-height: 1.35;
+    vertical-align: top;
+  }
+
+  table.contents td.page,
+  table.contents tbody tr:nth-child(even) td.page {
+    padding-top: 4pt;
+    padding-bottom: 4pt;
+  }
+
+  table.contents a.page-ref,
+  table.contents a.page-ref::after {
+    font-size: 11pt;
+    font-weight: 400;
+    line-height: 1.35;
+  }
+
+  .vote-box h4,
+  .vote-box p,
+  .card:has(> h4) > h4 {
+    padding-left: 9pt;
+    padding-right: 9pt;
+  }
+}

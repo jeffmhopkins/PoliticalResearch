@@ -702,10 +702,11 @@ def test_small_screen_css_uses_a_max_width_query():
     assert "Liberation Serif" in css
     assert "font-size: 10.75pt" in css
     assert "bookmark-level" in css
-    assert 'section "Voter guide"' in css
+    assert "string-set: section content()" in css
     assert "string(section, first)" in css
-    assert "string(contest, last)" in css
-    assert "element(runhead)" in css
+    assert "content: counter(page)" in css
+    assert "string(contest, last)" not in css
+    assert "element(runhead)" not in css
     assert "@page cover" in css
     assert "party-democrat" not in css
     assert "party-republican" not in css

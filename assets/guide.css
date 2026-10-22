@@ -5,8 +5,8 @@
    by bootstrap, with DejaVu after them.
    Body type is 11pt. Comparison tables are 10.75pt.
    Off-white paper and near-black ink. No red or blue party coding.
-   The running header is a masthead: section, contest, and page sit in the
-   band. The old contest bar and the empty runhead rule are not used.
+   The running header is a thin rule: the section in small caps on the left,
+   the page number on the right. No black band, and no contest name in the margin.
    Flex rows use margins, not gap, because the PDF engine drops gap. */
 
 @font-face {
@@ -145,22 +145,38 @@ h2 {
 
 h3 {
   font-family: var(--sans);
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin: 1.15rem 0 0.2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 0.85rem 0 0.2rem;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+p + h3,
+p + h4,
+h3 + p,
+h4 + p {
+  break-before: avoid;
+  page-break-before: avoid;
 }
 
 h4 {
   font-family: var(--sans);
-  font-size: 0.75rem;
-  margin: 0 0 0.25rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.78rem;
+  margin: 0 0 0.2rem;
+  letter-spacing: 0.04em;
+  font-variant: small-caps;
+  text-transform: none;
   color: var(--ink);
 }
 
-p { margin: 0.35rem 0 0.65rem; }
+p, li, blockquote {
+  overflow-wrap: anywhere;
+}
+
+p { margin: 0.22rem 0 0.45rem; }
 
 /* Cover */
 
@@ -225,10 +241,10 @@ p { margin: 0.35rem 0 0.65rem; }
 
 .cover h2 {
   font-family: var(--sans);
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  margin: 0.9rem 0 0.4rem;
+  margin: 1.1rem 0 0.45rem;
   border: 0;
   padding: 0;
   bookmark-level: 2;
@@ -236,10 +252,11 @@ p { margin: 0.35rem 0 0.65rem; }
 
 .how-to {
   margin: 0;
-  padding-left: 1.15rem;
+  padding-left: 1.2rem;
+  font-size: 1.05rem;
 }
 
-.how-to li { margin: 0.28rem 0; }
+.how-to li { margin: 0.42rem 0; }
 
 .cover-version {
   margin-top: 1.3rem;
@@ -283,21 +300,17 @@ p { margin: 0.35rem 0 0.65rem; }
 /* Running header strings. The section is the first heading on the page.
    The contest is the latest race or measure, so a continued page keeps its name. */
 
-h1 { string-set: section content(), contest ""; }
+h1 { string-set: none; }
 
 .cover h1 { string-set: none; }
 
-h1.guide-title { string-set: section "Voter guide", contest ""; }
+h1.ballot-glance,
+h1.back-matter,
+h1.sources-title,
+h2.contest-title,
+h2.source-group { string-set: section content(); }
 
-h1.ballot-glance { string-set: section "Ballot at a glance", contest ""; }
-
-h1.sources-title { string-set: section "Sources", contest ""; }
-
-#toc-title { string-set: section "Contents", contest ""; }
-
-h2.contest-title { string-set: contest content(); }
-
-h2.source-group { string-set: section "Sources", contest content(); }
+#toc-title { string-set: section content(); }
 
 a.runhead {
   position: absolute;
@@ -307,55 +320,296 @@ a.runhead {
   clip: rect(0, 0, 0, 0);
 }
 
-h1.ballot-glance { break-before: page; page-break-before: always; }
-
-h1.ballot-group { break-before: page; page-break-before: always; }
-
 h2.contest-title {
-  break-before: page;
-  page-break-before: always;
   font-family: var(--serif);
   font-weight: 600;
-  font-size: 1.65rem;
-  line-height: 1.12;
+  font-size: 1.35rem;
+  line-height: 1.15;
   letter-spacing: 0;
   text-transform: none;
-  margin: 0 0 0.55rem;
-  padding: 0.05rem 0 0.2rem;
-  border-bottom: 2.5pt solid var(--ink);
+  margin: 0.85rem 0 0.15rem;
+  padding: 0 0 0.12rem;
+  border-bottom: 0.6pt solid var(--ink);
   bookmark-level: 2;
-  string-set: contest content();
+  break-after: avoid;
+  page-break-after: avoid;
+  string-set: section content();
 }
 
-h1.ballot-group + h2.contest-title {
+h2.contest-title[data-part] {
+  string-set: section attr(data-part) " · " content();
+}
+
+h1.ballot-group + h2.contest-title,
+h2.contest-title + p.official-title,
+.glance-contest + .glance-people,
+.glance-people + .glance-summary {
   break-before: avoid;
   page-break-before: avoid;
 }
 
-h1.ballot-group,
-h1.ballot-glance {
-  font-family: var(--sans);
-  font-size: 0.75rem;
+h1.ballot-group {
+  font-family: var(--serif);
+  font-size: 1.25rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   line-height: 1.2;
-  margin: 0 0 0.35rem;
-  padding: 0;
+  margin: 1rem 0 0.35rem;
+  padding: 0 0 0.1rem;
   border: 0;
+  border-bottom: 0.6pt solid var(--ink);
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 h1.ballot-glance {
   font-family: var(--serif);
-  font-size: 1.7rem;
+  font-size: 1.55rem;
+  font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
-  margin: 0 0 0.55rem;
-  padding-bottom: 0.15rem;
-  border-bottom: 2.5pt solid var(--ink);
+  margin: 0 0 0.4rem;
+  padding-bottom: 0.1rem;
+  border-bottom: 0.6pt solid var(--ink);
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
-h1#glossary { break-before: page; page-break-before: always; }
+p.official-title {
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  margin: 0 0 0.55rem;
+  color: var(--ink);
+}
+
+.glance-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin: 0 0 0.45rem;
+}
+
+h3.glance-contest {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 0.55rem 0 0.08rem;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+a.page-ref {
+  font-size: 0;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+a.page-ref::after {
+  content: target-counter(attr(href), page);
+  font-family: var(--sans);
+  font-size: 11pt;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+table.contents a.page-ref {
+  display: block;
+  width: 100%;
+  text-align: right;
+  font-size: 11pt;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+table.contents a.page-ref::after {
+  content: target-counter(attr(href), page);
+  font-size: 11pt;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.glance-people {
+  margin: 0.05rem 0 0.12rem;
+  padding-left: 1.05rem;
+}
+
+.glance-people li { margin: 0.02rem 0; }
+
+.glance-summary {
+  font-family: var(--serif);
+  margin: 0.05rem 0 0.15rem;
+}
+
+.sheet.opener {
+  break-before: page;
+  page-break-before: always;
+}
+
+.profile {
+  break-inside: auto;
+  page-break-inside: auto;
+  break-before: avoid;
+  page-break-before: avoid;
+  margin: 0.85rem 0 0.35rem;
+}
+
+/* A short closing block stays with the section above it, or moves as one piece. */
+.tail {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+/* A two-row roll call stays with the veto lines that follow it. */
+table:has(+ h4) {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+/* The sponsor block and the roll call close the bill on one page. */
+.bill-close {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Two short profiles at the end of a race share a page when they fit. */
+.profile-pair {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+/* A short closing profile stays with the link back to the ballot. */
+.link-keep {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+p.back-link {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+h2.profile-title {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0.2rem 0 0.25rem;
+  border-bottom: 0;
+  string-set: none;
+}
+
+table.contents {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.2rem 0 0.6rem;
+  font-size: 11pt;
+  table-layout: fixed;
+}
+
+table.contents col.contest { width: 34%; }
+table.contents col.what { width: 58%; }
+table.contents col.page { width: 8%; }
+
+table.contents tbody tr:nth-child(even) td,
+table.contents th,
+table.contents td {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 400;
+  padding: 0.22rem 0.45rem 0.22rem 0;
+  text-align: left;
+  vertical-align: top;
+  text-decoration: none;
+}
+
+table.contents th a,
+table.contents td a {
+  color: var(--ink);
+  font-weight: 400;
+  text-decoration: none;
+}
+
+table.contents td.page,
+table.contents th.page,
+table.contents tbody tr:nth-child(even) td.page {
+  width: 8%;
+  text-align: right;
+  white-space: nowrap;
+  padding-right: 0;
+  padding-left: 0.12rem;
+}
+
+.pair {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0.15rem 0 0.4rem;
+}
+
+/* Positions stay in normal flow so the first answer can share the opener page.
+   A flex row is unbreakable, and that was pushing the whole question forward. */
+.pair.flow {
+  display: block;
+}
+
+.pair.flow > .card {
+  display: block;
+  width: auto;
+  flex: none;
+  margin: 0 0 0.45rem 0;
+}
+
+/* The question sits in the row so a tall card group cannot leave it behind. */
+.pair > h3.pair-label {
+  flex: 1 0 100%;
+  width: 100%;
+  margin: 0.85rem 0 0.35rem;
+}
+
+.pair:has(> h3.pair-label) { margin-top: 0; }
+
+ul.keep-together {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+.card {
+  flex: 1 1 46%;
+  margin: 0 0.35rem 0.45rem 0;
+  padding-top: 0.2rem;
+  border-top: 1.5pt solid var(--ink);
+  min-width: 0;
+}
+
+.pair.count-1 .card { flex-basis: 100%; }
+
+.pair.count-many .card { flex-basis: 30%; }
+
+.ballot-words {
+  margin: 0.35rem 0 0.5rem;
+  padding: 0.4rem 0.5rem;
+  background: #f3f1ec;
+  border: 0.6pt solid var(--ink);
+}
+
+span.num {
+  /* Stay in the column. A right-aligned block amount starts at the right edge,
+     so a short figure such as $0 begins less than 1.5 inches from the next column. */
+  font-variant-numeric: lining-nums tabular-nums;
+}
 
 /* These headings often land under a table that spilled from the previous
    section. Starting them on a new page keeps string(section, first) on the
@@ -375,6 +629,11 @@ h1.guide-title {
   letter-spacing: 0;
   text-transform: none;
   border-bottom: 2.5pt solid var(--ink);
+}
+
+h1.back-matter {
+  break-before: page;
+  page-break-before: always;
 }
 
 .contest-open {
@@ -498,6 +757,7 @@ h1 + table {
   margin-top: 0;
 }
 
+/* WeasyPrint rejects display:grid, so the two boxes share one flex row and stretch. */
 .vote-pair {
   display: flex;
   align-items: stretch;
@@ -591,6 +851,8 @@ th {
   border: 0;
 }
 
+th a { color: var(--band-text); }
+
 tbody tr:nth-child(even) td { background: var(--zebra); }
 
 .comparison table th,
@@ -612,23 +874,85 @@ tr { break-inside: avoid; page-break-inside: avoid; }
 td.not-found,
 p.not-found {
   color: var(--ink);
-  background: var(--zebra);
-  font-style: italic;
+  background: transparent;
+  font-style: normal;
 }
 
 tbody tr:nth-child(even) td.not-found { background: var(--zebra); }
 
 p.not-found {
-  margin: 0.2rem 0 0.75rem;
-  padding: 0.25rem 0.45rem;
+  margin: 0.15rem 0 0.45rem;
+  padding: 0;
+  font-family: var(--serif);
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+.money-period,
+.comparison.money {
+  break-before: avoid;
+  page-break-before: avoid;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.profile p:last-of-type,
+.profile table + p {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+.comparison.money table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.comparison.money th:first-child,
+.comparison.money td:first-child {
+  width: 1.45in;
+}
+
+.ballot-words sup,
+.vote-box sup {
+  display: none;
+}
+
+main a[href="#your-ballot-at-a-glance"] {
+  display: block;
+  margin: 0.55rem 0 0.15rem;
   font-family: var(--sans);
+  font-size: 9pt;
+  font-weight: 500;
+  text-align: right;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+main a[href="#your-ballot-at-a-glance"]::before {
+  content: "↑ ";
+}
+
+main dl {
+  margin: 0.15rem 0 0.6rem;
+}
+
+main dt {
+  font-family: var(--sans);
+  font-weight: 600;
+  margin: 0.55rem 0 0;
+}
+
+main dd {
+  margin: 0.08rem 0 0 0;
+  padding-left: 1.15rem;
+  text-indent: -1.15rem;
 }
 
 a[href^="http"] { overflow-wrap: anywhere; }
 
 sup {
   font-family: var(--sans);
-  font-size: 0.75em;
+  font-size: 0.6em;
   line-height: 0;
   vertical-align: super;
 }
@@ -652,7 +976,25 @@ h2.source-group {
 }
 
 h1.back-matter + h2.source-group,
-h1 + h2.source-group {
+h1 + h2.source-group,
+h1.sources-title + p + h2.source-group {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+/* The repeated notice shares the works-cited page instead of a page of its own. */
+blockquote + h1.back-matter {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+/* The last entries of a long list travel together onto the next page. */
+li.keep-tail {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+li.keep-tail + li.keep-tail {
   break-before: avoid;
   page-break-before: avoid;
 }
@@ -687,64 +1029,67 @@ footer {
   font-size: 0.9rem;
 }
 
-/* Pages. The masthead is the top margin. The runhead link sits in the band
-   with no rule of its own, so the old empty bar does not paint. */
+/* Pages. A hairline rule, small caps, section at the left, page number at the right. */
 
 @page {
   size: letter portrait;
-  margin: 0.48in 0.58in 0.55in 0.58in;
+  margin: 0.58in 0.62in 0.52in 0.62in;
   background: #fbfbfa;
   @top-left {
     content: string(section, first);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
-    font-weight: 600;
+    font-size: 9pt;
+    font-weight: 500;
     font-variant: small-caps;
     letter-spacing: 0.06em;
-    color: #f4f1ea;
-    background: #161616;
-    width: 32%;
-    vertical-align: middle;
-    padding: 0 8pt 0 10pt;
+    color: #161616;
+    background: transparent;
+    width: 78%;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.4pt solid #161616;
   }
-  @top-center {
-    content: element(runhead);
-    background: #161616;
-    width: 6%;
-  }
+  @top-center { content: none; background: transparent; }
   @top-right {
-    content: string(contest, last) "   " counter(page);
+    content: counter(page);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
+    font-size: 9pt;
     font-weight: 500;
-    letter-spacing: 0;
-    color: #f4f1ea;
-    background: #161616;
-    width: 62%;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: #161616;
+    background: transparent;
+    width: 22%;
     text-align: right;
-    vertical-align: middle;
-    padding: 0 10pt 0 6pt;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.4pt solid #161616;
   }
   @bottom-left {
     content: "Not an official ballot";
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
-    font-weight: 500;
+    font-size: 9pt;
+    font-weight: 400;
     color: #161616;
     background: transparent;
-    width: 78%;
+    width: 68%;
     vertical-align: top;
-    padding-top: 5pt;
-    border-top: 1.5pt solid #161616;
+    padding-top: 3pt;
+    border-top: 0.4pt solid #161616;
   }
   @bottom-center { content: none; }
   @bottom-right {
-    content: "";
-    width: 22%;
-    vertical-align: top;
-    padding-top: 5pt;
-    border-top: 1.5pt solid #161616;
+    content: counter(page) " / " counter(pages);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    font-weight: 400;
+    color: #161616;
     background: transparent;
+    width: 32%;
+    text-align: right;
+    vertical-align: top;
+    padding-top: 3pt;
+    border-top: 0.4pt solid #161616;
   }
 }
 
@@ -762,105 +1107,109 @@ footer {
 
 @page toc {
   size: letter portrait;
-  margin: 0.48in 0.58in 0.55in 0.58in;
+  margin: 0.58in 0.62in 0.52in 0.62in;
   background: #fbfbfa;
   @top-left {
     content: string(section, first);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
-    font-weight: 600;
+    font-size: 9pt;
+    font-weight: 500;
     font-variant: small-caps;
     letter-spacing: 0.06em;
-    color: #f4f1ea;
-    background: #161616;
-    width: 32%;
-    vertical-align: middle;
-    padding: 0 8pt 0 10pt;
+    color: #161616;
+    background: transparent;
+    width: 78%;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.4pt solid #161616;
   }
-  @top-center {
-    content: element(runhead);
-    background: #161616;
-    width: 6%;
-  }
+  @top-center { content: none; background: transparent; }
   @top-right {
-    content: string(contest, last) "   " counter(page);
+    content: counter(page);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
+    font-size: 9pt;
     font-weight: 500;
-    color: #f4f1ea;
-    background: #161616;
-    width: 62%;
+    color: #161616;
+    background: transparent;
+    width: 22%;
     text-align: right;
-    vertical-align: middle;
-    padding: 0 10pt 0 6pt;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.4pt solid #161616;
   }
   @bottom-left {
     content: "Not an official ballot";
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
+    font-size: 9pt;
     color: #161616;
-    width: 78%;
-    padding-top: 5pt;
-    border-top: 1.5pt solid #161616;
+    width: 68%;
+    padding-top: 3pt;
+    border-top: 0.4pt solid #161616;
   }
   @bottom-center { content: none; }
   @bottom-right {
-    content: "";
-    width: 22%;
-    padding-top: 5pt;
-    border-top: 1.5pt solid #161616;
+    content: counter(page) " / " counter(pages);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    color: #161616;
+    width: 32%;
+    text-align: right;
+    padding-top: 3pt;
+    border-top: 0.4pt solid #161616;
   }
 }
 
 @page landscape {
   size: letter landscape;
-  margin: 0.48in 0.48in 0.5in 0.48in;
+  margin: 0.55in 0.48in 0.48in 0.48in;
   background: #fbfbfa;
   @top-left {
     content: string(section, first);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
-    font-weight: 600;
+    font-size: 9pt;
+    font-weight: 500;
     font-variant: small-caps;
     letter-spacing: 0.06em;
-    color: #f4f1ea;
-    background: #161616;
-    width: 28%;
-    vertical-align: middle;
-    padding: 0 8pt 0 8pt;
+    color: #161616;
+    background: transparent;
+    width: 78%;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.4pt solid #161616;
   }
-  @top-center {
-    content: element(runhead);
-    background: #161616;
-    width: 6%;
-  }
+  @top-center { content: none; background: transparent; }
   @top-right {
-    content: string(contest, last) "   " counter(page);
+    content: counter(page);
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
+    font-size: 9pt;
     font-weight: 500;
-    color: #f4f1ea;
-    background: #161616;
-    width: 66%;
+    color: #161616;
+    background: transparent;
+    width: 22%;
     text-align: right;
-    vertical-align: middle;
-    padding: 0 8pt 0 6pt;
+    vertical-align: bottom;
+    padding: 0 0 3pt;
+    border-bottom: 0.4pt solid #161616;
   }
   @bottom-left {
     content: "Not an official ballot";
     font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
-    font-size: 9.5pt;
+    font-size: 9pt;
     color: #161616;
-    width: 78%;
-    padding-top: 4pt;
-    border-top: 1.5pt solid #161616;
+    width: 68%;
+    padding-top: 3pt;
+    border-top: 0.4pt solid #161616;
   }
   @bottom-center { content: none; }
   @bottom-right {
-    content: "";
-    width: 22%;
-    padding-top: 4pt;
-    border-top: 1.5pt solid #161616;
+    content: counter(page) " / " counter(pages);
+    font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    color: #161616;
+    width: 32%;
+    text-align: right;
+    padding-top: 3pt;
+    border-top: 0.4pt solid #161616;
   }
 }
 
@@ -900,14 +1249,16 @@ h2 { bookmark-level: 2; }
     line-height: 1.48;
     background: #fbfbfa;
   }
-  h1 { font-size: 20pt; }
-  h1.ballot-group { font-size: 9.5pt; }
+  h1 { font-size: 18pt; }
+  h1.ballot-group { font-size: 16pt; }
   h1.ballot-glance,
   h1.guide-title,
   h1.sources-title,
-  #toc-title { font-size: 22pt; }
+  #toc-title { font-size: 20pt; }
   h2 { font-size: 13pt; }
-  h2.contest-title { font-size: 22pt; }
+  h2.contest-title { font-size: 18pt; }
+  p.official-title { font-size: 9.5pt; }
+  h3.glance-contest { font-size: 13pt; }
   h2.source-group { font-size: 18pt; }
   h3 { font-size: 10pt; }
   h3.source-entry { font-size: 11pt; }

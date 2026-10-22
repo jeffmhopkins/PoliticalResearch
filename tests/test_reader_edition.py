@@ -11,13 +11,15 @@ import yaml
 
 from check_pdf_layout import errors_from_bbox, html_layout_errors
 from lib.guide_layout import (
-    CELL_CHAR_CAP,
     NOT_FOUND_CELL,
     _GuideModel,
     _chunks,
     _duplicate_issue_row,
     _emit_table,
+    _renumber_markers,
+    _separate_adjacent_markers,
     _short_fact,
+    _title_pair,
     comparison_tables,
 )
 from lib.quality import (
@@ -29,6 +31,7 @@ from lib.quality import (
     quote_verbatim_errors,
     reader_contest_budget_errors,
     reader_log_errors,
+    reader_truncation_errors,
     semantic_claim_errors,
     structured_symmetry_errors,
     templated_prose_errors,
@@ -202,9 +205,14 @@ def test_many_candidates_stay_in_short_columns_and_cells_stay_short():
         "Avery Quinn of Cedar Hollow reported 48200 dollars in receipts and a long explanation of the filing period[^5].",
         "Receipts",
     )
-    assert short.startswith("48200 dollars in receipts")
-    assert len(short) <= CELL_CHAR_CAP + 8
-    assert "[^5]" in short
+    assert short == '<span class="num">$48,200[^5]</span>'
+    assert "..." not in short
+    assert _short_fact(
+        "Neil J. Gillespie, United States Senator, Florida PAC money line Other committee contributions were not itemized[^9].",
+        "PAC money",
+    ) == "Not found"
+    assert _short_fact("0 dollars in party committee money[^51].", "Party money") == '<span class="num">$0[^51]</span>'
+    assert "..." not in _short_fact("Before that council term, Avery Quinn of Cedar Hollow worked as a classroom teacher from 2001 through 2017 at the high school[^3].", "Occupation")
 
 
 def test_office_links_and_precinct_render_from_the_ballot(tmp_path: Path):
@@ -229,6 +237,16 @@ def test_office_links_and_precinct_render_from_the_ballot(tmp_path: Path):
     assert prose_marker_errors(districts, "ballot", exempt)
     assert prose_marker_errors(bare, "ballot", exempt)
     assert prose_marker_errors(text, "ballot")
+
+
+def test_official_ballot_title_is_a_label_not_an_uncited_claim():
+    title = (
+        '<p class="official-title">No. 1 Constitutional Amendment, Article III, Section 19: '
+        "Budget Stabilization Fund</p>"
+    )
+    assert prose_marker_errors(title, "guide") == []
+    prose = "No. 1 Constitutional Amendment, Article III, Section 19: Budget Stabilization Fund"
+    assert prose_marker_errors(prose, "guide")
 
 
 def test_quote_must_be_verbatim_and_a_number_can_live_on_the_archived_page(tmp_path: Path):
@@ -352,7 +370,7 @@ def test_bbox_check_flags_overflow_and_tiny_type():
 
 
 def test_running_header_names_the_section_and_updates_per_contest(tmp_path: Path):
-    """The cover stays clear. Later pages name the section, the current contest, and the page."""
+    """The cover stays clear. Later pages name the section on the left and the page on the right."""
     html = tmp_path / "header.html"
     css = Path(__file__).resolve().parents[1] / "assets" / "guide.css"
     html.write_text(
@@ -365,10 +383,11 @@ def test_running_header_names_the_section_and_updates_per_contest(tmp_path: Path
 <main id="content">
 <h1 class="ballot-glance" id="your-ballot-at-a-glance">Your ballot at a glance</h1>
 <p>Glance body.</p>
-<h1 class="ballot-group">Races</h1>
+<h1 class="ballot-group" style="break-before: page">Races</h1>
 <h2 class="contest-title">Mayor of Cedar Hollow</h2>
 <p>Mayor body.</p>
 <p style="break-before: page">Mayor continued onto the next page.</p>
+<h1 class="ballot-group" style="break-before: page">Measures</h1>
 <h2 class="contest-title">Measure H</h2>
 <p>Measure body.</p>
 </main></body></html>
@@ -392,11 +411,12 @@ def test_running_header_names_the_section_and_updates_per_contest(tmp_path: Path
     assert not re.search(r"Mayor of Cedar Hollow\s+\d", cover)
     contest = next(page for page in pages if "Mayor body" in page)
     header = next(line for line in contest.splitlines() if line.strip())
-    assert "Races" in header
     assert "Mayor of Cedar Hollow" in header
+    assert "Races" not in header
     assert re.search(r"\d\s*$", header)
     continued = next(page for page in pages if "Mayor continued" in page)
     continued_header = next(line for line in continued.splitlines() if line.strip())
+    assert re.search(r"\d\s*$", continued_header)
     assert "Mayor of Cedar Hollow" in continued_header
     measure = next(page for page in pages if "Measure body" in page)
     measure_header = next(line for line in measure.splitlines() if line.strip())
@@ -662,14 +682,21 @@ def test_review_status_accepts_a_colon_in_the_contest_title(tmp_path: Path):
     model = _GuideModel(tmp_path, "2026-10-21")
     reader = "\n".join(model._methodology("reader"))
     full = "\n".join(model._methodology("full"))
-    assert "status signed-off, round 1, mode initial — measure-1" in full
+    assert "status signed-off, round 1, mode initial — measure-1" not in full
+    assert "This guide was assembled on October 21, 2026." in full
+    assert "The facts come from official records, candidate filings, and named news reports." in full
     assert "Avery Quinn was convicted of fraud" not in reader
     assert "Avery Quinn was convicted of fraud" not in full
     assert "Removed measure-1.title.001 at the round cap." not in reader
-    assert "Removed measure-1.title.001 at the round cap." in full
+    assert "Removed measure-1.title.001 at the round cap." not in full
     assert "fresh-context" not in reader
+    assert "fresh-context" not in full
     assert "process gap" not in reader.lower()
+    assert "process gap" not in full.lower()
     assert "signed off in the same context" not in reader
+    assert "signed off in the same context" not in full
+    assert "suspected_injection" not in full
+    assert "Parallel subagents" not in full
     assert prose_marker_errors(reader, "guide") == []
     assert prose_marker_errors(full, "guide") == []
 
@@ -719,22 +746,25 @@ def test_reader_edition_drops_duplicate_process_and_portal_logs(tmp_path: Path):
     model = _GuideModel(tmp_path, "2026-10-21")
     reader, sources = model.render("reader")
     full, full_sources = model.render("full")
-    assert "Reviews: 0 of 2 candidate profiles were checked by a separate reviewer; the rest were checked in the same session, which is less independent." in reader
-    assert "| Ada One | Same session / Separate / Separate / Separate |" in reader
-    assert "| Bea Two | Same session / Separate / Separate / Separate |" in reader
-    assert plain in reader
-    assert reader.count(plain) == 2
+    assert "Reviews:" not in reader
+    assert "Same session" not in reader
+    assert plain not in reader
+    assert "could not be retrieved" not in reader
+    assert "No public record found" in reader
     assert "Cloudflare" not in reader
     assert "Sunbiz" not in reader
     assert "fresh-context" not in reader
     assert "process gap" not in reader.lower()
     assert "signed off in the same context" not in reader
+    assert "signed off in the same context" not in full
+    assert "Cloudflare" not in reader
+    assert "Cloudflare" not in full
     assert "Cloudflare" not in sources
     assert plain in sources
-    assert full.count(process) == 2
-    assert full.count(portal) == 2
-    assert "### cand-a" in full
-    assert "### cand-b" in full
+    assert process not in full
+    assert portal not in full
+    assert "Parallel subagents" not in full
+    assert "suspected_injection" not in full
     assert portal in full_sources
     assert reader_log_errors(reader) == []
     reader_method = "\n".join(model._methodology("reader"))
@@ -746,6 +776,104 @@ def test_reader_edition_drops_duplicate_process_and_portal_logs(tmp_path: Path):
     assert any("duplicate bullet" in error for error in reader_log_errors(duplicated))
     leaked = reader + "\nThis is a process gap, not a fresh-context review.\n"
     assert any("process gap" in error for error in reader_log_errors(leaked))
+
+
+def test_glance_is_a_list_and_markers_renumber_in_reading_order(tmp_path: Path):
+    contest = {
+        "id": "senate",
+        "item_id": "senate",
+        "type": "race",
+        "title": "United States Senator",
+        "candidates": [
+            {"id": "cand-a", "item_id": "cand-a", "name": "Ashley Moody", "party": "REP", "incumbent": True},
+            {"id": "cand-b", "item_id": "cand-b", "name": "Angie Nixon", "party": "DEM"},
+            {"id": "cand-c", "item_id": "cand-c", "name": "Neil J. Gillespie", "party": "NPA"},
+        ],
+    }
+    measure = {
+        "id": "measure-long",
+        "item_id": "measure-long",
+        "type": "measure",
+        "title": "CONSTITUTIONAL AMENDMENT LIMITING THE AUTHORITY OF THE COUNTY COMMISSION TO LEVY A PARKS TAX WITHOUT A REFERENDUM OF THE ELECTORS",
+    }
+    dump_yaml(tmp_path / "ballot.yaml", {"contests": [contest, measure], "fiction": True, "report_version": "v1.0"})
+    dump_yaml(tmp_path / "intake.yaml", {})
+    summary = (
+        "Three candidates are printed on the sample ballot for United States Senator[^1050][^8412]. "
+        "The rest of the summary stays off the glance page[^7605]."
+    )
+    (tmp_path / "items" / "senate").mkdir(parents=True)
+    (tmp_path / "items" / "senate" / "draft.md").write_text(
+        f"# United States Senator\n\n<!-- summary -->\n{summary}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "items" / "measure-long").mkdir(parents=True)
+    (tmp_path / "items" / "measure-long" / "draft.md").write_text(
+        "# Amendment\n\n<!-- summary -->\nThe amendment asks voters whether a parks tax needs a referendum[^20].\n\n"
+        "## Official title\n\nThe official title is the long constitutional caption[^21].\n",
+        encoding="utf-8",
+    )
+    for item_id, name, party in (
+        ("cand-a", "Ashley Moody", "Republican"),
+        ("cand-b", "Angie Nixon", "Democratic"),
+        ("cand-c", "Neil J. Gillespie", "No Party Affiliation"),
+    ):
+        item = tmp_path / "items" / item_id
+        item.mkdir(parents=True)
+        pac = "8000 dollars from PAC committees[^50]." if item_id != "cand-c" else (
+            f"{name}, United States Senator, Florida PAC money line Other committee text with no amount[^50]."
+        )
+        (item / "draft.md").write_text(
+            f"# {name}\n\n## Campaign funding\n\n{name} reported 1200 dollars in receipts[^5].\n\n{pac}\n",
+            encoding="utf-8",
+        )
+        dump_yaml(
+            item / "profile.yaml",
+            {"item_id": item_id, "party": {"registered_party": party}, "money": {"pac_money": pac}},
+        )
+    model = _GuideModel(tmp_path, "2026-10-21")
+    glance = "\n".join(model._at_a_glance())
+    assert "glance-contest" in glance
+    assert "Ashley Moody, REP (incumbent)" in glance
+    assert "Angie Nixon, DEM" in glance
+    assert "Neil J. Gillespie, NPA" in glance
+    assert "(incumbent)" not in glance.split("Neil J. Gillespie, NPA")[1][:40]
+    assert "Incumbent:" not in glance
+    assert "Not found" not in glance
+    assert "[^" not in glance
+    assert "..." not in glance
+    assert "race" not in glance.lower()
+    assert "retention" not in glance.lower()
+    assert "Three candidates are printed on the sample ballot for United States Senator." in glance
+    assert "The rest of the summary" not in glance
+    assert 'href="#contest-senate"' in glance
+    short, subtitle = _title_pair(measure["title"], "")
+    assert short == "Constitutional amendment limiting the authority"
+    assert subtitle == measure["title"]
+    assert measure["title"] not in glance
+    assert short in glance
+    assert "..." not in short
+    body, sources = model.render("reader")
+    assert "<!-- marker-map:" in body
+    assert "[^1050]" not in body
+    assert "[^8412]" not in body
+    contents = body.split("</table>", 1)[0]
+    assert "<sup>" not in contents
+    assert "3 candidates." not in contents
+    assert "Represents Florida in the U.S. Senate." in contents
+    assert "Ballot status" not in body
+    assert "No public record found" in body
+    assert "PAC money line" not in body
+    assert reader_truncation_errors(body) == []
+    assert any("ellipsis" in error for error in reader_truncation_errors(body + "\nThe levy begins...[^1]\n"))
+    renumbered, addendum, mapping = _renumber_markers("Seen first[^10][^2] and again[^10].", "### Source 10 {#source-10}\n\n[10] Press.\n\n### Source 2 {#source-2}\n\n[2] Press.\n")
+    separated = _separate_adjacent_markers(renumbered)
+    assert mapping == {1: 10, 2: 2}
+    assert "[^1], [^2]" in separated
+    assert "#source-10" not in addendum
+    assert "#source-1" in addendum
+    assert "#source-2" in addendum
+    assert sources  # addendum is produced for the rendered reader
 
 
 def test_sample_saved_page_is_checked_verbatim():

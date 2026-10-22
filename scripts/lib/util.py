@@ -46,6 +46,11 @@ STREET_RE = re.compile(
     rf")",
     re.IGNORECASE,
 )
+# "circuit court" is a court, not a road named Court. "100 Oak Court" still matches.
+_COURT_STREET_RE = re.compile(
+    r"\b(?:supreme|district|circuit|county|appeals|appeal|trial|drug)\s+courts?\b",
+    re.IGNORECASE,
+)
 
 
 def repo_root() -> Path:
@@ -168,8 +173,19 @@ def iter_items(workspace: Path) -> list[Path]:
     return sorted(path for path in items.iterdir() if path.is_dir())
 
 
+def street_address_spans(value: str) -> list[str]:
+    """Street-address hits. A court name such as Supreme Court is not one."""
+    found = []
+    for match in STREET_RE.finditer(value or ""):
+        chunk = match.group(0)
+        if _COURT_STREET_RE.search(chunk):
+            continue
+        found.append(chunk)
+    return found
+
+
 def looks_like_street_address(value: str) -> bool:
-    return bool(STREET_RE.search(value or ""))
+    return bool(street_address_spans(value))
 
 
 def _blocked_ip(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:

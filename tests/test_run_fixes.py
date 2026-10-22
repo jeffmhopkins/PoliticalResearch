@@ -35,6 +35,12 @@ def test_sentence_splitter_keeps_initials_degrees_and_hostnames():
     assert split_sentences("She holds a J.D. degree.") == ["She holds a J.D. degree."]
     assert split_sentences("See congress.gov today.") == ["See congress.gov today."]
     assert split_sentences("Hollow.John filed.") == ["Hollow.", "John filed."]
+    bill = split_sentences(
+        "Measure Number: H.R. 7147 (A bill making further consolidated appropriations "
+        "for the fiscal year ending September 30, 2026, and for other purposes. )"
+    )
+    assert len(bill) == 2
+    assert split_sentences("H.R. 1 passed. S. 2 failed.") == ["H.R. 1 passed.", "S. 2 failed."]
 
 
 def test_gap_notes_cannot_smuggle_a_second_clause():
@@ -381,9 +387,25 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     sources = (EXAMPLE / "final" / "guide-sources.md").read_text(encoding="utf-8")
     full = (EXAMPLE / "final" / "guide-full.md").read_text(encoding="utf-8")
     full_sources = (EXAMPLE / "final" / "guide-full-sources.md").read_text(encoding="utf-8")
-    assert "# Your ballot at a glance" in guide
-    assert "# Compare across the ballot" in guide
-    assert "# Official election office links" in guide
+    assert "# What's on your ballot" in guide
+    assert "<table class=\"contents\">" in guide
+    assert "Contest" in guide and "What it is" in guide and "Page" in guide
+    assert "# Official election office links" not in guide
+    assert "# Official election office links" in full
+    assert "::: {.sheet" in guide
+    assert "Months in this report" in guide
+    assert "What is this about?" in guide
+    assert "Exact words on your ballot" in guide
+    assert "What is the history of this bill?" in guide
+    assert "How did your legislators vote?" in guide
+    assert "### Background" in guide
+    assert "### Education" not in guide and "### Work" not in guide
+    for phrase in (
+        "The two cards are the same size",
+        "A missing statement stays a one-line gap",
+        "The table is dollars only",
+    ):
+        assert phrase not in guide
     assert "# Search log" not in guide
     assert "# Works cited" not in guide
     assert "# Search log" in sources or "### Search log" in sources
@@ -397,47 +419,46 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "# Marker index" not in guide
     assert "# Changelog" not in guide
     assert "- cand-quinn:" not in guide
-    assert "Reviews: 1 of 2 candidate profiles were checked by a separate reviewer." in guide
-    assert "| Avery Quinn | Separate / Separate / Separate / Separate |" in guide
-    assert "| Blake Okonkwo | Not signed / Not signed / Not signed / Not signed |" in guide
+    assert "Reviews:" not in guide
+    assert "Same session" not in guide
+    assert "Tier T1" not in guide
     assert "fresh-context" not in guide
     assert "process gap" not in guide.lower()
-    assert "status signed-off, round 1, mode initial — cand-quinn" in full
+    assert "status signed-off, round 1, mode initial — cand-quinn" not in full
+    assert "This guide was assembled on October 20, 2026." in full
+    assert "Parallel subagents" not in full
+    assert "suspected_injection" not in full
     assert "Mayor of Cedar Hollow: status" not in guide
-    assert "{#profile-cand-quinn" not in guide
+    assert "{#profile-cand-quinn" in guide
     assert "{#profile-cand-quinn" in full
-    assert "guide-full.md#profile-cand-quinn" in guide
+    assert "guide-full.md#profile-cand-quinn" not in guide
     assert "guide-sources.md#source-" in guide
     assert "#source-1" in sources
     assert "#cite-1" in sources
     assert 'id="cite-1"' in guide or "#cite-1" in guide
     assert "[Back to ballot](#your-ballot-at-a-glance)" in guide
-    assert "Not found (searched: years in elected office)." in guide
-    assert not any(line.startswith("| Years in elected office |") for line in guide.splitlines())
+    assert "four-year term" in guide
+    assert "rather than an appointment" in guide
+    assert "Ballot status" not in guide
     table = {}
     for line in guide.splitlines():
         if line.startswith("| ") and line.count("|") >= 4:
             cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
             table[cells[0]] = cells
-    assert "48200 dollars in receipts" in table["Receipts"][1]
-    assert "17200 dollars in cash on hand" in table["Cash on hand"][1]
-    assert table["Receipts"][1] != table["Cash on hand"][1]
-    assert "30100 dollars in receipts" in table["Receipts"][2]
-    assert "11700 dollars in cash on hand" in table["Cash on hand"][2]
-    assert "four-year term" in table["Current or most recent office"][1]
-    assert "2018 certificate" in table["Prior offices"][1]
-    assert table["Current or most recent office"][1] != table["Prior offices"][1]
-    assert len(table["Receipts"][1]) < 180
-    quinn_money = next(line for line in guide.splitlines() if line.startswith("| Mayor of Cedar Hollow | Avery Quinn |"))
-    quinn_cells = [cell.strip() for cell in quinn_money.strip().strip("|").split("|")]
-    assert "48200" in quinn_cells[2]
-    assert "17200" in quinn_cells[3]
-    assert quinn_cells[2] != quinn_cells[3]
+    assert "$48,200" in table["Raised"][1]
+    assert "$30,100" in table["Raised"][2]
+    assert "$17,200" in table["Cash on hand"][1]
+    assert "$11,700" in table["Cash on hand"][2]
+    assert table["Raised"][1] != table["Cash on hand"][1]
+    assert table["Months in this report"][1] != ""
+    assert "..." not in table["Raised"][1]
     assert "# Marker index" in full
     assert "# Changelog" in full
     assert "# Works cited" not in full
     assert "# Works cited" in full_sources
-    assert "Not an official ballot" in guide
+    template = (EXAMPLE.parents[1] / "assets" / "guide.html.tmpl").read_text(encoding="utf-8")
+    assert "Not an official ballot" in template
+    assert "Content hash" not in template
     assert "disputed" in guide
     from lib.quality import READER_CONTEST_WORD_BUDGET, reader_contest_budget_errors
 

@@ -1,6 +1,6 @@
 /* Charter. An official-pamphlet theme: California voter guide, League of Women Voters.
    Load after assets/guide.css. Select with: scripts/build.sh --theme charter
-   The default guide is unchanged when --theme is omitted.
+   Omitting --theme uses Docket Color. --theme docket is the grayscale base.
 
    Type: Source Serif 4 for reading and titles, Public Sans for labels,
    tables, and page furniture. Both are SIL Open Font License.

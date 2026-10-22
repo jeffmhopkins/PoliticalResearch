@@ -32,11 +32,19 @@ from lib.util import (
 
 MARKER_RE = re.compile(r"\[\^(\d+)\]")
 # Rendered guides replace [^n] with a small link into the sources addendum.
-LINK_MARKER_RE = re.compile(r"\[(?:<sup>)?(\d+)(?:</sup>)?\]\(([^)\s]*)#source-\1\)")
+# A merged run prints as 12–14 and still links to the first source.
+# The visible label can restart inside a contest. The source id in the link is
+# the global marker, and that id is what the citation gates check.
+LINK_MARKER_RE = re.compile(
+    r"\[(?:<sup>)?\d+(?:[–-]\d+)?(?:</sup>)?\]\(([^)\s]*)#source-(\d+)\)"
+)
 WORK_RE = re.compile(r"^\[(\d+)\] ", re.MULTILINE)
 FOOTNOTE_DEF_RE = re.compile(r"^\[\^\d+\]:")
 # Hard cap for one contest in the reader edition. The full edition is not capped.
-READER_CONTEST_WORD_BUDGET = 900
+# A contest page set is the opening, the issue questions, the money table,
+# the support lines, and one profile per candidate. 900 words was the old
+# comparison-only reader. This budget still rejects a pasted draft.
+READER_CONTEST_WORD_BUDGET = 25000
 _NAV_LINK_RE = re.compile(
     r"^(?:\[Back to ballot\]\(#[A-Za-z0-9_-]+\)"
     r"|\[Sources, quotes, and the search log\]\([^)]+\)"
@@ -180,6 +188,24 @@ _GAP_BARE_YEAR_RE = re.compile(r"\b(\d{4})\b(?!-\d{2}-\d{2})")
 _GAP_WORD_RE = re.compile(r"[a-z]+(?:-[a-z]+)*", re.IGNORECASE)
 NEAR_COPY_RATIO = 0.85
 _FOREIGN_NAME_RE = re.compile(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b")
+# A two-word state is not a second person. One-word states never match the pattern above.
+_US_STATE_NAMES = frozenset(
+    {
+        "new hampshire",
+        "new jersey",
+        "new mexico",
+        "new york",
+        "north carolina",
+        "north dakota",
+        "rhode island",
+        "south carolina",
+        "south dakota",
+        "west virginia",
+        "united states",
+        "costa rica",
+        "puerto rico",
+    }
+)
 _FOREIGN_NAME_SKIP = {
     "a",
     "an",
@@ -216,6 +242,7 @@ _FOREIGN_NAME_ORG_WORDS = {
     "association",
     "authority",
     "bank",
+    "beach",
     "board",
     "bureau",
     "campaign",
@@ -232,11 +259,17 @@ _FOREIGN_NAME_ORG_WORDS = {
     "court",
     "department",
     "district",
+    "force",
+    "forces",
     "foundation",
     "fund",
     "group",
+    "guard",
     "guild",
+    "coast",
     "hall",
+    "high",
+    "hill",
     "hospital",
     "institute",
     "league",
@@ -250,8 +283,11 @@ _FOREIGN_NAME_ORG_WORDS = {
     "service",
     "services",
     "society",
+    "springs",
     "state",
+    "system",
     "temple",
+    "town",
     "union",
     "university",
     # Legal-entity words. A bare personal name has none of these.
@@ -334,10 +370,13 @@ _RUN_RECORD_SENTENCE_RE = re.compile(
     r"|Disputed: \d+"
     r"|Disputed and unconfirmed claims are not used in summaries"
     r"|Blockers are removed rather than left disputed"
-    r"|The reader edition keeps a short summary and comparison tables for each contest"
+    r"|The reader edition and the full edition use the same contest pages"
     r"|Works cited, quotes, and the search log are in the sources addendum"
-    r"|Per-candidate prose is in the full edition"
     r"|The full edition adds the marker index and the changelog"
+    r"|This guide was assembled on (?:\d{4}-\d{2}-\d{2}|[A-Z][a-z]+ \d{1,2}, \d{4})"
+    r"|The facts come from official records, candidate filings, and named news reports"
+    r"|Where this guide did not find a public record, the page says so"
+    r"|The sources edition lists the citation for each fact"
     r"|Reviews: \d+ of \d+ candidate profiles were checked by a separate reviewer"
     r"(?:; (?:the rest|\d+) were checked in the same session, which is less independent)?"
     r"|The review column is fact-check, sourcing, neutrality, and privacy, in that order"
@@ -492,6 +531,186 @@ def _is_review_row(row: str, h1: str, h2: str) -> bool:
         return False
     match = _REVIEW_ROW_RE.match(row.strip())
     return match is not None and _run_record_label_ok(match.group("label"))
+
+
+def plain_reader_sentence(sentence: str) -> str:
+    """A reader sentence with the research process taken out.
+
+    Search paths, portal failures, and bill-analysis lead-ins stay in the
+    sources edition. The reader keeps the fact, or one plain gap sentence.
+    """
+    marks = MARKER_RE.findall(sentence or "")
+    text = MARKER_RE.sub("", sentence or "")
+    text = re.sub(r"\s*\(not found: see the search log\)", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+", " ", text).strip()
+    # The single-source clause often sits in front of the analysis lead.
+    # Strip it first so "says" and "lists" can be rewritten at the start.
+    text = _strip_single_source(text)
+    text = re.sub(r",\s+says\b", " says", text, flags=re.IGNORECASE)
+    text = _ANALYSIS_SUBJECT_RE.sub("", text)
+    text = re.sub(r"\s+", " ", text).strip(" ,;:")
+    for _ in range(2):
+        for pattern, repl in _PROCESS_LEAD_RES:
+            text = re.sub(pattern, repl, text)
+        text = re.sub(r"\s+", " ", text).strip(" ,;:")
+    text = re.sub(r"(?i)\s+on the sample ballot\b", "", text)
+    text = re.sub(r"(?i)\bprecinct\s+\d+\b", "", text)
+    text = re.sub(r"(?i),?\s*and the record label is match\b", "", text)
+    text = re.sub(
+        r"(?i)(?:,\s*)?(?:and\s+)?(?:those|these|this)\s+rows?\s+are allegation only\b[^.]{0,200}",
+        "",
+        text,
+    )
+    text = re.sub(
+        r"(?i),?\s*(?:and\s+)?(?:because\s+)?(?:those\s+|the\s+)?(?:pdfs?|letters?)\s+(?:was|were)\s+not opened\b[^.]{0,180}",
+        "",
+        text,
+    )
+    text = re.sub(r"(?i),?\s*and response requested, not found\b", "", text)
+    text = re.sub(r"\s+", " ", text).strip(" ,;:")
+    text = re.sub(r"\s+([.!?])", r"\1", text)
+    if re.search(r"\bsample ballot\b", text, re.IGNORECASE) and re.search(
+        r"\b(?:lists|prints|places)\b", text, re.IGNORECASE
+    ):
+        if not re.match(r"(?i)that ballot lists two choices", text) and not re.match(
+            r"(?i)the ballot says to vote for one and lists", text
+        ):
+            return ""
+    if not text:
+        return ""
+    if re.search(r"could not be retrieved|not found \(searched:", text, re.IGNORECASE):
+        return "No public record found."
+    if _READER_VOICE_RE.search(text):
+        return ""
+    if text[0].islower():
+        text = text[0].upper() + text[1:]
+    if text[-1] not in ".!?":
+        text += "."
+    if text.lower() == "no public record found.":
+        return "No public record found."
+    suffix = "".join(f"[^{number}]" for number in marks)
+    if not suffix:
+        return text
+    if text[-1] in ".!?":
+        return text[:-1] + suffix + text[-1]
+    return text + suffix
+
+
+def _clean_reader_line(line: str) -> str:
+    parts = [plain_reader_sentence(part) for part in split_sentences(line)]
+    kept: list[str] = []
+    for part in parts:
+        if not part:
+            continue
+        if part == "No public record found." and kept and kept[-1] == part:
+            continue
+        kept.append(part)
+    return " ".join(kept).strip()
+
+
+def plain_reader_document(text: str) -> str:
+    """Rewrite the reader body. Headings, tables, fences, and the glossary stay."""
+    lines = (text or "").splitlines()
+    start = 0
+    if lines and lines[0].strip() == "---":
+        for index in range(1, len(lines)):
+            if lines[index].strip() == "---":
+                start = index + 1
+                break
+    out = list(lines[:start])
+    body = lines[start:]
+    previous_gap = False
+    for index, line in enumerate(body):
+        stripped = line.strip()
+        nxt = body[index + 1].strip() if index + 1 < len(body) else ""
+        copy = (
+            not stripped
+            or stripped.startswith(("#", "|", "<", ">", ":", "{", "<!--", ":::", "---", "["))
+            or nxt.startswith(": ")
+        )
+        if copy:
+            if stripped:
+                previous_gap = False
+            out.append(line)
+            continue
+        prefix = ""
+        prose = stripped
+        if stripped.startswith("- "):
+            prefix = "- "
+            prose = stripped[2:].strip()
+        cleaned = _clean_reader_line(prose)
+        if not cleaned:
+            continue
+        if cleaned == "No public record found.":
+            if previous_gap:
+                continue
+            previous_gap = True
+        else:
+            previous_gap = False
+        out.append(prefix + cleaned)
+    return _drop_empty_headings("\n".join(out)).rstrip() + "\n"
+
+
+_BARE_PROFILE_HEADINGS = {
+    "### Education",
+    "### Work",
+    "### Time in elected office",
+    "### Recorded votes",
+}
+
+
+def _drop_empty_headings(text: str) -> str:
+    """Drop a profile heading whose sentence was cleaned away."""
+    lines = text.splitlines()
+    kept: list[str] = []
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped in _BARE_PROFILE_HEADINGS:
+            nxt = ""
+            for later in lines[index + 1 :]:
+                if later.strip():
+                    nxt = later.strip()
+                    break
+            if not nxt or nxt.startswith("#") or nxt.startswith(":::"):
+                continue
+        kept.append(line)
+    return "\n".join(kept)
+
+
+def reader_voice_errors(text: str) -> list[str]:
+    """The reader PDF source has no fence leaks and no research-process sentences."""
+    errors = []
+    body = strip_front_matter(text or "")
+    for line in body.splitlines():
+        stripped = line.strip()
+        if re.fullmatch(r"=", stripped):
+            errors.append(f"final/guide.md: leaked markup on its own line: {stripped}")
+        elif re.match(r"^:::\s+\S+\s+\S+", stripped) and not stripped.startswith("::: {"):
+            errors.append(f"final/guide.md: leaked fence: {stripped[:80]}")
+        elif re.match(r"(?i)^says\s+\S", stripped):
+            errors.append(f"final/guide.md: reader process wording: {stripped[:160]}")
+        elif _READER_VOICE_RE.search(stripped) and not stripped.startswith(":::"):
+            errors.append(f"final/guide.md: reader process wording: {stripped[:160]}")
+        if len(errors) >= 12:
+            break
+    return errors
+
+
+_PROCESS_LEAK_RE = re.compile(
+    r"suspected_?injection|parallel subagents|signed off in the same context|"
+    r"\bcloudflare\b|status signed-off, round \d+",
+    re.IGNORECASE,
+)
+
+
+def published_process_errors(text: str) -> list[str]:
+    """Review machinery stays out of both printed editions."""
+    errors = []
+    for match in _PROCESS_LEAK_RE.finditer(text or ""):
+        errors.append(f"final/guide.md: process note in the edition: {match.group(0)[:80]}")
+        if len(errors) >= 8:
+            break
+    return errors
 
 
 def reader_log_errors(text: str) -> list[str]:
@@ -949,6 +1168,9 @@ def _foreign_name(sentence: str, record: dict) -> bool:
         # person-name span, including one stored as an organizations entry, is not.
         if phrase in _registered_organizations(record):
             continue
+        # Two-word state names, and a city built on one ("New York City"), are places.
+        if phrase in _US_STATE_NAMES or any(phrase.startswith(state + " ") for state in _US_STATE_NAMES):
+            continue
         # A month or an organization word is not itself a person. The words
         # beside it still are: "the John Smith Committee" names John Smith
         # unless that full organization is listed on this identity record.
@@ -1282,10 +1504,114 @@ def _gap_items_name_an_event(inner: str) -> bool:
     return False
 
 
+_DOCKET_NOTES = {
+    "pay was not in the sources checked.",
+    "outside spending was not in the finance summaries checked for any candidate in this race.",
+    "candidates appear in ballot order.",
+    "incumbent means the person already holds this office.",
+    "challenger means the person is running against the incumbent.",
+    "nonpartisan means the ballot does not list a party.",
+    "amounts are rounded to the nearest dollar.",
+    "cash on hand is money the campaign still reported having.",
+    "the full ballot wording was not captured.",
+    "no court cases, ethics findings, or campaign-finance penalties found in the records checked.",
+    "no court cases, ethics findings, or campaign-finance penalties found for the other candidates in the records checked.",
+}
+_NO_STATEMENT_RE = re.compile(
+    r"^no public statement found (?:on [^.;:!]+|for the other candidates)$",
+    re.IGNORECASE,
+)
+_PUBLIC_RECORD_RE = re.compile(
+    r"^no public records? found(?: for:? [^.;:!]+)?$",
+    re.IGNORECASE,
+)
+_READER_VOICE_RE = re.compile(
+    r"sample ballot|precinct\s+\d+|final bill analysis|bill history says|"
+    r"analysis says|single source|searched:|search log|could not be retrieved|"
+    r"record label is|pdf was not opened|response requested",
+    re.IGNORECASE,
+)
+_ANALYSIS_SUBJECT_RE = re.compile(
+    r"(?i)\b(?:the\s+)?"
+    r"(?:"
+    r"(?:(?:january|february|march|april|may|june|july|august|september|"
+    r"october|november|december)\s+\d{1,2},\s+\d{4}|\d{4})\s+"
+    r"(?:(?:house|senate)\s+)?"
+    r"(?:final\s+bill\s+analysis|bill\s+history|analysis)"
+    r"|"
+    r"(?:house|senate)\s+(?:final\s+bill\s+analysis|bill\s+history|(?:final\s+)?(?:bill\s+)?analysis)"
+    r"|"
+    r"(?:house\s+)?staff\s+analysis"
+    r")"
+    r"\s+(?:says\s+)?"
+)
+_PROCESS_LEAD_RES = (
+    (r"(?i)^(?:the\s+)?\d{4}\s+analysis\s+says\s+", ""),
+    (r"(?i)^lists the sponsor as\s+", "The sponsor is "),
+    (r"(?i)^lists companion bill\s+", "The companion bill is "),
+    (r"(?i)^lists\s+", ""),
+    (r"(?i)^was prepared by\s+", "It was prepared by "),
+    (r"(?i)^cites\s+", "It cites "),
+    (r"(?i)^names\s+", "It names "),
+    (r"(?i)^uses the shorter title\s+", "The shorter title is "),
+    (r"(?i)^titles\s+", "Another title is "),
+    (r"(?i)^says\s+", ""),
+    (
+        r"(?i)^(?:the\s+)?(?:brevard county\s+)?(?:precinct\s+\d+\s+)?sample ballot\s+"
+        r"(?:prints|lists|places|shows)\s+(?:this measure as\s+|the header\s+|the title\s+)?",
+        "",
+    ),
+    (
+        r"(?i)^(?:the\s+)?(?:brevard county\s+)?sample ballot\s+asks whether\s+",
+        "Voters are asked whether ",
+    ),
+    (r"(?i)^that ballot lists two choices,\s*", "The choices are "),
+    (r"(?i)^the ballot says to vote for one and lists\s+", "The candidates are "),
+    (r"(?i)^the office on the [^.]{0,120}?sample ballot is\s+", "The office is "),
+    (r"(?i)^the sample ballot says\s+", ""),
+    (r"(?i)^the ballot says\s+", ""),
+    (r"(?i)^the sample ballot would also\s+", "It would also "),
+    (r"(?i)^it does not print a write-in line under this office", "There is no write-in line for this office"),
+)
+_SINGLE_SOURCE_RE = re.compile(
+    r"(?i)(?:,\s*)?(?:and\s+)?(?:this|that|these|those|both)\s+"
+    r"(?:[\w'-]+\s+){0,8}(?:is|are)\s+a\s+single\s+sources?\b"
+    r"|\b(?:in|from|as)\s+a\s+single\s+source\b,?\s*"
+    r"|\ba\s+single\s+source\b,?\s*"
+    r"|\bsingle sources?\s*:"
+)
+
+
+def _strip_single_source(text: str) -> str:
+    """Remove the research-path clause and leave the fact it was attached to."""
+    cleaned = _SINGLE_SOURCE_RE.sub("", text or "")
+    if re.search(r"\bsingle source\b", cleaned, re.IGNORECASE):
+        cleaned = re.sub(
+            r"(?i)(?:,\s*)?(?:and\s+)?[^,;.]{0,140}\bsingle sources?\b[^,;.]*",
+            "",
+            cleaned,
+        )
+    return re.sub(r"\s+", " ", cleaned).strip(" ,;:")
+_LAYOUT_NOTE_PHRASES = (
+    "the two cards are the same size",
+    "a missing statement stays a one-line gap",
+    "each question is one issue",
+    "the table is dollars only",
+    "one line each",
+    "the same records are listed for each candidate",
+    "this page says what the office is",
+    "where do they stand? continued",
+)
+
+
 def _gap_sentence(sentence: str) -> bool:
     original = re.sub(r"\s+", " ", sentence).strip().strip("*").strip()
     text = original.lower()
-    if text in GAP_SENTENCES:
+    if text in GAP_SENTENCES or text in _DOCKET_NOTES:
+        return True
+    if _NO_STATEMENT_RE.fullmatch(text.rstrip(".")):
+        return True
+    if _PUBLIC_RECORD_RE.fullmatch(text.rstrip(".")):
         return True
     match = GAP_NOT_FOUND_RE.fullmatch(text)
     if not match:
@@ -1525,6 +1851,11 @@ def prose_marker_errors(text: str, label: str, exempt: set[str] | None = None) -
                     continue
                 if _is_gap_text(row) or _is_effort_row(row, h1, h2) or _is_review_row(row, h1, h2):
                     continue
+                data_cells = [cell.strip() for cell in row.strip().strip("|").split("|")][1:]
+                # A comparison slice may be only the Not found token. That token is
+                # the searched-and-missing cell, not an uncited fact.
+                if data_cells and all(cell == "Not found" for cell in data_cells):
+                    continue
                 if not _has_citation_marker(row):
                     errors.append(f"{label}: table row has no citation marker: {row.strip()[:120]}")
             continue
@@ -1568,7 +1899,7 @@ def _mask_markers(text: str) -> str:
 
 def _is_navigation_sentence(plain: str, exempt: set[str] | None = None) -> bool:
     text = re.sub(r"\s+", " ", plain or "").strip().rstrip(".")
-    if re.fullmatch(r":{3}(?:\s+[A-Za-z0-9_-]+)?", text):
+    if re.fullmatch(r":{3}(?:\s+(?:\{[^}]+\}|[A-Za-z0-9_-]+))*", text):
         return True
     if _NAV_LINK_RE.match(text):
         return True
@@ -1577,6 +1908,47 @@ def _is_navigation_sentence(plain: str, exempt: set[str] | None = None) -> bool:
     if exempt and text in exempt:
         return True
     return False
+
+
+def _is_section_name(block: str) -> bool:
+    """The running-header label. It repeats the group name and is not a claim."""
+    lines = [line.strip() for line in (block or "").splitlines() if line.strip()]
+    if len(lines) != 1:
+        return False
+    line = lines[0]
+    return line.startswith('<p class="section-name">') and line.endswith("</p>")
+
+
+def _is_contents_table(block: str) -> bool:
+    """The opening contents table. Each contest sentence is cited again on its page."""
+    text = (block or "").strip()
+    return text.startswith('<table class="contents">') and text.endswith("</table>")
+
+
+def _is_official_title_block(block: str) -> bool:
+    """The ballot's own title under the short heading. It is a label, not a researched claim."""
+    lines = [line.strip() for line in (block or "").splitlines() if line.strip()]
+    if len(lines) != 1:
+        return False
+    line = lines[0]
+    return line.startswith('<p class="official-title">') and line.endswith("</p>")
+
+
+def _is_glance_block(block: str) -> bool:
+    """Assembler glance markup. The same facts are cited on the contest page."""
+    lines = [line.strip() for line in (block or "").splitlines() if line.strip()]
+    if not lines:
+        return False
+    prefixes = (
+        '<div class="glance-item">',
+        '<h3 class="glance-contest">',
+        '<ul class="glance-people">',
+        "<li>",
+        "</ul>",
+        "</div>",
+        '<p class="glance-summary">',
+    )
+    return all(any(line.startswith(prefix) for prefix in prefixes) for line in lines)
 
 
 def _sentence_marker_errors(
@@ -1589,6 +1961,8 @@ def _sentence_marker_errors(
     h2: str = "",
 ) -> list[str]:
     if _is_gap_text(block) and not _has_citation_marker(block):
+        return []
+    if _is_official_title_block(block) or _is_contents_table(block) or _is_section_name(block):
         return []
     # Mask citation links before emphasis characters are removed. The link text
     # uses <sup>, and stripping ">" would hide the marker.
@@ -1603,6 +1977,8 @@ def _sentence_marker_errors(
         if not plain or _is_gap_text(plain):
             continue
         if _is_navigation_sentence(plain, exempt):
+            continue
+        if norm_heading(h1) == "your ballot at a glance" and _is_glance_block(block):
             continue
         if _is_plain_access_note(plain):
             continue
@@ -1623,7 +1999,7 @@ def marker_numbers(text: str) -> set[int]:
         body_lines.append(line)
     blob = "\n".join(body_lines)
     found = {int(value) for value in MARKER_RE.findall(blob)}
-    found.update(int(match.group(1)) for match in LINK_MARKER_RE.finditer(blob))
+    found.update(int(match.group(2)) for match in LINK_MARKER_RE.finditer(blob))
     return found
 
 
@@ -1681,6 +2057,150 @@ def href_fragments(text: str) -> set[str]:
     return set(_FRAGMENT_RE.findall(text or ""))
 
 
+_MARKER_MAP_RE = re.compile(r"<!--\s*marker-map:\s*([0-9=\s]+)\s*-->")
+_TRUNCATION_RE = re.compile(r"\.\.\.|…")
+
+
+def parse_display_markers(text: str) -> dict[int, int] | None:
+    """Display marker to the claim-file marker. None when this edition was not renumbered."""
+    match = _MARKER_MAP_RE.search(text or "")
+    if not match:
+        return None
+    found: dict[int, int] = {}
+    for pair in match.group(1).split():
+        if "=" not in pair:
+            continue
+        display, original = pair.split("=", 1)
+        found[int(display)] = int(original)
+    return found
+
+
+def _original_marker(number: int, index: dict[int, tuple[str, dict, dict]], mapping: dict[int, int] | None) -> int | None:
+    """Resolve a printed marker. A display map is used exclusively when the edition has one."""
+    if mapping is not None:
+        original = mapping.get(number)
+        if original is None or original not in index:
+            return None
+        return original
+    if number in index:
+        return number
+    return None
+
+
+def reader_truncation_errors(text: str) -> list[str]:
+    """The reader prints complete sentences. An ellipsis is a failed clip."""
+    errors = []
+    body = HTML_COMMENT_RE.sub("", strip_front_matter(text or ""))
+    for line in body.splitlines():
+        if _TRUNCATION_RE.search(line):
+            errors.append(f"final/guide.md: reader truncates with an ellipsis: {line.strip()[:160]}")
+    return errors
+
+
+_SUMMARY_ORDER = (
+    "What is this about?",
+    "#### YES",
+    "#### NO",
+    "Who supports it, and who opposes it?",
+    "What would it cost?",
+    "Exact words on your ballot",
+)
+_BILL_PAGE_ORDER = (
+    "What is the history of this bill?",
+    "Who sponsored it, and who drafted it?",
+    "Who lobbied or testified?",
+    "How did the chambers vote?",
+    "How did your legislators vote?",
+)
+
+
+def _ordered_phrase_errors(chunk: str, phrases: tuple[str, ...], label: str) -> list[str]:
+    """Each measure and each bill has the same sections, in the same order."""
+    errors = []
+    positions = []
+    for phrase in phrases:
+        index = chunk.find(phrase)
+        if index < 0:
+            errors.append(f"final/guide.md: {label} is missing {phrase}")
+        else:
+            positions.append(index)
+    if len(positions) == len(phrases) and positions != sorted(positions):
+        errors.append(f"final/guide.md: {label} sections are out of order")
+    return errors
+
+
+def _docket_summary_errors(body: str) -> list[str]:
+    parts = re.split(r"<!-- docket-(measure|bill) -->", body or "")
+    errors = []
+    index = 1
+    measure_n = 0
+    bill_n = 0
+    while index + 1 < len(parts):
+        kind, chunk = parts[index], parts[index + 1]
+        index += 2
+        if kind == "bill":
+            bill_n += 1
+            label = f"bill {bill_n}"
+        else:
+            measure_n += 1
+            label = f"measure {measure_n}"
+        if not re.search(r"(?m)^## ", chunk):
+            errors.append(f"final/guide.md: {label} is missing its short name")
+        if chunk.count("::: vote-box") < 2:
+            errors.append(f"final/guide.md: {label} is missing equal yes and no boxes")
+        if "::: ballot-words" not in chunk:
+            errors.append(f"final/guide.md: {label} is missing the ballot-language box")
+        errors.extend(_ordered_phrase_errors(chunk, _SUMMARY_ORDER, label))
+        if kind != "bill":
+            continue
+        exact = chunk.find("Exact words on your ballot")
+        positions = []
+        for phrase in _BILL_PAGE_ORDER:
+            found = chunk.find(phrase)
+            if found < 0:
+                continue
+            if exact >= 0 and found < exact:
+                errors.append(f"final/guide.md: {label} history starts before the one-page summary")
+            positions.append(found)
+        if positions != sorted(positions):
+            errors.append(f"final/guide.md: {label} later pages are out of order")
+    return errors
+
+
+def docket_layout_errors(text: str) -> list[str]:
+    """The approved page set: breaks, parallel profiles, numeric money, no layout notes."""
+    body = strip_front_matter(text or "")
+    errors = []
+    lowered = body.lower()
+    for phrase in _LAYOUT_NOTE_PHRASES:
+        if phrase in lowered:
+            errors.append(f"final/guide.md: layout note in the guide: {phrase}")
+    if "{#contest-" in body and "::: {.sheet" not in body and "::: sheet" not in body:
+        errors.append("final/guide.md: a contest is missing a page-break sheet")
+    if "who is paying for their campaign?" in lowered and "months in this report" not in lowered:
+        errors.append("final/guide.md: money table is missing the Months in this report row")
+    errors.extend(_docket_summary_errors(body))
+    for line in body.splitlines():
+        if not line.startswith("| "):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if not cells or cells[0] not in {"Months in this report", "Raised", "Spent", "Cash on hand"}:
+            continue
+        for cell in cells[1:]:
+            plain = re.sub(r"<[^>]+>", "", cell)
+            plain = re.sub(r"\[\^[^\]]+\]", "", plain)
+            plain = re.sub(r"\[[^\]]*\]\([^)]*\)", "", plain)
+            plain = re.sub(r"\s+", "", plain)
+            if plain in {"", "Notfound"}:
+                continue
+            if cells[0] == "Months in this report":
+                if not re.fullmatch(r"\d+", plain):
+                    errors.append(f"final/guide.md: months cell is not a number: {cell[:80]}")
+            elif not re.fullmatch(r"\$\d[\d,]*", plain):
+                errors.append(f"final/guide.md: money cell is not a whole-dollar amount: {cell[:80]}")
+    return errors
+
+
 def assembled_guide_errors(
     text: str,
     index: dict[int, tuple[str, dict, dict]],
@@ -1691,21 +2211,30 @@ def assembled_guide_errors(
 ) -> list[str]:
     """Check a rendered edition. Works cited may live in the sources addendum."""
     exempt = official_restatement_sentences(ballot)
+    mapping = parse_display_markers(text)
     errors = prose_marker_errors(text, "final/guide.md", exempt)
-    errors.extend(summary_errors(text, "final/guide.md", index))
+    errors.extend(published_process_errors(text))
+    errors.extend(summary_errors(text, "final/guide.md", index, display_to_original=mapping))
     if reader:
         errors.extend(reader_contest_budget_errors(text))
         errors.extend(reader_log_errors(text))
+        errors.extend(reader_voice_errors(text))
+        errors.extend(reader_truncation_errors(text))
+        from lib.reader_substance import substance_errors
+
+        errors.extend(substance_errors(text, ballot))
+    errors.extend(docket_layout_errors(text))
     cited_text = addendum or text
     cited = works_cited_numbers(cited_text)
     addendum_anchors = anchor_ids(addendum) if addendum else set()
     body_anchors = anchor_ids(text)
     addendum_fragments = href_fragments(addendum) if addendum else set()
     for number in sorted(marker_numbers(text)):
-        if number not in index:
+        original = _original_marker(number, index, mapping)
+        if original is None:
             errors.append(f"final/guide.md: marker {number} does not resolve to a claim source")
         else:
-            _item_name, claim, _source = index[number]
+            _item_name, claim, _source = index[original]
             if claim.get("removed"):
                 errors.append(f"final/guide.md: marker {number} points at removed claim {claim.get('id')}")
             if claim.get("confidence") == "identity-unconfirmed":
@@ -1720,7 +2249,7 @@ def assembled_guide_errors(
             if f"cite-{number}" not in addendum_fragments:
                 errors.append(f"final/guide.md: marker {number} addendum entry does not link back")
     for number in sorted(cited):
-        if number not in index:
+        if _original_marker(number, index, mapping) is None:
             errors.append(f"final/guide.md: works-cited [{number}] has no claim source")
     return errors
 
@@ -1745,7 +2274,12 @@ def reader_contest_budget_errors(text: str, budget: int | None = None) -> list[s
     return errors
 
 
-def summary_errors(text: str, label: str, index: dict[int, tuple[str, dict, dict]]) -> list[str]:
+def summary_errors(
+    text: str,
+    label: str,
+    index: dict[int, tuple[str, dict, dict]],
+    display_to_original: dict[int, int] | None = None,
+) -> list[str]:
     errors = []
     if "<!-- summary -->" not in text:
         return errors
@@ -1768,7 +2302,8 @@ def summary_errors(text: str, label: str, index: dict[int, tuple[str, dict, dict
     if not numbers:
         errors.append(f"{label}: summary has no citation markers")
     for number in sorted(numbers):
-        found = index.get(number)
+        original = _original_marker(number, index, display_to_original)
+        found = index.get(original) if original is not None else None
         if not found:
             errors.append(f"{label}: summary marker {number} does not resolve")
             continue
@@ -2300,7 +2835,42 @@ def _local_archive_text(workspace, source: dict) -> tuple[str | None, str | None
         if result.returncode != 0 and not result.stdout:
             detail = (result.stderr or "pdftotext failed").strip()
             return None, f"could not read local copy {local}: {detail[:200]}"
-        return result.stdout, None
+        # Layout mode splits a bilingual ballot into columns, so a full question
+        # is contiguous only in reading order. Keep both, separated so a quote
+        # cannot be assembled from the end of one and the start of the other.
+        raw_text = ""
+        try:
+            raw_run = subprocess.run(
+                ["pdftotext", "-raw", "-nodiag", str(path), "-"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            raw_text = raw_run.stdout or ""
+        except (OSError, subprocess.TimeoutExpired):
+            raw_text = ""
+        # Layout mode keeps a salary table's columns on one line. Reading order
+        # keeps a ballot question together. Both are separated so a quote cannot
+        # be assembled from the end of one extraction and the start of another.
+        parts = [result.stdout or ""]
+        if raw_text:
+            parts.append(raw_text)
+        try:
+            layout_run = subprocess.run(
+                ["pdftotext", "-layout", str(path), "-"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            if layout_run.stdout:
+                parts.append(layout_run.stdout)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        if len(parts) == 1:
+            return parts[0], None
+        return "\n\n§§§\n\n".join(parts), None
     if suffix in {".html", ".htm"}:
         raw = path.read_text(encoding="utf-8", errors="replace")
         raw = re.sub(r"(?is)<script\b[^>]*>.*?</script>", " ", raw)
@@ -3015,7 +3585,9 @@ def legislation_depth_errors(workspace) -> list[str]:
 
 
 _PARTY_COLOR_RE = re.compile(
-    r"party[-_\s]?(?:democrat(?:ic)?|republican|dem|rep|blue|red|d|r)\b"
+    # A hyphen or underscore is a class name. "party REP" is a ballot abbreviation.
+    r"party[-_](?:democrat(?:ic)?|republican|dem|rep|blue|red|d|r)\b"
+    r"|party\s(?:blue|red)\b"
     r"|(?:democrat(?:ic)?|republican)[-_\s](?:red|blue)\b"
     r"|color\s*:\s*(?:red|blue|darkred|darkblue|crimson|navy)\b"
     r"|rgb\(\s*255\s*,\s*0\s*,\s*0\s*\)"
@@ -3084,10 +3656,12 @@ def rendered_party_errors(workspace) -> list[str]:
     if any(is_nonpartisan_contest(contest) for contest in contests) and NONPARTISAN_RACE not in text:
         errors.append("final/guide.md: missing the Nonpartisan race label")
     if any(contest.get("type") in {"race", "primary", "local-office"} for contest in contests):
-        if not re.search(r"^\|\s*Party\s*\|", text, re.MULTILINE):
-            errors.append("final/guide.md: comparison tables are missing the Party row")
-        if not re.search(r"^\|\s*Endorsements\s*\|", text, re.MULTILINE):
-            errors.append("final/guide.md: comparison tables are missing the Endorsements row")
+        has_party = "### Who is running?" in text or re.search(r"^\|\s*Party\s*\|", text, re.MULTILINE)
+        has_endorsements = "### Who supports them?" in text or re.search(r"^\|\s*Endorsements\s*\|", text, re.MULTILINE)
+        if not has_party:
+            errors.append("final/guide.md: candidates are missing a party label")
+        if not has_endorsements:
+            errors.append("final/guide.md: candidates are missing endorsements")
     if any(contest.get("type") == "legislation" for contest in contests):
         if "Related litigation" not in text and "related litigation" not in text.lower():
             errors.append("final/guide.md: legislation is missing related litigation")
@@ -3335,6 +3909,9 @@ def content_gate_errors(workspace, today: date, *, include_guide: bool = True) -
     errors.extend(depth_record_errors(workspace))
     if include_guide:
         errors.extend(rendered_party_errors(workspace))
+    from lib.reader_substance import draft_street_errors
+
+    errors.extend(draft_street_errors(workspace))
     return errors
 
 

@@ -7,7 +7,7 @@ Not found (searched: not started).
 
 ## Identity
 
-<!-- Name, office sought, party or nonpartisan, incumbency, official ballot designation, campaign site. One claim per fact, with a marker. Documented former, maiden, and filing names go in identity.yaml aliases. Each source is a URL or a claim id, and the alias is a full name that is not another candidate's. An alias does not replace the two identity anchors. Search every alias before a Not found line. birth_year, when a public record supports it, stays in identity.yaml for the identity gate and is never printed. Do not write a street address here. -->
+<!-- Name, office sought, party or nonpartisan, incumbency, official ballot designation, campaign site. One claim per fact, with a marker. Documented former, maiden, and filing names go in identity.yaml aliases. Each source is a URL or a claim id, and the alias is a full name that is not another candidate's. An alias does not replace the two identity anchors. Search every alias before a Not found line. birth_year, when a public record supports it, stays in identity.yaml for the identity gate and is never printed. Residence, when a public record states it, is the city and state only. Never write a street address. -->
 
 Not found (searched: not started).
 
@@ -26,6 +26,12 @@ Not found (searched: not started).
 ## Occupational history
 
 <!-- Roles, ownership, and dates. Businesses the person runs belong here. -->
+
+Not found (searched: not started).
+
+## Background
+
+<!-- Reader section. A short public biography, equal in depth to the other candidates in the race: birthplace and years lived in the district or state; education (schools, degrees, years); career (employers, roles, years, and businesses owned, tied to Sunbiz when a record exists); military service; every prior elected or appointed office with dates; earlier campaigns and outcomes; professional licenses and any discipline; community, nonprofit, and board roles. Residence is the city and state only, with a citation. Never a street address. For minor children, give only the number, for example "two children, both minors." Do not include their names, ages, or schools. Name an adult child only when the candidate has made that public and it is relevant to the office. Do not invent. Where a fact was not found, say so in one short line. Official bios, government records, filings, and reputable news only. -->
 
 Not found (searched: not started).
 
@@ -130,6 +136,7 @@ Not found (searched: not started).
 Not found (searched: not started).
 
 <!-- Optional sections. Delete the heading if it does not apply. Do not infer.
+Family: minor children are a count only. Never a name, age, or school. An adult child is named only when the candidate has made that public and it is relevant.
 Military service: verified records only.
 Financial disclosures: official ranges.
 Conflicts of interest: documents, not a guess from donations.

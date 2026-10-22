@@ -10,9 +10,11 @@ gap sentence.
 
 from __future__ import annotations
 
+import html
 import re
 from pathlib import Path
 
+from lib.docket_pages import bill_token, build_docket_contest, display_contest_title
 from lib.party import endorsement_cell
 from lib.quality import (
     HTML_COMMENT_RE,
@@ -22,6 +24,7 @@ from lib.quality import (
     environment_rating_sentence,
     marker_numbers,
     plain_access_note,
+    plain_reader_document,
     reader_visible_word_count,
     official_restatement_sentences,
     precinct_restatement,
@@ -56,7 +59,10 @@ _YEARS_IN_OFFICE_RE = re.compile(
     r"(?<![\w-])(?:\d+\s+years?\b(?!\s+term)|years?\s+in\s+(?:elected\s+)?office)\b",
     re.IGNORECASE,
 )
-_RECEIPTS_RE = re.compile(r"\breceipts\b", re.IGNORECASE)
+_RECEIPTS_RE = re.compile(
+    r"\breceipts\b|\bmonetary contributions\b|\bcontributions of\b",
+    re.IGNORECASE,
+)
 _CASH_RE = re.compile(r"cash on hand", re.IGNORECASE)
 _SELF_FUND_RE = re.compile(r"self-fund|self fund|loan", re.IGNORECASE)
 _SMALL_DONOR_RE = re.compile(r"small donor|under \$200|\$200|\b200 dollars\b", re.IGNORECASE)
@@ -150,7 +156,6 @@ _COMPARISON_GROUPS = [
         [
             _Row("Party", "party", profile_path=("party", "display"), keep_if_empty=True),
             _Row("Party changes", "party", _PARTY_CHANGE_RE, profile_path=("party", "changes_display")),
-            _Row("Ballot status", "identity", _PARTY_RE, fallback_first=True),
             _Row("Current or most recent office", "prior offices and public service"),
             _Row("Years in elected office", "prior offices and public service", _YEARS_IN_OFFICE_RE),
         ],
@@ -289,6 +294,10 @@ class _GuideModel:
         self.edition = "reader"
         self.addendum_name = "guide-sources.md"
         self.body_name = "guide.md"
+        self.omitted_markers: set[int] = set()
+        self.sources_only_markers: set[int] = set()
+        self.bill_folds: dict[str, list[dict]] = {}
+        self.folded_bill_ids: set[str] = set()
 
     def _jurisdiction_label(self) -> str:
         intake = self.intake if isinstance(self.intake, dict) else {}
@@ -330,6 +339,8 @@ class _GuideModel:
         self.search_log = []
         self._logged = set()
         self.details = []
+        self.omitted_markers = set()
+        self.sources_only_markers = set()
         self.edition = edition
         if edition == "full":
             self.addendum_name = "guide-full-sources.md"
@@ -344,69 +355,115 @@ class _GuideModel:
         title = f"Voter guide: {title_name}"
         if fiction:
             title = f"FICTIONAL voter guide: {title_name}"
+        self.bill_folds, self.folded_bill_ids = self._pair_bills()
         parts = self._front_matter(title, edition, sources=False)
-        if fiction:
-            parts.extend(
-                [
-                    "> **FICTIONAL EXAMPLE:** the places, people, measures, and documents in this guide are invented, "
-                    "sources on fictional.example are placeholders and not real records, and this is not a voting guide.",
-                    "",
-                ]
-            )
-        parts.extend(
-            [
-                "> **Not an official ballot and not voting instructions:** confirm contests, deadlines, and polling places with the election office linked below.",
-                "",
-            ]
-        )
-        date_bit = _display_date(str(election.get("date") or ""))
-        heading = str(title_name)
-        if date_bit:
-            heading = f"{heading}, {date_bit}"
-        parts.extend([f"# {heading} {{.guide-title}}", ""])
-        parts.extend(self._election_office())
-        parts.extend(self._precinct_line())
-        parts.extend(self._at_a_glance())
-        parts.extend(self._how_to_read())
-        parts.extend(self._compare())
+        parts.extend(self._contents())
         parts.extend(self._contests())
+        if edition == "full":
+            parts.extend(self._election_office())
         parts.extend(self._glossary())
         parts.extend(self._methodology(edition))
         parts.extend(self._disputed(edition))
         parts.extend(self._corrections())
         if edition == "full":
-            used_for_index = marker_numbers("\n".join(parts))
-            parts.extend(self._marker_index(used_for_index))
             parts.extend(self._changelog())
         body = "\n".join(parts).rstrip() + "\n"
-        used = marker_numbers(body)
+        self.omitted_markers = set(getattr(self, "omitted_markers", set()))
+        before_markers = marker_numbers(body)
+        if edition == "reader":
+            body = plain_reader_document(body)
+        from lib.reader_substance import substance_document
+
+        body = substance_document(body, self.index)
+        self.sources_only_markers = set(self.omitted_markers)
+        self.sources_only_markers |= before_markers - marker_numbers(body)
+        self.sources_only_markers -= marker_numbers(body)
+        used = marker_numbers(body) | self.sources_only_markers
         addendum = self._sources_addendum(used)
+        body, addendum, mapping = _renumber_markers(
+            body, addendum, extra=sorted(self.sources_only_markers)
+        )
+        body = _separate_adjacent_markers(body)
+        body = _collapse_marker_runs(body)
+        if edition == "full" and mapping:
+            body = body.rstrip() + "\n\n" + "\n".join(self._marker_index_from_map(mapping)).rstrip() + "\n"
         linked = self._link_markers(body)
         text = re.sub(r"\n{3,}", "\n\n", linked).rstrip() + "\n"
+        comment = _marker_map_comment(mapping)
+        if comment:
+            text += comment
         addendum_text = re.sub(r"\n{3,}", "\n\n", addendum).rstrip() + "\n"
         return text, addendum_text
 
     def _link_markers(self, text: str) -> str:
+        """Link each marker to its global source, and restart the printed number per contest.
+
+        Anchors and hrefs stay on the global id so the sources edition still
+        matches. The number a reader sees starts again at 1 for each race or measure.
+        """
         seen: set[str] = set()
+        pattern = re.compile(r"\[\^(\d+)\](?:<!--fn-end:(\d+)-->)?")
+        starts = [match.start() for match in re.finditer(r"\{#contest-", text)]
+        back = re.search(r"\.back-matter", text)
+        back_at = back.start() if back else len(text)
+        local_of: dict[tuple[int, int], int] = {}
+        counters: dict[int, int] = {}
+
+        def section_index(pos: int) -> int:
+            if pos >= back_at:
+                return -1
+            found = -1
+            for index, start in enumerate(starts):
+                if start <= pos:
+                    found = index
+                else:
+                    break
+            return found
+
+        for match in pattern.finditer(text):
+            section = section_index(match.start())
+            if section < 0:
+                continue
+            start_n = int(match.group(1))
+            end_n = int(match.group(2) or start_n)
+            for value in range(start_n, end_n + 1):
+                key = (section, value)
+                if key in local_of:
+                    continue
+                counters[section] = counters.get(section, 0) + 1
+                local_of[key] = counters[section]
 
         def repl(match: re.Match) -> str:
             number = match.group(1)
-            link = f"[<sup>{number}</sup>]({self.addendum_name}#source-{number})"
-            if number in seen:
-                return link
-            seen.add(number)
-            return f'<a id="cite-{number}"></a>{link}'
+            end = match.group(2)
+            start_n = int(number)
+            end_n = int(end) if end else start_n
+            section = section_index(match.start())
 
-        return MARKER_RE.sub(repl, text)
+            def label_for(value: int) -> str:
+                if section < 0:
+                    return str(value)
+                return str(local_of[(section, value)])
+
+            anchors = []
+            for value in range(start_n, end_n + 1):
+                key = str(value)
+                if key in seen:
+                    continue
+                seen.add(key)
+                anchors.append(f'<a id="cite-{key}"></a>')
+            label = label_for(start_n) if end_n == start_n else f"{label_for(start_n)}–{label_for(end_n)}"
+            link = f"[<sup>{label}</sup>]({self.addendum_name}#source-{number})"
+            return "".join(anchors) + link
+
+        return pattern.sub(repl, text)
 
     def _show_cell(self, full: str, anchor: str, title: str, hint: str = "") -> str:
+        """A complete short sentence, or an amount. Never an ellipsis or a detail link."""
+        del anchor, title
         if not _cell_found(full):
             return NOT_FOUND_CELL
-        short = _short_fact(full, hint)
-        if _sentence_key(short) != _sentence_key(full):
-            anchor = self._detail_anchor(anchor, title, full)
-            short = f"{short} [detail]({self.addendum_name}#{anchor})"
-        return short
+        return _short_fact(full, hint)
 
     def _show_prose(self, full: str) -> str:
         """A cited sentence in a card. Keep the marker on the sentence."""
@@ -464,11 +521,10 @@ class _GuideModel:
         return ["Not found (searched: precinct code and district list on the confirmed ballot).", ""]
 
     def _at_a_glance(self) -> list[str]:
+        """One scannable block per contest. No markers, no type words, no clipped sentences."""
         lines = [
             "# Your ballot at a glance {#your-ballot-at-a-glance .ballot-glance}",
             "",
-            "| Contest | Summary | Read |",
-            "| --- | --- | --- |",
         ]
         for contest in self._contests_raw():
             item_id = str(contest.get("item_id") or contest.get("id"))
@@ -477,39 +533,47 @@ class _GuideModel:
             if "[^" not in summary:
                 continue
             title = str(contest.get("title") or self.titles.get(item_id) or item_id)
-            party_lines = []
+            title, _subtitle = _title_pair(title)
+            sentence = _one_sentence(summary)
+            if not sentence:
+                continue
+            people = []
             if contest.get("type") in {"race", "primary", "local-office", "judicial-retention"}:
                 for candidate in contest.get("candidates") or []:
                     if not isinstance(candidate, dict) or candidate.get("withdrawn"):
                         continue
-                    cid = str(candidate.get("item_id") or candidate.get("id") or "")
-                    display = _party_display(self.workspace, cid)
-                    if display:
-                        party_lines.append(f"{candidate.get('name')}: {display}")
-            bits = [
-                f"**{_cell(title)}**",
-                _cell(_contest_kind(contest)),
-                _cell(_choices(contest, hide_party=bool(party_lines))),
-            ]
-            if party_lines:
-                bits.append("Party: " + " ".join(party_lines))
-            elif contest.get("type") in {"race", "primary", "local-office", "judicial-retention"} and _people(contest):
-                bits.append("Party: " + NOT_FOUND_CELL)
-            if contest.get("type") in {"race", "primary", "local-office"}:
-                incumbent = _incumbent_names(contest) or NOT_FOUND_CELL
-                bits.append("Incumbent: " + _cell(incumbent))
-            summary_cell = self._show_cell(summary, f"detail-{item_id}-summary", f"{title} summary")
-            link = f"[{_cell(title)}](#contest-{item_id})"
-            row = ["<br>".join(bits), _cell(summary_cell), link]
-            lines.append("| " + " | ".join(row) + " |")
-        lines.append("")
+                    name = str(candidate.get("name") or "").strip()
+                    if not name:
+                        continue
+                    abbr = _party_abbr(self.workspace, candidate)
+                    line = f"{name}, {abbr}" if abbr else name
+                    if candidate.get("incumbent") is True:
+                        line += " (incumbent)"
+                    people.append(line)
+            lines.append('<div class="glance-item">')
+            lines.append("")
+            href = f"#contest-{item_id}"
+            lines.append(
+                f'<h3 class="glance-contest"><a class="page-ref" href="{html.escape(href, quote=True)}">{html.escape(title)}</a></h3>'
+            )
+            lines.append("")
+            if people:
+                lines.append('<ul class="glance-people">')
+                for person in people:
+                    lines.append(f"<li>{html.escape(person)}</li>")
+                lines.append("</ul>")
+                lines.append("")
+            lines.append(f'<p class="glance-summary">{html.escape(sentence)}</p>')
+            lines.append("")
+            lines.append("</div>")
+            lines.append("")
         return lines
 
     def _how_to_read(self) -> list[str]:
         return [
             "# How to read this guide",
             "",
-            "Start with the ballot table, then read one contest at a time. "
+            "Start with the ballot at a glance, then read one contest at a time. "
             "Each race uses the same comparison rows for every candidate. "
             "Party is printed as text. This guide does not color a party. "
             "An endorsement names the group, its type, the date, and whether the words are the group's own statement or the candidate's site. "
@@ -526,13 +590,16 @@ class _GuideModel:
             "This guide does not rank candidates, score them, or recommend a vote. "
             "Claims marked disputed or unconfirmed are left out of summaries.",
             "",
-            BACK_LINK,
-            "",
         ]
 
     def _compare(self) -> list[str]:
-        lines = ["# Compare across the ballot", ""]
-        lines.extend(self._money_across())
+        money = self._money_across()
+        if money[:1] == ["::: landscape"]:
+            # The landscape page break would otherwise leave this heading alone.
+            lines = ["::: landscape", "", "# Compare across the ballot", ""]
+            lines.extend(money[2:])
+        else:
+            lines = ["# Compare across the ballot", "", *money]
         lines.extend(self._issue_matrix())
         lines.extend(self._measures_across())
         lines.extend(self._judicial_across())
@@ -784,31 +851,152 @@ class _GuideModel:
             return ["## Incumbency", "", _gap_line("incumbent marks on this ballot"), ""]
         return lines
 
-    def _contests(self) -> list[str]:
-        grouped: dict[str, list] = {}
+    def _pair_bills(self) -> tuple[dict[str, list[dict]], set[str]]:
+        """A bill that is the vehicle for a measure is not its own contest."""
+        measures = []
+        bills = []
         for contest in self._contests_raw():
-            grouped.setdefault(_group_name(contest), []).append(contest)
-        lines: list[str] = []
-        for name in GROUP_ORDER:
-            contests = grouped.get(name) or []
-            if not contests:
+            kind = str(contest.get("type") or "")
+            if kind == "measure":
+                measures.append(contest)
+            elif kind == "legislation":
+                bills.append(contest)
+        folds: dict[str, list[dict]] = {}
+        used: set[str] = set()
+        for bill in bills:
+            token = bill_token(str(bill.get("title") or ""))
+            if not token:
                 continue
-            lines.extend([f"# {name} {{.ballot-group}}", ""])
-            for contest in contests:
-                lines.extend(self._one_contest(contest))
+            bill_id = str(bill.get("item_id") or bill.get("id") or "")
+            for measure in measures:
+                measure_id = str(measure.get("item_id") or measure.get("id") or "")
+                draft = re.sub(r"\s+", "", self._draft(measure_id).lower())
+                if token in draft:
+                    folds.setdefault(measure_id, []).append(bill)
+                    used.add(bill_id)
+                    break
+        return folds, used
+
+    def _visible_contests(self) -> list[dict]:
+        visible = []
+        for contest in self._contests_raw():
+            item_id = str(contest.get("item_id") or contest.get("id") or "")
+            if item_id in self.folded_bill_ids:
+                continue
+            visible.append(contest)
+        return visible
+
+    def _contests(self) -> list[str]:
+        lines: list[str] = []
+        for contest in self._visible_contests():
+            # The part name rides in the running header. It is not a heading of its own.
+            lines.extend(self._docket_contest(contest, _group_name(contest)))
         return lines
 
     def _one_contest(self, contest: dict) -> list[str]:
-        if self.edition == "reader":
-            return self._fit_contest_budget(self._reader_contest(contest))
-        return self._full_contest(contest)
+        return self._docket_contest(contest, "")
+
+    def _contents(self) -> list[str]:
+        """Three columns: the contest, what it is, and the page it starts on."""
+        lines = [
+            '# What\'s on your ballot {#your-ballot-at-a-glance .ballot-glance}',
+            "",
+            '<table class="contents">',
+            "<colgroup>",
+            '<col class="contest">',
+            '<col class="what">',
+            '<col class="page">',
+            "</colgroup>",
+            "<thead>",
+            '<tr><th scope="col">Contest</th><th scope="col">What it is</th>'
+            '<th scope="col" class="page">Page</th></tr>',
+            "</thead>",
+            "<tbody>",
+        ]
+        for contest in self._visible_contests():
+            item_id = str(contest.get("item_id") or contest.get("id"))
+            title = str(contest.get("title") or self.titles.get(item_id) or item_id)
+            short = display_contest_title(title)
+            what = html.escape(self._contents_blurb(contest), quote=False)
+            what = re.sub(r"\b(District)\s+(\d+)\b", r"\1&nbsp;\2", what)
+            href = f"#contest-{item_id}"
+            label = html.escape(short)
+            label = re.sub(r"\b(District)\s+(\d+)\b", r"\1&nbsp;\2", label)
+            lines.append(
+                "<tr>"
+                f'<th scope="row"><a href="{html.escape(href, quote=True)}">{label}</a></th>'
+                f"<td>{what}</td>"
+                f'<td class="page"><a class="page-ref" aria-label="page" href="{html.escape(href, quote=True)}"></a></td>'
+                "</tr>"
+            )
+        lines.extend(["</tbody>", "</table>", ""])
+        return lines
+
+    def _contents_blurb(self, contest: dict) -> str:
+        """One plain clause for the contents table. No markers and no process wording."""
+        kind = str(contest.get("type") or "")
+        title = str(contest.get("title") or "")
+        if kind in {"race", "primary", "local-office"}:
+            job = _office_job(title)
+            count = _candidate_count_clause(contest)
+            if job:
+                return f"{job}."
+            return "The office on this ballot."
+        if kind == "judicial-retention" or contest.get("level") == "judicial":
+            return _retention_blurb(title)
+        effect = self._measure_effect(contest)
+        if effect:
+            return effect
+        if kind == "legislation":
+            return "A bill the legislature passed."
+        return "A yes or no question."
+
+    def _measure_effect(self, contest: dict) -> str:
+        """What the measure would do, skipping a glossary definition of its name."""
+        from lib.quality import plain_reader_sentence
+
+        item_id = str(contest.get("item_id") or contest.get("id") or "")
+        draft = self._draft(item_id)
+        chunks = [_summary_paragraph(draft)]
+        sections = _section_dict(draft)
+        for name in ("plain-language summary", "plain summary", "what a yes vote does"):
+            found = sections.get(name)
+            if found:
+                chunks.append(found[1])
+        for chunk in chunks:
+            for sentence in split_sentences(chunk or ""):
+                cleaned = plain_reader_sentence(sentence)
+                cleaned = re.sub(r"\s+", " ", MARKER_RE.sub("", cleaned)).strip()
+                if not cleaned or cleaned == "No public record found.":
+                    continue
+                lowered = cleaned.lower()
+                if any(token in lowered for token in ("sample ballot", "searched:", "single source", "not found")):
+                    continue
+                if _DEFINITION_BLURB_RE.search(cleaned):
+                    continue
+                if not _EFFECT_BLURB_RE.search(cleaned):
+                    continue
+                return cleaned
+        return ""
+
+    def _docket_contest(self, contest: dict, group: str) -> list[str]:
+        return build_docket_contest(self, contest, group)
+
+    def _contest_title_lines(self, contest: dict, title: str, item_id: str, sections) -> list[str]:
+        """Sentence-case a long or all-caps title, and keep the official wording under it."""
+        del contest, sections
+        short, subtitle = _title_pair(title)
+        lines = [f"## {short} {{#contest-{item_id} .contest-title}}", ""]
+        if subtitle and subtitle != short:
+            lines.extend([f'<p class="official-title">{html.escape(subtitle)}</p>', ""])
+        return lines
 
     def _full_contest(self, contest: dict) -> list[str]:
         item_id = str(contest.get("item_id") or contest.get("id"))
         title = str(contest.get("title") or self.titles.get(item_id) or item_id)
         draft = self._draft(item_id)
         sections = _section_pairs(draft)
-        lines = [f"## {title} {{#contest-{item_id} .contest-title}}", ""]
+        lines = self._contest_title_lines(contest, title, item_id, sections)
         lines.extend(self._contest_opener(contest))
         lines.extend(self._preamble(draft, item_id))
         kind = contest.get("type")
@@ -877,7 +1065,7 @@ class _GuideModel:
         title = str(contest.get("title") or self.titles.get(item_id) or item_id)
         draft = self._draft(item_id)
         sections = _section_pairs(draft)
-        lines = [f"## {title} {{#contest-{item_id} .contest-title}}", ""]
+        lines = self._contest_title_lines(contest, title, item_id, sections)
         for line in draft.splitlines():
             if line.startswith("## "):
                 break
@@ -1145,6 +1333,11 @@ class _GuideModel:
             if index is None:
                 break
             del blocks[index]
+        # Nameplates repeat the table headers. Experience and positions stay in
+        # the full edition. Drop those reader blocks only when the contest is
+        # still over the budget, and drop the same blocks for every candidate.
+        if reader_visible_word_count("\n".join(line for block in blocks for line in block)) > READER_CONTEST_WORD_BUDGET:
+            blocks = _drop_reader_overflow(blocks)
         out: list[str] = []
         for block in blocks:
             if out and out[-1] != "":
@@ -1418,88 +1611,64 @@ class _GuideModel:
         return lines
 
     def _glossary(self) -> list[str]:
-        return [
+        lines = [
             "# Glossary {#glossary .back-matter}",
             "",
             "Levy",
             ": A levy is a tax or charge put on a ballot for voters to accept or reject.",
             "",
             "Nonpartisan race",
-            ": A nonpartisan race does not list a party on the ballot. A public voter-registration party, when one is cited, is labeled registered party (race is nonpartisan).",
+            ": A Nonpartisan race does not list a party on the ballot.",
             "",
             "Cash on hand",
             ": Cash on hand is the money a campaign reported still having at the end of a filing period.",
             "",
-            "Filing period",
-            ": A filing period is the date range a finance report covers.",
-            "",
-            "Tier T1",
-            ": Tier T1 is a primary or official source.",
-            "",
-            "Tier T2",
-            ": Tier T2 is an established nonpartisan reference.",
-            "",
-            "Tier T3",
-            ": Tier T3 is named journalism.",
-            "",
-            "Tier T4",
-            ": Tier T4 is an advocacy source and is quoted only as that group's view.",
-            "",
-            "Single source",
-            ": A single source means the sentence rests on one record.",
-            "",
             "Allegation",
             ": An allegation is a claim someone has made that this guide has not confirmed.",
             "",
-            "Not found",
-            ": Not found means the listed places were searched and the fact was not in them.",
+            "No public record found",
+            ": No public record found means this guide did not locate a public record of that fact.",
             "",
         ]
+        if self.edition == "reader":
+            return lines
+        lines.extend(
+            [
+                "Filing period",
+                ": A filing period is the date range a finance report covers.",
+                "",
+                "Tier T1",
+                ": Tier T1 is a primary or official source.",
+                "",
+                "Tier T2",
+                ": Tier T2 is an established nonpartisan reference.",
+                "",
+                "Tier T3",
+                ": Tier T3 is named journalism.",
+                "",
+                "Tier T4",
+                ": Tier T4 is an advocacy source and is quoted only as that group's view.",
+                "",
+            ]
+        )
+        return lines
 
     def _methodology(self, edition: str) -> list[str]:
-        ballot = self.ballot if isinstance(self.ballot, dict) else {}
-        intake = self.intake if isinstance(self.intake, dict) else {}
-        counts = _finding_counts(self.workspace)
-        env_line = environment_rating_sentence(self.workspace)
-        flagged = 0
-        for _item, claim, source in self.index.values():
-            if source.get("suspected_injection") is True and not claim.get("removed"):
-                flagged += 1
-        subagents = "available" if intake.get("parallel_subagents") else "not used; roles run one at a time in fresh contexts"
-        lines = [
+        """Plain words only. Review logs stay in the workspace, not in the guide."""
+        if edition == "reader":
+            return []
+        when = self.today
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", when or ""):
+            when = _display_date(when)
+        return [
             "# How we researched {#methodology .back-matter}",
             "",
-            f"Version {ballot.get('report_version') or 'v1.0'} assembled on {self.today}. {env_line}",
-            f"Sources flagged suspected_injection: {flagged}.",
-            f"Parallel subagents: {subagents}.",
-            f"Findings recorded: {counts['total']}. Accepted: {counts['accepted']}. Disputed: {counts['disputed']}.",
-            "Disputed and unconfirmed claims are not used in summaries. Blockers are removed rather than left disputed.",
-            "The reader edition keeps a short summary and comparison tables for each contest. "
-            "Works cited, quotes, and the search log are in the sources addendum. "
-            "Per-candidate prose is in the full edition. "
-            "The full edition adds the marker index and the changelog.",
+            f"This guide was assembled on {when}.",
+            "The facts come from official records, candidate filings, and named news reports.",
+            "Where this guide did not find a public record, the page says so.",
+            "The sources edition lists the citation for each fact.",
             "",
         ]
-        if edition == "reader":
-            lines.extend(self._reader_reviews())
-            return lines
-        lines.extend(["## Review state", ""])
-        for item in iter_items(self.workspace):
-            state = load_json(item / "loop-state.json") or {}
-            # Status is the prefix so a contest title may contain a colon.
-            lines.append(
-                f"- status {state.get('status')}, round {state.get('round')}, mode {state.get('mode')} — {item.name}"
-            )
-        lines.extend(["", "## Effort", ""])
-        lines.append("| Item | Searches | Fetches | Minutes |")
-        lines.append("| --- | --- | --- | --- |")
-        for item in iter_items(self.workspace):
-            effort = load_json(item / "effort.json") or {}
-            lines.append(
-                f"| {item.name} | {effort.get('searches', '')} | {effort.get('fetches', '')} | {effort.get('minutes', '')} |"
-            )
-        lines.extend(self._grouped_known_gaps())
-        return lines
 
     def _candidate_item_ids(self) -> list[str]:
         seen: list[str] = []
@@ -1666,15 +1835,14 @@ class _GuideModel:
                     lines.extend([str(finding["coordinator_note"]), ""])
                 lines.extend(["This disputed claim is not used in the summary.", ""])
         if not any_row:
-            lines.extend(["No claims are disputed.", ""])
+            return []
         return lines
 
     def _corrections(self) -> list[str]:
         corrections = load_yaml(self.workspace / "corrections.yaml") or []
-        lines = ["# Corrections {#corrections .back-matter}", ""]
         if not corrections:
-            lines.extend(["No corrections have been issued.", ""])
-            return lines
+            return []
+        lines = ["# Corrections {#corrections .back-matter}", ""]
         for entry in corrections:
             if not isinstance(entry, dict):
                 continue
@@ -1719,7 +1887,7 @@ class _GuideModel:
             [
                 "> **Not an official ballot and not voting instructions:** confirm contests, deadlines, and polling places with the election office linked in the guide.",
                 "",
-                "# Works cited {.back-matter .sources-title}",
+                "# Works cited {#works-cited .back-matter .sources-title}",
                 "",
                 "Each marker in the guide links to an entry here. Each entry links back. "
                 "Quotes are the archived words. The search log lists places that were checked.",
@@ -1764,7 +1932,8 @@ class _GuideModel:
             )
             for number in markers:
                 seen.add(number)
-                parts.extend(self._source_entry(number))
+                back = f"contest-{item_id}" if number in self.sources_only_markers else ""
+                parts.extend(self._source_entry(number, back_anchor=back))
             if details:
                 parts.extend(["### Cell detail", ""])
                 for anchor, label, full in details:
@@ -1790,7 +1959,7 @@ class _GuideModel:
                 parts.extend([f"- {owner} — {section}: {text}", ""])
         return "\n".join(parts).rstrip() + "\n"
 
-    def _source_entry(self, number: int) -> list[str]:
+    def _source_entry(self, number: int, back_anchor: str = "") -> list[str]:
         _item, claim, source = self.index[number]
         lines = [
             f"### Source {number} {{#source-{number} .source-entry}}",
@@ -1804,7 +1973,8 @@ class _GuideModel:
         claim_text = str(claim.get("text") or "").strip()
         if claim_text:
             lines.extend([f"Claim {claim.get('id')}: {claim_text}", ""])
-        lines.extend([f"[Back to the guide]({self.body_name}#cite-{number})", ""])
+        target = back_anchor or f"cite-{number}"
+        lines.extend([f"[Back to the guide]({self.body_name}#{target})", ""])
         return lines
 
     def _works_cited(self, used: set[int]) -> list[str]:
@@ -1843,16 +2013,17 @@ class _GuideModel:
                 lines.extend([format_work(number, source), ""])
         return lines
 
-    def _marker_index(self, used: set[int]) -> list[str]:
+    def _marker_index_from_map(self, mapping: dict[int, int]) -> list[str]:
+        """Display numbers, in edition order, mapped back to the claim file id."""
         lines = ["# Marker index {#marker-index}", "", "| Marker | Claim ID |", "| --- | --- |"]
-        for number in sorted(used):
-            found = self.index.get(number)
+        for display, original in sorted(mapping.items()):
+            found = self.index.get(original)
             if not found:
                 continue
             _item, claim, _source = found
             if claim.get("removed"):
                 continue
-            lines.append(f"| {number} | {claim.get('id')} |")
+            lines.append(f"| {display} | {claim.get('id')} |")
         lines.append("")
         return lines
 
@@ -1971,9 +2142,58 @@ def _named_gap(raw: str, body: str) -> str:
     return _gap_line(raw)
 
 
+_OVERFLOW_READER_HEADINGS = {"Experience and background", "Positions"}
+
+
+def _drop_reader_overflow(blocks: list[list[str]]) -> list[list[str]]:
+    """Shorten one reader contest that is still over the word budget.
+
+    The candidate index repeats names that are already the table headers.
+    Experience and positions remain in the full edition. The same headings
+    are removed for every candidate in the contest.
+    """
+    lines: list[str] = []
+    for block in blocks:
+        if lines and lines[-1] != "":
+            lines.append("")
+        lines.extend(block)
+    kept: list[str] = []
+    depth = 0
+    skip = False
+    for line in lines:
+        stripped = line.strip()
+        if depth == 0 and stripped == "::: candidate-index":
+            depth = 1
+            continue
+        if depth:
+            if stripped.startswith(":::") and stripped != ":::":
+                depth += 1
+            elif stripped == ":::":
+                depth -= 1
+            continue
+        if line.startswith("### "):
+            title = re.sub(r"\s*\{#.*$", "", line[4:]).strip()
+            skip = title in _OVERFLOW_READER_HEADINGS
+            if skip:
+                continue
+        if skip:
+            continue
+        kept.append(line)
+    blocks_out: list[list[str]] = [[]]
+    for line in kept:
+        if line.strip() == "":
+            if blocks_out[-1]:
+                blocks_out.append([])
+            continue
+        blocks_out[-1].append(line)
+    return [block for block in blocks_out if any(part.strip() for part in block)]
+
+
 def _gap_line(subject: str) -> str:
     inner = re.sub(r"\s+", " ", subject).strip().strip(".")
     inner = inner.replace(";", ",").replace(":", ",")
+    # "J." and "Dr." are initials, not a second sentence inside the gap.
+    inner = re.sub(r"\.(?=\s)", "", inner)
     return f"Not found (searched: {inner})."
 
 
@@ -1987,7 +2207,18 @@ def _published_known_gap(gap: str) -> str:
     removed = re.fullmatch(r"Removed ([A-Za-z0-9_.-]+): .+", text)
     if removed:
         return f"Removed {removed.group(1)} at the round cap."
-    return text
+    from lib.quality import _is_known_gap_sentence
+
+    def allowed(part: str) -> bool:
+        return _is_known_gap_sentence(part) or _is_gap_text(part)
+
+    if allowed(text) or (split_sentences(text) and all(allowed(part) for part in split_sentences(text))):
+        return text
+    note = plain_access_note(text)
+    if note:
+        return note
+    # A free-text research note is not a citation. Keep it in loop state only.
+    return ""
 
 
 def _cell_has_marker(text: str) -> bool:
@@ -2152,17 +2383,292 @@ def _cap_summary(summary: str, sentences: int = 2, words: int = 60) -> str:
     return " ".join(kept)
 
 
+def _is_money_hint(hint: str) -> bool:
+    lowered = (hint or "").lower()
+    keys = (
+        "receipt",
+        "cash",
+        "self-fund",
+        "self fund",
+        "small donor",
+        "large donor",
+        "in-district",
+        "in district",
+        "pac money",
+        "party money",
+        "outside spending",
+    )
+    return any(key in lowered for key in keys)
+
+
+_DOLLAR_RE = re.compile(
+    r"\$\s*(\d[\d,]*(?:\.\d+)?)|(?<![\w.])(\d[\d,]*(?:\.\d+)?)\s+dollars\b",
+    re.IGNORECASE,
+)
+
+
+def _format_dollars(plain: str) -> str | None:
+    """The amount only. Cents drop once the sum reaches 100. Missing amounts stay missing."""
+    text = (plain or "").strip()
+    bare = re.fullmatch(r"\$?\s*([\d,]+(?:\.\d+)?)", text)
+    match = None if bare else _DOLLAR_RE.search(text)
+    if bare:
+        raw = bare.group(1).replace(",", "")
+    elif match:
+        raw = (match.group(1) or match.group(2)).replace(",", "")
+    else:
+        return None
+    try:
+        value = float(raw)
+    except ValueError:
+        return None
+    if abs(value) >= 100:
+        return f"${int(value):,}"
+    if value.is_integer():
+        return f"${int(value):,}"
+    return f"${value:,.2f}"
+
+
 def _short_fact(sentence: str, hint: str = "") -> str:
-    """A value or a brief phrase, with the citation markers kept on the end."""
+    """A complete sentence or an amount, with the citation markers kept on the end.
+
+    Money cells are the amount only. A money sentence with no amount is Not found.
+    Nothing is cut off with an ellipsis.
+    """
     if not sentence or sentence == NOT_FOUND_CELL:
         return NOT_FOUND_CELL
     markers = "".join(f"[^{number}]" for number in MARKER_RE.findall(sentence))
-    plain = re.sub(r"\s+", " ", MARKER_RE.sub("", sentence)).strip().rstrip(".")
-    excerpt = _excerpt_for_hint(plain, hint)
-    if len(excerpt) > CELL_CHAR_CAP:
-        clipped = excerpt[: CELL_CHAR_CAP - 3].rsplit(" ", 1)[0].rstrip(",;:")
-        excerpt = (clipped or excerpt[: CELL_CHAR_CAP - 3]) + "..."
-    return f"{excerpt}{markers}" if excerpt else NOT_FOUND_CELL
+    plain = re.sub(r"\s+", " ", MARKER_RE.sub("", sentence)).strip()
+    if _is_money_hint(hint):
+        amount = _format_dollars(plain)
+        if not amount:
+            return NOT_FOUND_CELL
+        return f'<span class="num">{amount}{markers}</span>'
+    bare = plain.rstrip(".")
+    excerpt = _excerpt_for_hint(bare, hint)
+    if not excerpt:
+        return NOT_FOUND_CELL
+    if excerpt != bare or "report" in (hint or "").lower():
+        body = excerpt
+    elif plain[-1:] in ".!?":
+        body = plain
+    else:
+        body = f"{plain}."
+    return f"{body}{markers}"
+
+
+def _renumber_markers(
+    body: str, addendum: str, extra: list[int] | None = None
+) -> tuple[str, str, dict[int, int]]:
+    """Replace claim-file marker ids with 1, 2, 3… in the order the body first uses them.
+
+    The returned map is display number to original number. Tokens are swapped in
+    one pass so marker 10 is never rewritten as marker 1.
+    """
+    order: list[int] = []
+    seen: set[int] = set()
+    for match in MARKER_RE.finditer(body):
+        number = int(match.group(1))
+        if number not in seen:
+            seen.add(number)
+            order.append(number)
+    for number in extra or []:
+        if number not in seen:
+            seen.add(number)
+            order.append(number)
+    if not order:
+        return body, addendum, {}
+    original_to_display = {original: index for index, original in enumerate(order, start=1)}
+
+    def protect(text: str) -> str:
+        def marker_repl(match: re.Match) -> str:
+            number = int(match.group(1))
+            if number not in original_to_display:
+                return match.group(0)
+            return f"[^@@M{number}@@]"
+
+        text = MARKER_RE.sub(marker_repl, text)
+        for original in order:
+            token = f"@@M{original}@@"
+            text = re.sub(rf"#source-{original}(?!\d)", f"#source-{token}", text)
+            text = re.sub(rf"#cite-{original}(?!\d)", f"#cite-{token}", text)
+            text = re.sub(rf"(### Source ){original}(?!\d)", rf"\g<1>{token}", text)
+            text = re.sub(rf"(?m)^\[{original}\] ", f"[{token}] ", text)
+
+        def finish(match: re.Match) -> str:
+            return str(original_to_display[int(match.group(1))])
+
+        return re.sub(r"@@M(\d+)@@", finish, text)
+
+    display_to_original = {display: original for original, display in original_to_display.items()}
+    return protect(body), protect(addendum), display_to_original
+
+
+def _collapse_marker_runs(text: str) -> str:
+    """Turn [^12], [^13], [^14] into one marker that displays as 12–14."""
+    pattern = re.compile(r"\[\^\d+\](?:\s*,\s*\[\^\d+\])+")
+
+    def repl(match: re.Match) -> str:
+        numbers = [int(value) for value in re.findall(r"\d+", match.group(0))]
+        pieces = []
+        start = previous = numbers[0]
+
+        def flush(left: int, right: int) -> None:
+            if left == right:
+                pieces.append(f"[^{left}]")
+            else:
+                pieces.append(f"[^{left}]<!--fn-end:{right}-->")
+
+        for number in numbers[1:]:
+            if number == previous + 1:
+                previous = number
+                continue
+            flush(start, previous)
+            start = previous = number
+        flush(start, previous)
+        return ", ".join(pieces)
+
+    return pattern.sub(repl, text)
+
+
+def _separate_adjacent_markers(text: str) -> str:
+    """Keep neighboring markers from printing as one digit string.
+
+    The same marker twice in a row is one source, so it stays one marker.
+    Different neighbors are separated with a comma.
+    """
+    previous = None
+    while previous != text:
+        previous = text
+        text = re.sub(r"(\[\^(\d+)\])\[\^\2\]", r"\1", text)
+    return re.sub(r"(\[\^\d+\])(?=\[\^\d+\])", r"\1, ", text)
+
+
+def _marker_map_comment(mapping: dict[int, int]) -> str:
+    if not mapping:
+        return ""
+    pairs = " ".join(f"{display}={original}" for display, original in sorted(mapping.items()))
+    return f"<!-- marker-map: {pairs} -->\n"
+
+
+_PARTY_ABBR = (
+    (re.compile(r"no party|n\.?p\.?a\.?\b|unaffiliated|non-?partisan", re.IGNORECASE), "NPA"),
+    (re.compile(r"working families|\bwfp\b", re.IGNORECASE), "WFP"),
+    (re.compile(r"republican|\bgop\b|\brep\b", re.IGNORECASE), "REP"),
+    (re.compile(r"democrat|\bdem\b", re.IGNORECASE), "DEM"),
+    (re.compile(r"libertarian|\blpf\b", re.IGNORECASE), "LPF"),
+    (re.compile(r"\bgreen\b|\bgre\b", re.IGNORECASE), "GRE"),
+    (re.compile(r"constitution", re.IGNORECASE), "CON"),
+    (re.compile(r"independent|\bind\b", re.IGNORECASE), "IND"),
+)
+
+
+def _abbreviate_party(label: str) -> str:
+    text = (label or "").strip()
+    if re.fullmatch(r"[A-Z]{2,5}", text):
+        return text
+    for pattern, abbr in _PARTY_ABBR:
+        if pattern.search(text):
+            return abbr
+    return ""
+
+
+def _party_abbr(workspace: Path, candidate: dict) -> str:
+    """A short plain-text party label. Registered party wins over the ballot's nonpartisan line."""
+    labels: list[str] = []
+    item_id = str(candidate.get("item_id") or candidate.get("id") or "")
+    party: dict = {}
+    if item_id:
+        profile = load_yaml(workspace / "items" / item_id / "profile.yaml") or {}
+        found = profile.get("party") if isinstance(profile, dict) else None
+        if isinstance(found, dict):
+            party = found
+            registered = str(party.get("registered_party") or "").strip()
+            if registered:
+                labels.append(registered)
+    ballot_party = str(candidate.get("party") or "").strip()
+    if ballot_party:
+        labels.append(ballot_party)
+    ballot_label = str(party.get("ballot_label") or "").strip()
+    if ballot_label:
+        labels.append(ballot_label)
+    for label in labels:
+        abbr = _abbreviate_party(label)
+        if abbr:
+            return abbr
+    return ""
+
+
+def _one_sentence(text: str) -> str:
+    """The first complete sentence, with citation markers removed."""
+    cleaned = re.sub(r"\s+", " ", MARKER_RE.sub("", text or "")).strip()
+    cleaned = re.sub(r"\s+([.!?])", r"\1", cleaned)
+    if not cleaned:
+        return ""
+    first = split_sentences(cleaned)[0].strip()
+    if first and first[-1] not in ".!?":
+        first += "."
+    return first
+
+
+def _is_shouting(title: str) -> bool:
+    letters = [char for char in title if char.isalpha()]
+    if len(letters) < 8:
+        return False
+    upper = sum(1 for char in letters if char.isupper())
+    return upper / len(letters) > 0.7
+
+
+def _sentence_case(title: str) -> str:
+    text = re.sub(r"\s+", " ", title or "").strip()
+    if not text or not _is_shouting(text):
+        return text
+    lowered = text.lower()
+    return lowered[0].upper() + lowered[1:]
+
+
+_TRAILING_TITLE_WORDS = frozenset(
+    {"of", "the", "to", "a", "an", "and", "or", "for", "in", "on", "without", "by", "from"}
+)
+
+
+def _short_title(title: str) -> str:
+    cleaned = re.sub(r"\s+", " ", title or "").strip()
+    for sep in (":", "—", "–"):
+        if sep in cleaned:
+            head = cleaned.split(sep, 1)[0].strip()
+            if 3 <= len(head) <= 56:
+                return _sentence_case(head)
+    if "," in cleaned and (len(cleaned) > 72 or _is_shouting(cleaned)):
+        head = cleaned.split(",", 1)[0].strip()
+        if 3 <= len(head) <= 42:
+            return _sentence_case(head)
+    words = cleaned.split()
+    if len(words) > 6 or len(cleaned) > 72 or _is_shouting(cleaned):
+        chosen: list[str] = []
+        for word in words[:10]:
+            chosen.append(word)
+            if len(" ".join(chosen)) >= 42 and word.lower().strip(",:;") not in _TRAILING_TITLE_WORDS:
+                break
+        while chosen and chosen[-1].lower().strip(",:;") in _TRAILING_TITLE_WORDS:
+            chosen.pop()
+        if not chosen:
+            chosen = words[:4]
+        return _sentence_case(" ".join(chosen))
+    return _sentence_case(cleaned)
+
+
+def _title_pair(title: str, official: str = "") -> tuple[str, str]:
+    """A short sentence-case title, plus the full ballot title when that title is long or all caps."""
+    del official
+    full = re.sub(r"\s+", " ", title or "").strip()
+    if not full:
+        return "", ""
+    if not (_is_shouting(full) or len(full) > 72):
+        return full, ""
+    short = _short_title(full)
+    subtitle = "" if short.lower() == full.lower() else full
+    return short, subtitle
 
 
 def _excerpt_for_hint(plain: str, hint: str) -> str:
@@ -2272,6 +2778,79 @@ def _other_people(contest: dict) -> list[dict]:
     return rows
 
 
+_DEFINITION_BLURB_RE = re.compile(
+    r"(?i)^(?:ad valorem|a mill|a sales surtax|a homestead exemption|one-half percent|one half percent)\b"
+    r"|^the budget stabilization fund is\b"
+    r"|is the name on the ballot"
+    r"|\bmeans one\b"
+    r"|\bis a tax added\b"
+    r"|\bis the property-tax rate\b"
+    r"|\bis the state's reserve\b"
+    r"|\bis the part of a home\b"
+)
+_EFFECT_BLURB_RE = re.compile(
+    r"\b(?:would|renews?|asks|raises?|exempts?|limits?|slows?|creates?|extends?|cuts?|replaces?|requires?)\b",
+    re.IGNORECASE,
+)
+
+
+def _office_job(title: str) -> str:
+    """The office's job in one short clause, taken from the office name."""
+    text = re.sub(r"\s+", " ", title or "").strip()
+    lowered = text.lower()
+    district = ""
+    found = re.search(r"district\s+(\d+)", lowered)
+    if found:
+        district = found.group(1)
+    if "senator" in lowered and "state senator" not in lowered:
+        return "Represents Florida in the U.S. Senate"
+    if "representative in congress" in lowered or "u.s. house" in lowered or "us house" in lowered:
+        where = f"District {district}" if district else "this district"
+        return f"Represents {where} in the U.S. House"
+    if "governor" in lowered:
+        return "Heads the state government"
+    if "attorney general" in lowered:
+        return "Serves as the state's chief legal officer"
+    if "chief financial officer" in lowered:
+        return "Keeps the state's funds and settles its accounts"
+    if "agriculture" in lowered:
+        return "Serves on the Florida Cabinet"
+    if "state representative" in lowered:
+        where = f"District {district}" if district else "this district"
+        return f"Represents {where} in the Florida House"
+    if "county commissioner" in lowered or "board of county commissioners" in lowered:
+        where = f"District {district}" if district else "a county district"
+        return f"Serves on the county commission for {where}"
+    if "mayor" in lowered:
+        place = re.sub(r"(?i)^mayor of\s+", "", text).strip()
+        if place and place.lower() != "mayor":
+            return f"Heads the government of {place}"
+        return "Heads the city government"
+    return ""
+
+
+def _candidate_count_clause(contest: dict) -> str:
+    count = len(_people(contest))
+    noun = "candidate" if count == 1 else "candidates"
+    clause = f"{count} {noun}"
+    write_ins = [row for row in _other_people(contest) if row.get("write_in") and not row.get("withdrawn")]
+    if len(write_ins) == 1:
+        clause += ", plus write-in"
+    elif write_ins:
+        clause += ", plus write-ins"
+    return clause
+
+
+def _retention_blurb(title: str) -> str:
+    judge = re.search(r"Shall (Justice|Judge) (.+?) of the (.+?) be", title or "")
+    if not judge:
+        return "Voters decide whether this judge stays in office."
+    role = judge.group(1)
+    name = re.sub(r"\s+", " ", judge.group(2)).strip()
+    court = re.sub(r"\s+", " ", judge.group(3)).strip()
+    return f"Voters decide whether {role} {name} stays on the {court}."
+
+
 def _group_name(contest: dict) -> str:
     level = contest.get("level")
     if isinstance(level, str) and level in LEVEL_TITLES:
@@ -2372,6 +2951,19 @@ def _cited_sentences(body: str) -> list[str]:
     found = []
     text = HTML_COMMENT_RE.sub("", body or "")
     for paragraph in re.split(r"\n\s*\n", text):
+        lines = paragraph.splitlines()
+        table = [line for line in lines if line.strip()]
+        if table and all(line.strip().startswith("|") for line in table):
+            for line in table:
+                compact = line.replace("|", "").replace(":", "").replace("-", "").replace(" ", "")
+                if not compact:
+                    continue
+                for cell in line.strip().strip("|").split("|"):
+                    cleaned = re.sub(r"\s+", " ", cell).strip()
+                    if "[^" not in cleaned or _gap_sentence(MARKER_RE.sub("", cleaned)):
+                        continue
+                    found.append(cleaned)
+            continue
         flat = _bind_trailing_markers(paragraph.replace("\n", " "))
         for sentence in split_sentences(flat):
             cleaned = sentence.strip()

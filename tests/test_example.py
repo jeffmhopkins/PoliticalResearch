@@ -18,7 +18,8 @@ def test_fiction_fixture_passes_the_assembly_gate():
     assert EXAMPLE.joinpath("final", "guide.md").exists()
     guide = EXAMPLE.joinpath("final", "guide.md").read_text(encoding="utf-8")
     assert "FICTIONAL" in guide
-    assert "Not an official ballot" in guide
+    template = (ROOT / "assets" / "guide.html.tmpl").read_text(encoding="utf-8")
+    assert "Not an official ballot" in template
     assert "Avery Quinn" in guide and "Blake Okonkwo" in guide
     assert "Disputed" in guide or "disputed" in guide
     errors = structural_workspace_errors(EXAMPLE)
