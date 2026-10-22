@@ -339,11 +339,13 @@ def _capitalize_institutions(text: str) -> str:
             "attending",
             "earned",
             "from",
+            "graduate",
             "graduated",
             "graduating",
             "he",
             "her",
             "his",
+            "of",
             "received",
             "she",
             "they",
@@ -709,6 +711,7 @@ def _repair_listed_fact(plain: str) -> str:
     else:
         text = re.sub(r",\s+as\s+(a|an)\s+", r" is \1 ", text, flags=re.IGNORECASE)
     text = re.sub(r"\band\s+as\s+", "and ", text, flags=re.IGNORECASE)
+    text = re.sub(r"(?i)\s+and that (he|she|they)\b", r" and \1", text)
     text = re.sub(r",\s+as\s+(?=voting\b)", " as ", text, flags=re.IGNORECASE)
 
     def _source_clause(match: re.Match) -> str:
