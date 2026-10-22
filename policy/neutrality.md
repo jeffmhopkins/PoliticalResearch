@@ -32,6 +32,9 @@ The reader edition opens with the ballot, then one contest at a time, inside a p
 - Do not use judging adjectives such as "extreme" or "common-sense."
 - Record versus rhetoric uses one cited label per comparison: `MATCH`, `CONTRADICTION`, or `NO RECORD`. The label is a description of the two cited items. It is not an assessment and not a recommendation. Occupation, business, or industry is not a `CONTRADICTION`. Apply the same labels to every candidate. Donations the candidate made are listed as recipient, amount, and date, without alignment commentary.
 - There is no values-matching mode. Do not ask the requester for a party or a set of values, and do not tilt coverage toward a preference you inferred.
+- Party is a fact about the ballot or a public registration. Print it as ordinary text on the candidate card, in the comparison table, and on the ballot table. Do not color it, and do not sort candidates by it. A nonpartisan office says `Nonpartisan race`. A registration on that office, when a public record states it, is labeled `registered party (race is nonpartisan)`.
+- Endorsements get the same search budget for every candidate. Report the endorser, the type, the date, and the page. Do not treat an endorsement as a recommendation. A measure lists official supporters, opponents, the sponsor committee, and public top funders, or a not-found line.
+- Money uses the same buckets and the same as-of date for every candidate. Do not describe a total as grassroots or bought. Attendance is a count and the chamber median, not a rank. A disclosure overlap is not a verdict. Promises use the first platform item and the same status words. "Did not respond" is not a strike. Never checked is not checked out clean. Final orders are not complaints. Party vote counts are numbers, not colors.
 
 ## Blinded swap
 

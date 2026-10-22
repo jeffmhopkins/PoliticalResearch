@@ -116,7 +116,7 @@ claims:
     url: https://fictional.example/westland-finance/okonkwo-2026-q3
     archive_url: https://fictional.example/archive/okonkwo-2026-q3
     archive_failed: false
-    archive_failed_reason: Fictional example; no live document exists.
+    archive_failed_reason: null
     publisher: Westland campaign finance office (fictional)
     title: Okonkwo for Cedar committee, quarter ending September 30, 2026
     doc_type: Campaign filing
@@ -125,8 +125,8 @@ claims:
     tier: T1
     locator: Summary page, lines 1 through 4
     quote: Receipts 30100, disbursements 18400, cash on hand 11700, debt 0.
-    local_copy: saved/okonkwo-q3.html
     confidence: verified
+    local_copy: saved/okonkwo-q3.html
   confidence: verified
   drives_summary: true
   polarity: neutral
@@ -255,6 +255,419 @@ claims:
   polarity: neutral
   about_person: true
   attribution_only: true
+  endorsement:
+    endorser: Friends of the River Path
+    endorser_type: advocacy
+    date: '2026-09-05'
+    source_role: endorser_statement
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.party.001
+  section: party
+  text: The sample ballot places Blake Okonkwo of Cedar Hollow in a Nonpartisan race.
+  marker: 44
+  sources:
+  - marker: 44
+    url: https://fictional.example/oak-county/2026/sample-ballot
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Oak County Elections (fictional)
+    title: Sample ballot, Cedar Hollow, November 3, 2026
+    doc_type: Official sample ballot
+    published: '2026-09-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Mayor contest, party column
+    quote: Blake Okonkwo, Mayor, Nonpartisan.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.party.002
+  section: party
+  text: Voter registration lists Blake Okonkwo of Cedar Hollow as Democratic, a registered party on a
+    nonpartisan race.
+  marker: 45
+  sources:
+  - marker: 45
+    url: https://fictional.example/oak-county/registration/okonkwo
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Oak County Elections (fictional)
+    title: Voter registration extract, Blake Okonkwo
+    doc_type: Voter registration
+    published: '2026-09-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Party field
+    quote: Blake Okonkwo, Democratic.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.funding.003
+  section: funding
+  text: Small donors at or under 200 dollars gave 9000 dollars to Blake Okonkwo of Cedar Hollow.
+  marker: 53
+  sources:
+  - marker: 53
+    url: https://fictional.example/westland-finance/okonkwo-2026-q3-items
+    archive_url: https://fictional.example/archive/okonkwo-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Okonkwo itemized receipts, small donors
+    doc_type: Campaign filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Small-donor total
+    quote: Small donors at or under 200 dollars gave 9000 dollars.
+    confidence: verified
+    local_copy: saved/okonkwo-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.funding.004
+  section: funding
+  text: Large donors gave 14000 dollars to Blake Okonkwo of Cedar Hollow.
+  marker: 54
+  sources:
+  - marker: 54
+    url: https://fictional.example/westland-finance/okonkwo-2026-q3-items
+    archive_url: https://fictional.example/archive/okonkwo-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Okonkwo itemized receipts, large donors
+    doc_type: Campaign filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Large-donor total
+    quote: Large donors gave 14000 dollars.
+    confidence: verified
+    local_copy: saved/okonkwo-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.funding.005
+  section: funding
+  text: In-district donors gave 7000 dollars to Blake Okonkwo of Cedar Hollow.
+  marker: 55
+  sources:
+  - marker: 55
+    url: https://fictional.example/westland-finance/okonkwo-2026-q3-items
+    archive_url: https://fictional.example/archive/okonkwo-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Okonkwo itemized receipts, in-district
+    doc_type: Campaign filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: In-district total
+    quote: In-district donors gave 7000 dollars.
+    confidence: verified
+    local_copy: saved/okonkwo-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.funding.006
+  section: funding
+  text: Loans and self-funding for Blake Okonkwo of Cedar Hollow were 0 dollars.
+  marker: 56
+  sources:
+  - marker: 56
+    url: https://fictional.example/westland-finance/okonkwo-2026-q3
+    archive_url: https://fictional.example/archive/okonkwo-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Okonkwo loans and self-funding
+    doc_type: Campaign filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Loan line
+    quote: Loans and self-funding were 0 dollars.
+    confidence: verified
+    local_copy: saved/okonkwo-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.funding.007
+  section: funding
+  text: PAC committees gave 2000 dollars to Blake Okonkwo of Cedar Hollow.
+  marker: 57
+  sources:
+  - marker: 57
+    url: https://fictional.example/westland-finance/okonkwo-2026-q3-items
+    archive_url: https://fictional.example/archive/okonkwo-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Okonkwo PAC receipts
+    doc_type: Campaign filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: PAC total
+    quote: PAC committees gave 2000 dollars.
+    confidence: verified
+    local_copy: saved/okonkwo-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.funding.008
+  section: funding
+  text: Party committee money for Blake Okonkwo of Cedar Hollow was 0 dollars.
+  marker: 58
+  sources:
+  - marker: 58
+    url: https://fictional.example/westland-finance/okonkwo-2026-q3-items
+    archive_url: https://fictional.example/archive/okonkwo-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Okonkwo party committee receipts
+    doc_type: Campaign filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Party total
+    quote: Party committee money was 0 dollars.
+    confidence: verified
+    local_copy: saved/okonkwo-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.outside.001
+  section: outside spending
+  text: Independent expenditures for and against Blake Okonkwo of Cedar Hollow were 0 dollars.
+  marker: 59
+  sources:
+  - marker: 59
+    url: https://fictional.example/westland-finance/ie-mayor-2026
+    archive_url: https://fictional.example/archive/okonkwo-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Independent expenditure index, mayor
+    doc_type: Independent expenditure filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Okonkwo row
+    quote: Independent expenditures for Blake Okonkwo were 0 dollars and independent expenditures against
+      Blake Okonkwo were 0 dollars.
+    confidence: verified
+    local_copy: saved/okonkwo-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.promises.001
+  section: promises versus record
+  text: The first platform item for Blake Okonkwo of Cedar Hollow has no earlier vote, so the status is
+    no record.
+  marker: 63
+  sources:
+  - marker: 63
+    url: https://okonkwo-for-cedar.example/platform
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Okonkwo for Cedar committee (fictional)
+    title: Campaign site, first platform item
+    doc_type: Campaign site
+    published: '2026-09-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: First item
+    quote: The first platform item says a repair list comes before a levy change.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  promise_status: no_record
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.survey.001
+  section: questionnaire answers
+  text: Vote411 shows did not respond for Blake Okonkwo of Cedar Hollow.
+  marker: 67
+  sources:
+  - marker: 67
+    url: https://fictional.example/vote411/cedar-mayor
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Vote411 (fictional extract)
+    title: Vote411 mayor page
+    doc_type: Questionnaire
+    published: '2026-10-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T2
+    locator: Okonkwo row
+    quote: Vote411 shows no reply from Blake Okonkwo.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.survey.002
+  section: questionnaire answers
+  text: Ballotpedia shows did not respond for Blake Okonkwo of Cedar Hollow.
+  marker: 68
+  sources:
+  - marker: 68
+    url: https://fictional.example/ballotpedia/okonkwo
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Ballotpedia (fictional extract)
+    title: Ballotpedia candidate survey
+    doc_type: Questionnaire
+    published: '2026-10-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T2
+    locator: Survey block
+    quote: No survey answers from Blake Okonkwo.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.survey.003
+  section: questionnaire answers
+  text: VoteSmart shows did not respond for Blake Okonkwo of Cedar Hollow.
+  marker: 69
+  sources:
+  - marker: 69
+    url: https://fictional.example/votesmart/okonkwo
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: VoteSmart (fictional extract)
+    title: VoteSmart candidate page
+    doc_type: Questionnaire
+    published: '2026-10-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T2
+    locator: Submission line
+    quote: No VoteSmart submission from Blake Okonkwo.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.term.001
+  section: term limits
+  text: Blake Okonkwo of Cedar Hollow is eligible through 2034.
+  marker: 71
+  sources:
+  - marker: 71
+    url: https://fictional.example/cedar-hollow/charter/mayor
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow Clerk (fictional)
+    title: City charter, mayor term limit
+    doc_type: Charter
+    published: '2026-01-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Challenger paragraph
+    quote: Blake Okonkwo is eligible through 2034.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-okonkwo.facts.001
+  section: fact checks
+  text: Never checked is not the same as checked out clean for Blake Okonkwo of Cedar Hollow.
+  marker: 73
+  sources:
+  - marker: 73
+    url: https://fictional.example/factcheck/method
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: FactCheck.org (fictional extract)
+    title: Search method note
+    doc_type: Fact-check method
+    published: '2026-10-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T2
+    locator: Absence note
+    quote: Never checked is not the same as checked out clean.
+    confidence: verified
+  confidence: verified
+  drives_summary: false
+  polarity: neutral
+  about_person: true
   identity_attributes:
   - ballot_name
   - office

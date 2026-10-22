@@ -428,10 +428,13 @@ def signoff(item: Path, reviewer: str, clock: str, *, same_context: bool = False
                 "Use scripts/loop.py note-unchecked. An empty list means nothing was left unchecked."
             ]
     if same_context:
-        state.setdefault("process_gaps", []).append(
+        note = (
             f"{reviewer} signed off in the same context as the research. "
             "This is a process gap, not a fresh-context review."
         )
+        gaps = state.setdefault("process_gaps", [])
+        if note not in gaps:
+            gaps.append(note)
     state["signoffs"][reviewer] = {"signed": True, "at": clock, "round": state.get("round")}
     state["updated_at"] = clock
     dump_json(state_path, state)

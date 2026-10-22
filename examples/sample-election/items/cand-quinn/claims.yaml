@@ -115,7 +115,7 @@ claims:
     url: https://fictional.example/westland-finance/quinn-2026-q3
     archive_url: https://fictional.example/archive/quinn-2026-q3
     archive_failed: false
-    archive_failed_reason: Fictional example; no live document exists.
+    archive_failed_reason: null
     publisher: Westland campaign finance office (fictional)
     title: Quinn for Cedar committee, quarter ending September 30, 2026
     doc_type: Campaign filing
@@ -124,8 +124,8 @@ claims:
     tier: T1
     locator: Summary page, lines 1 through 4
     quote: Receipts 48200, disbursements 31000, cash on hand 17200, debt 0.
-    local_copy: saved/quinn-q3.html
     confidence: verified
+    local_copy: saved/quinn-q3.html
   confidence: verified
   drives_summary: true
   polarity: neutral
@@ -237,6 +237,513 @@ claims:
   polarity: neutral
   about_person: true
   attribution_only: true
+  endorsement:
+    endorser: Cedar Hollow Firefighters Association
+    endorser_type: union
+    date: '2026-09-02'
+    source_role: endorser_statement
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.party.001
+  section: party
+  text: The sample ballot places Avery Quinn of Cedar Hollow in a Nonpartisan race.
+  marker: 41
+  sources:
+  - marker: 41
+    url: https://fictional.example/oak-county/2026/sample-ballot
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Oak County Elections (fictional)
+    title: Sample ballot, Cedar Hollow, November 3, 2026
+    doc_type: Official sample ballot
+    published: '2026-09-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Mayor contest, party column
+    quote: Avery Quinn, Mayor, Nonpartisan.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.party.002
+  section: party
+  text: Voter registration lists Avery Quinn of Cedar Hollow as no party affiliation, a registered party
+    on a nonpartisan race.
+  marker: 42
+  sources:
+  - marker: 42
+    url: https://fictional.example/oak-county/registration/quinn
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Oak County Elections (fictional)
+    title: Voter registration extract, Avery Quinn
+    doc_type: Voter registration
+    published: '2026-09-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Party field
+    quote: Avery Quinn, No Party Affiliation.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.party.003
+  section: party
+  text: In 2019 Avery Quinn of Cedar Hollow left the Republican listing.
+  marker: 43
+  sources:
+  - marker: 43
+    url: https://fictional.example/oak-county/registration/quinn-2019
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Oak County Elections (fictional)
+    title: Registration change, Avery Quinn
+    doc_type: Voter registration
+    published: '2019-03-12'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Change line
+    quote: Party change from Republican to No Party Affiliation on 2019-03-12.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.funding.002
+  section: funding
+  text: Small donors at or under 200 dollars gave 12000 dollars to Avery Quinn of Cedar Hollow.
+  marker: 46
+  sources:
+  - marker: 46
+    url: https://fictional.example/westland-finance/quinn-2026-q3-items
+    archive_url: https://fictional.example/archive/quinn-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Quinn itemized receipts, small donors
+    doc_type: Campaign filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Small-donor total
+    quote: Small donors at or under 200 dollars gave 12000 dollars.
+    confidence: verified
+    local_copy: saved/quinn-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.funding.003
+  section: funding
+  text: Large donors gave 20000 dollars to Avery Quinn of Cedar Hollow.
+  marker: 47
+  sources:
+  - marker: 47
+    url: https://fictional.example/westland-finance/quinn-2026-q3-items
+    archive_url: https://fictional.example/archive/quinn-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Quinn itemized receipts, large donors
+    doc_type: Campaign filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Large-donor total
+    quote: Large donors gave 20000 dollars.
+    confidence: verified
+    local_copy: saved/quinn-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.funding.004
+  section: funding
+  text: In-district donors gave 15000 dollars to Avery Quinn of Cedar Hollow.
+  marker: 48
+  sources:
+  - marker: 48
+    url: https://fictional.example/westland-finance/quinn-2026-q3-items
+    archive_url: https://fictional.example/archive/quinn-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Quinn itemized receipts, in-district
+    doc_type: Campaign filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: In-district total
+    quote: In-district donors gave 15000 dollars.
+    confidence: verified
+    local_copy: saved/quinn-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.funding.005
+  section: funding
+  text: Loans and self-funding for Avery Quinn of Cedar Hollow were 0 dollars.
+  marker: 49
+  sources:
+  - marker: 49
+    url: https://fictional.example/westland-finance/quinn-2026-q3
+    archive_url: https://fictional.example/archive/quinn-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Quinn loans and self-funding
+    doc_type: Campaign filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Loan line
+    quote: Loans and self-funding were 0 dollars.
+    confidence: verified
+    local_copy: saved/quinn-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.funding.006
+  section: funding
+  text: PAC committees gave 8000 dollars to Avery Quinn of Cedar Hollow.
+  marker: 50
+  sources:
+  - marker: 50
+    url: https://fictional.example/westland-finance/quinn-2026-q3-items
+    archive_url: https://fictional.example/archive/quinn-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Quinn PAC receipts
+    doc_type: Campaign filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: PAC total
+    quote: PAC committees gave 8000 dollars.
+    confidence: verified
+    local_copy: saved/quinn-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.funding.007
+  section: funding
+  text: Party committee money for Avery Quinn of Cedar Hollow was 0 dollars.
+  marker: 51
+  sources:
+  - marker: 51
+    url: https://fictional.example/westland-finance/quinn-2026-q3-items
+    archive_url: https://fictional.example/archive/quinn-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Quinn party committee receipts
+    doc_type: Campaign filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Party total
+    quote: Party committee money was 0 dollars.
+    confidence: verified
+    local_copy: saved/quinn-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.outside.001
+  section: outside spending
+  text: Independent expenditures for and against Avery Quinn of Cedar Hollow were 0 dollars.
+  marker: 52
+  sources:
+  - marker: 52
+    url: https://fictional.example/westland-finance/ie-mayor-2026
+    archive_url: https://fictional.example/archive/quinn-depth
+    archive_failed: false
+    archive_failed_reason: null
+    publisher: Westland campaign finance office (fictional)
+    title: Independent expenditure index, mayor
+    doc_type: Independent expenditure filing
+    published: '2026-10-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Quinn row
+    quote: Independent expenditures for Avery Quinn were 0 dollars and independent expenditures against
+      Avery Quinn were 0 dollars.
+    confidence: verified
+    local_copy: saved/quinn-depth.html
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  as_of: '2026-09-30'
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.attendance.001
+  section: attendance
+  text: Avery Quinn of Cedar Hollow attended 11 of 12 council meetings in 2025, and the median was 10
+    of 12.
+  marker: 60
+  sources:
+  - marker: 60
+    url: https://fictional.example/cedar-hollow/attendance/2025
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow Clerk (fictional)
+    title: Council attendance, 2025
+    doc_type: Meeting roll
+    published: '2026-01-15'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Attendance table
+    quote: Quinn attended 11 of 12 meetings. The median was 10 of 12.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.disclosure.001
+  section: financial disclosure
+  text: The local disclosure for Avery Quinn of Cedar Hollow lists a parks-bond holding, and Avery Quinn
+    of Cedar Hollow voted on the parks budget.
+  marker: 61
+  sources:
+  - marker: 61
+    url: https://fictional.example/cedar-hollow/disclosure/quinn-2026
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow Clerk (fictional)
+    title: Local disclosure, Avery Quinn, 2026
+    doc_type: Financial disclosure
+    published: '2026-07-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Holdings line
+    quote: The disclosure lists a parks-bond holding.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.promises.001
+  section: promises versus record
+  text: The first platform item for Avery Quinn of Cedar Hollow matches the 2024 parks vote, so the status
+    is kept.
+  marker: 62
+  sources:
+  - marker: 62
+    url: https://quinn-for-cedar.example/platform
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Quinn for Cedar committee (fictional)
+    title: Campaign site, first platform item
+    doc_type: Campaign site
+    published: '2026-09-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: First item
+    quote: The first platform item says the levy stays at the ballot amount.
+    confidence: verified
+  - marker: 76
+    url: https://fictional.example/cedar-hollow/minutes/2024-06-04
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow Clerk (fictional)
+    title: Council minutes, June 4, 2024
+    doc_type: Meeting minutes
+    published: '2024-06-04'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Vote table, parks budget
+    quote: Mayor Quinn voted yes on the parks budget.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  promise_status: kept
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.survey.001
+  section: questionnaire answers
+  text: Vote411 shows did not respond for Avery Quinn of Cedar Hollow.
+  marker: 64
+  sources:
+  - marker: 64
+    url: https://fictional.example/vote411/cedar-mayor
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Vote411 (fictional extract)
+    title: Vote411 mayor page
+    doc_type: Questionnaire
+    published: '2026-10-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T2
+    locator: Quinn row
+    quote: Vote411 shows no reply from Avery Quinn.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.survey.002
+  section: questionnaire answers
+  text: Ballotpedia shows did not respond for Avery Quinn of Cedar Hollow.
+  marker: 65
+  sources:
+  - marker: 65
+    url: https://fictional.example/ballotpedia/quinn
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Ballotpedia (fictional extract)
+    title: Ballotpedia candidate survey
+    doc_type: Questionnaire
+    published: '2026-10-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T2
+    locator: Survey block
+    quote: No survey answers from Avery Quinn.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.survey.003
+  section: questionnaire answers
+  text: VoteSmart shows did not respond for Avery Quinn of Cedar Hollow.
+  marker: 66
+  sources:
+  - marker: 66
+    url: https://fictional.example/votesmart/quinn
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: VoteSmart (fictional extract)
+    title: VoteSmart candidate page
+    doc_type: Questionnaire
+    published: '2026-10-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T2
+    locator: Submission line
+    quote: No VoteSmart submission from Avery Quinn.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.term.001
+  section: term limits
+  text: Avery Quinn of Cedar Hollow is eligible through 2030.
+  marker: 70
+  sources:
+  - marker: 70
+    url: https://fictional.example/cedar-hollow/charter/mayor
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: Cedar Hollow Clerk (fictional)
+    title: City charter, mayor term limit
+    doc_type: Charter
+    published: '2026-01-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T1
+    locator: Term section
+    quote: Avery Quinn is eligible through 2030.
+    confidence: verified
+  confidence: verified
+  drives_summary: true
+  polarity: neutral
+  about_person: true
+  identity_attributes:
+  - ballot_name
+  - office
+- id: cand-quinn.facts.001
+  section: fact checks
+  text: Never checked is not the same as checked out clean for Avery Quinn of Cedar Hollow.
+  marker: 72
+  sources:
+  - marker: 72
+    url: https://fictional.example/politifact/method
+    archive_url: null
+    archive_failed: true
+    archive_failed_reason: Fictional example; no live document exists.
+    publisher: PolitiFact Florida (fictional extract)
+    title: Search method note
+    doc_type: Fact-check method
+    published: '2026-10-01'
+    retrieved: 2026-10-20 09:30 ET
+    tier: T2
+    locator: Absence note
+    quote: A statement that was never checked is not the same as a statement checked out clean.
+    confidence: verified
+  confidence: verified
+  drives_summary: false
+  polarity: neutral
+  about_person: true
   identity_attributes:
   - ballot_name
   - office

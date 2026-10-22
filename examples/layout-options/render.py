@@ -32,11 +32,11 @@ BODY = """
 <div class="candidate-index">
   <div class="nameplate">
     <h3 class="candidate-name" id="candidate-cand-quinn">Avery Quinn</h3>
-    <p>Incumbent, nonpartisan</p>
+    <p>Nonpartisan race</p>
   </div>
   <div class="nameplate">
     <h3 class="candidate-name" id="candidate-cand-okonkwo">Blake Okonkwo</h3>
-    <p>Challenger, nonpartisan</p>
+    <p>Nonpartisan race</p>
   </div>
 </div>
 <h3>At a glance</h3>
@@ -52,8 +52,8 @@ BODY = """
     <tbody>
       <tr>
         <td>Ballot status</td>
-        <td>Nonpartisan incumbent</td>
-        <td>Nonpartisan challenger</td>
+        <td>Nonpartisan race</td>
+        <td>Nonpartisan race</td>
       </tr>
       <tr>
         <td>Occupation</td>

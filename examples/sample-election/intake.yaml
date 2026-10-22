@@ -7,8 +7,12 @@ scope: whole_ballot
 contest_ids:
 - race-mayor
 - measure-h
-include_legislation: false
-legislation_topics: []
+- bill-hb18
+include_legislation: true
+legislation_topics:
+- parks repair reporting
+districts:
+- Westland House district 4
 depth: standard
 formats:
 - md

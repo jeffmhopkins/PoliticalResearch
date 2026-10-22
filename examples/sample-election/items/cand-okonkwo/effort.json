@@ -1,8 +1,8 @@
 {
   "item_id": "cand-okonkwo",
-  "searches": 12,
-  "fetches": 9,
-  "minutes": 42,
+  "searches": 22,
+  "fetches": 18,
+  "minutes": 57,
   "sections": {
     "identity": {
       "searches": 2,
@@ -36,7 +36,43 @@
       "searches": 1,
       "fetches": 1
     },
+    "party": {
+      "searches": 2,
+      "fetches": 1
+    },
     "endorsements": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "outside spending": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "attendance": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "financial disclosure": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "term limits": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "promises versus record": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "questionnaire answers": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "fact checks": {
+      "searches": 1,
+      "fetches": 1
+    },
+    "ethics and elections orders": {
       "searches": 1,
       "fetches": 1
     },

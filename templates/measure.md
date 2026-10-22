@@ -61,7 +61,27 @@ Not found (searched: not started).
 
 Not found (searched: not started).
 
-## Supporters and opponents
+## Official sponsor or committee
+
+<!-- The committee or official sponsor that qualified or is registered for the measure. Cite the filing or the pamphlet. -->
+
+Not found (searched: not started).
+
+## Organizations supporting
+
+<!-- Organizations that officially support the measure, from their own statement or the official pamphlet. Do not infer support from a donation alone. -->
+
+Not found (searched: not started).
+
+## Organizations opposing
+
+<!-- Organizations that officially oppose the measure. Same kinds of sources as the supporting list. A missing side is a not-found line, not a padded paragraph. -->
+
+Not found (searched: not started).
+
+## Top funders
+
+<!-- Top funders of the sponsor committee and of the opposing committee, from a public filing, with amounts and the filing date. Name the side. If a side has no public itemized funders, say so. -->
 
 Not found (searched: not started).
 

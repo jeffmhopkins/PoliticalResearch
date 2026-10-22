@@ -24,9 +24,20 @@ properties:
       self_funding:
         type: string
       small_donors:
+        description: Share or amount from donors at or under the FEC $200 itemization threshold.
+        type: string
+      large_donors:
+        description: Amount from individual donors above that same threshold.
+        type: string
+      in_district:
+        description: In-district share when a filing supports it. Otherwise a not-found line. Do not guess from a ZIP.
+        type: string
+      pac_money:
+        type: string
+      party_money:
         type: string
       outside_spending:
-        type: string
+        description: Independent expenditures for and against. Not money the campaign raised.
       donations_made:
         description: Donations the candidate personally made. Recipient, amount, and date only.
         type: array
@@ -101,6 +112,65 @@ properties:
   fields:
     type: object
     additionalProperties: true
+  party:
+    description: Cited party field. Display text is neutral and includes the markers for the ballot label.
+    type: object
+    required: [race_nonpartisan, source_kind, display]
+    additionalProperties: false
+    properties:
+      race_nonpartisan:
+        type: boolean
+      ballot_label:
+        type: string
+      registered_party:
+        type: string
+      source_kind:
+        type: string
+        enum: [ballot, elections_office, filing, voter_registration]
+      registered_source_kind:
+        type: string
+        enum: [ballot, elections_office, filing, voter_registration]
+      display:
+        type: string
+      changes_display:
+        type: string
+      changes:
+        type: array
+        items:
+          type: object
+          required: [from_party, to_party, date]
+          additionalProperties: false
+          properties:
+            from_party:
+              type: string
+            to_party:
+              type: string
+            date:
+              type: string
+              pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+            source_url:
+              type: string
+  endorsements:
+    description: The same endorsement records as the claims, so every candidate in the race is checked for the same fields.
+    type: array
+    items:
+      type: object
+      required: [endorser, endorser_type, date, source_role]
+      additionalProperties: false
+      properties:
+        endorser:
+          type: string
+        endorser_type:
+          type: string
+          enum: [party, union, business_trade, advocacy, newspaper, elected_official]
+        date:
+          type: string
+          pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        source_role:
+          type: string
+          enum: [endorser_statement, candidate_site]
+        source_url:
+          type: string
 $defs:
   legal_category:
     type: object

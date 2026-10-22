@@ -1,0 +1,31 @@
+item_id: cand-quinn
+party:
+  race_nonpartisan: true
+  source_kind: ballot
+  ballot_label: Nonpartisan
+  registered_party: No Party Affiliation
+  registered_source_kind: voter_registration
+  display: Nonpartisan race, No Party Affiliation, registered party (race is nonpartisan)[^41][^42]
+  changes_display: From Republican to No Party Affiliation on 2019-03-12[^43]
+  changes:
+  - from_party: Republican
+    to_party: No Party Affiliation
+    date: '2019-03-12'
+    source_url: https://fictional.example/oak-county/registration/quinn-2019
+endorsements:
+- endorser: Cedar Hollow Firefighters Association
+  endorser_type: union
+  date: '2026-09-02'
+  source_role: endorser_statement
+  source_url: https://fictional.example/ch-firefighters/endorsement-2026
+money:
+  report_date: 2026-09-30[^5]
+  receipts: 48200 dollars in receipts[^5]
+  cash_on_hand: 17200 dollars in cash on hand[^5]
+  self_funding: 0 dollars in loans and self-funding[^49]
+  small_donors: 12000 dollars from small donors[^46]
+  large_donors: 20000 dollars from large donors[^47]
+  in_district: 15000 dollars in-district[^48]
+  pac_money: 8000 dollars from PAC committees[^50]
+  party_money: 0 dollars in party committee money[^51]
+  outside_spending: 0 dollars in independent expenditures[^52]

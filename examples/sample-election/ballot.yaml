@@ -14,6 +14,8 @@ election:
     state: Westland
     county: Oak County
     city: Cedar Hollow
+districts:
+- Westland House district 4
 logistics:
 - label: Oak County elections office (fictional)
   url: https://fictional.example/oak-county/elections
@@ -24,6 +26,7 @@ contests:
   type: race
   title: Mayor of Cedar Hollow
   official_source_url: https://fictional.example/oak-county/2026/sample-ballot
+  nonpartisan: true
   district: Cedar Hollow
   candidates:
   - id: cand-quinn
@@ -48,6 +51,13 @@ contests:
   title: Measure H, Cedar Hollow parks levy
   official_source_url: https://fictional.example/oak-county/2026/measure-h
   district: Cedar Hollow
+  candidates: []
+- id: bill-hb18
+  item_id: bill-hb18
+  type: legislation
+  title: House Bill 18, parks repair reporting
+  official_source_url: https://fictional.example/westland-house/2026/hb18
+  district: Westland
   candidates: []
 conflicts: []
 notes:

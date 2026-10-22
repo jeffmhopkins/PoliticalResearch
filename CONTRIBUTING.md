@@ -4,7 +4,7 @@ This repository is the tool: policies, templates, schemas, and scripts. Voter gu
 
 ## Change a template or policy
 
-Open a pull request that explains the rule you want to change and why. Keep the guide nonpartisan. Do not add endorsements, scores, or a values-matching mode. Update the matching schema, script, and test when a field changes.
+Open a pull request that explains the rule you want to change and why. Keep the guide nonpartisan. The guide records cited endorsements; it does not endorse a candidate. Do not add scores, ranks, or a values-matching mode. Update the matching schema, script, and test when a field changes.
 
 `config.yaml` holds the defaults for rounds, staleness, effort parity, and the choices listed in the README. Change those in the same pull request as the docs that mention them.
 
