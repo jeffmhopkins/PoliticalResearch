@@ -412,8 +412,8 @@ a.page-ref::after {
 }
 
 span.num {
-  display: block;
-  text-align: right;
+  /* Stay in the column. A right-aligned block amount starts at the right edge,
+     so a short figure such as $0 begins less than 1.5 inches from the next column. */
   font-variant-numeric: lining-nums tabular-nums;
 }
 
