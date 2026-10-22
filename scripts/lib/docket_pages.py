@@ -336,12 +336,15 @@ def build_docket_contest(model, contest: dict, group: str) -> list[str]:
     return _race(model, contest, group)
 
 
-def _title_lines(model, contest: dict, item_id: str) -> list[str]:
+def _title_lines(model, contest: dict, item_id: str, group: str = "") -> list[str]:
     title = str(contest.get("title") or model.titles.get(item_id) or item_id)
     shown = display_contest_title(title)
-    lines = [f"## {shown} {{#contest-{item_id} .contest-title}}", ""]
+    attrs = f"#contest-{item_id} .contest-title"
+    if group:
+        attrs += f' data-part="{group.replace(chr(34), "")}"'
+    lines = [f"## {shown} {{{attrs}}}", ""]
     if title and title.lower() != shown.lower():
-        lines.extend([f'<p class="official-title">{html.escape(re.sub(r"\\s+", " ", title).strip())}</p>', ""])
+        lines.extend([f'<p class="official-title">{html.escape(re.sub(r"\s+", " ", title).strip())}</p>', ""])
     return lines
 
 
@@ -652,9 +655,7 @@ def _race(model, contest: dict, group: str) -> list[str]:
     model._log_section_gaps(str(contest.get("title") or item_id), _section_pairs(draft))
     model._log_profile_gaps(contest)
     people = _people(contest)
-    opening = _title_lines(model, contest, item_id)
-    if group:
-        opening = [f"# {group} {{.ballot-group}}", ""] + opening
+    opening = _title_lines(model, contest, item_id, group)
     opening.extend(_office_lines(model, contest, draft, sections))
     opening.extend(_people_cards(model, contest, people))
     lines = _sheet(opening, opener=True)
@@ -732,13 +733,110 @@ def _positions(model, contest: dict, people: list[dict]) -> list[str]:
     return lines
 
 
+_WORDING_LOCATOR_RE = re.compile(r"ballot summary|ballot question|\bquestion\b", re.IGNORECASE)
+_DANGLING_QUOTE_END = {
+    "a",
+    "an",
+    "the",
+    "of",
+    "to",
+    "for",
+    "and",
+    "or",
+    "from",
+    "with",
+    "on",
+    "in",
+    "by",
+    "that",
+    "which",
+    "into",
+    "over",
+    "under",
+    "at",
+    "as",
+}
+_NOT_CAPTURED = "The full ballot wording was not captured."
+
+
+def _quote_is_complete(quote: str) -> bool:
+    """A stored ballot quote is the full wording only when it is one finished sentence."""
+    text = re.sub(r"\s+", " ", quote or "").strip()
+    if len(text) < 40 or text[-1] not in ".!?":
+        return False
+    words = re.findall(r"[A-Za-z']+", text)
+    if not words or words[-1].lower() in _DANGLING_QUOTE_END:
+        return False
+    return True
+
+
+def _single_ballot_quote(model, item_id: str) -> tuple[str, int] | None:
+    """The one complete official ballot quote, when the research captured all of it."""
+    rows: list[tuple[int, str]] = []
+    for marker, found in (getattr(model, "index", None) or {}).items():
+        item, _claim, source = found
+        if item != item_id:
+            continue
+        locator = str(source.get("locator") or "")
+        if not _WORDING_LOCATOR_RE.search(locator):
+            continue
+        quote = re.sub(r"\s+", " ", str(source.get("quote") or "")).strip()
+        if quote:
+            rows.append((int(marker), quote))
+    if len(rows) != 1 or not _quote_is_complete(rows[0][1]):
+        return None
+    marker, quote = rows[0]
+    return quote, marker
+
+
+def _has_real_ballot_wording(text: str) -> bool:
+    """True when the draft already states the question, not only the ballot's title."""
+    from lib.quality import MARKER_RE
+
+    for part in split_sentences(text or ""):
+        plain = re.sub(r"\s+", " ", MARKER_RE.sub("", part)).strip()
+        lowered = plain.lower()
+        if "asks whether" in lowered or "official label is" in lowered:
+            return True
+        if re.match(r"(?i)(?:shall|proposing an amendment)\b", plain) and plain[-1:] in ".!?" and len(plain) >= 40:
+            return True
+    return False
+
+
+def _first_title_sentence(text: str) -> str:
+    parts = [part.strip() for part in split_sentences(text or "") if part.strip()]
+    for part in parts:
+        lowered = part.lower()
+        if "the choices are" in lowered or "lists two choices" in lowered:
+            continue
+        if "shorter title" in lowered or "another title" in lowered or "title differs" in lowered:
+            continue
+        return part
+    return ""
+
+
+def _ballot_exact_words(model, contest: dict, item_id: str, sections: dict, section_name: str) -> str:
+    """The official ballot summary, or the title plus a line that the wording was not captured."""
+    found = _single_ballot_quote(model, item_id)
+    if found:
+        quote, marker = found
+        if quote[-1] in ".!?":
+            return f"{quote[:-1]}[^{marker}]{quote[-1]}"
+        return f"{quote}[^{marker}]."
+    body = _section_text(model, sections, section_name)
+    if body and _has_real_ballot_wording(body):
+        return body
+    label = _first_title_sentence(body) or display_contest_title(str(contest.get("title") or item_id))
+    if label:
+        return f"{label}\n\n{_NOT_CAPTURED}"
+    return _NOT_CAPTURED
+
+
 def _summary_box(model, contest, group, item_id, about, yes, no, support, oppose, cost, exact, marker: str) -> list[str]:
     from lib.guide_layout import _vote_pair
 
     lines = [f"<!-- {marker} -->", ""]
-    lines.extend(_title_lines(model, contest, item_id))
-    if group:
-        lines = [f"# {group} {{.ballot-group}}", ""] + lines
+    lines.extend(_title_lines(model, contest, item_id, group))
     lines.extend(["### What is this about?", "", about or "No public record found.", ""])
     yes_body = yes if yes and "[^" in yes else (about if about and "[^" in about else "No public record found.")
     no_body = no if no and "[^" in no else "No public record found."
@@ -796,7 +894,7 @@ def _measure(model, contest: dict, group: str) -> list[str]:
         2,
     )
     cost = _lead(_section_text(model, sections, "fiscal impact"), 1)
-    exact = _section_text(model, sections, "official title")
+    exact = _ballot_exact_words(model, contest, item_id, sections, "official title")
     lines = _sheet(
         _summary_box(model, contest, group, item_id, about, yes, no, support, oppose, cost, exact, "docket-measure"),
         opener=True,
@@ -937,10 +1035,11 @@ def _retention(model, contest: dict, group: str) -> list[str]:
         "record vs rhetoric": _section_text(model, sections, "notable rulings"),
     }
     name = display_contest_title(str(contest.get("title") or model.titles.get(item_id) or item_id))
+    # The profile and the back link stay one block, so a one-line link is not left on its own page.
+    lines.extend(["::: {.profile}", ""])
     lines.extend([f"## {name} {{#profile-{item_id} .profile-title}}", ""])
     lines.extend(_profile_fields(model, sections, mapped))
     if model.edition != "reader":
         lines.extend(model._access_note_lines(item_id))
-    lines = _sheet(lines, opener=True)
-    _append_back_link(lines)
-    return lines
+    lines.extend(["[Back to ballot](#your-ballot-at-a-glance)", "", ":::", ""])
+    return _sheet(lines, opener=True)

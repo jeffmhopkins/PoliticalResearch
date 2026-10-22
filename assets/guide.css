@@ -326,6 +326,10 @@ h2.contest-title {
   string-set: section content();
 }
 
+h2.contest-title[data-part] {
+  string-set: section attr(data-part) " · " content();
+}
+
 h1.ballot-group + h2.contest-title,
 h2.contest-title + p.official-title,
 .glance-contest + .glance-people,
@@ -402,6 +406,24 @@ a.page-ref::after {
   color: var(--ink);
 }
 
+table.contents a.page-ref {
+  display: block;
+  width: 100%;
+  text-align: right;
+  font-size: 11pt;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+table.contents a.page-ref::after {
+  content: target-counter(attr(href), page);
+  font-size: 11pt;
+  font-weight: 500;
+  color: var(--ink);
+}
+
 .glance-people {
   margin: 0.05rem 0 0.12rem;
   padding-left: 1.05rem;
@@ -450,9 +472,9 @@ table.contents {
   table-layout: fixed;
 }
 
-table.contents th:first-child { width: 48%; }
-table.contents td:nth-child(2) { width: 38%; }
-table.contents td.page { width: 14%; }
+table.contents col.contest { width: 34%; }
+table.contents col.what { width: 58%; }
+table.contents col.page { width: 8%; }
 
 table.contents tbody tr:nth-child(even) td,
 table.contents th,
@@ -475,10 +497,13 @@ table.contents td a {
 }
 
 table.contents td.page,
-table.contents th.page {
-  width: 0.7in;
+table.contents th.page,
+table.contents tbody tr:nth-child(even) td.page {
+  width: 8%;
   text-align: right;
+  white-space: nowrap;
   padding-right: 0;
+  padding-left: 0.12rem;
 }
 
 .pair {

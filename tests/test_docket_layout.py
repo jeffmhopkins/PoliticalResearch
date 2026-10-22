@@ -153,6 +153,65 @@ def test_reader_pages_cover_a_race_a_measure_and_a_bill(tmp_path: Path):
     assert "### Where do they stand?" in body
 
 
+def test_contents_page_column_blurbs_and_local_footnotes(tmp_path: Path):
+    from lib.docket_pages import _ballot_exact_words, _quote_is_complete
+    from lib.quality import prose_marker_errors
+
+    assert _quote_is_complete(
+        "Proposing an amendment to the State Constitution to increase the reserve from 10% to 25% of revenue."
+    )
+    assert not _quote_is_complete("Proposing an amendment to the State Constitution to")
+    assert not _quote_is_complete("This amendment takes effect")
+    dump_yaml(tmp_path / "ballot.yaml", {"fiction": True, "contests": []})
+    dump_yaml(tmp_path / "intake.yaml", {})
+    model = _GuideModel(tmp_path, "2026-10-22")
+    linked = model._link_markers(
+        "## Mayor {#contest-a .contest-title data-part=\"Races\"}\n\n"
+        "Ada won[^10]. Bo also won[^11]<!--fn-end:12-->.\n\n"
+        "## Measure {#contest-b .contest-title data-part=\"Measures\"}\n\n"
+        "It would raise the cap[^20].\n\n"
+        "# Glossary {#glossary .back-matter}\n\n"
+        "A later note[^30].\n"
+    )
+    assert '[<sup>1</sup>](guide-sources.md#source-10)' in linked
+    assert 'id="cite-10"' in linked
+    assert '[<sup>2–3</sup>](guide-sources.md#source-11)' in linked
+    assert '[<sup>1</sup>](guide-sources.md#source-20)' in linked
+    assert '[<sup>30</sup>](guide-sources.md#source-30)' in linked
+    assert "{.ballot-group}" not in linked
+    model.index = {
+        9: (
+            "measure-one",
+            {"id": "q"},
+            {
+                "locator": "No. 1 ballot summary",
+                "quote": "Proposing an amendment to increase the reserve from 10% to 25% of general revenue.",
+            },
+        )
+    }
+    exact = _ballot_exact_words(model, {"title": "Amendment 1"}, "measure-one", {}, "official title")
+    assert exact.startswith("Proposing an amendment to increase the reserve")
+    assert "[^9]." in exact
+    assert "not captured" not in exact
+    model.index = {
+        8: (
+            "measure-two",
+            {"id": "q"},
+            {"locator": "No. 2 ballot summary", "quote": "Proposing an amendment to the State Constitution to"},
+        )
+    }
+    titled = _ballot_exact_words(
+        model,
+        {"title": "No. 2 Constitutional Amendment: Farm equipment"},
+        "measure-two",
+        {},
+        "official title",
+    )
+    assert "The full ballot wording was not captured." in titled
+    assert "Farm equipment" in titled or "Amendment 2" in titled
+    assert prose_marker_errors("# Measure\n\nThe full ballot wording was not captured.\n", "guide") == []
+
+
 def test_a_multi_class_fence_is_not_an_uncited_sentence():
     from lib.quality import prose_marker_errors
 

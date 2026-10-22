@@ -379,14 +379,55 @@ class _GuideModel:
         return text, addendum_text
 
     def _link_markers(self, text: str) -> str:
+        """Link each marker to its global source, and restart the printed number per contest.
+
+        Anchors and hrefs stay on the global id so the sources edition still
+        matches. The number a reader sees starts again at 1 for each race or measure.
+        """
         seen: set[str] = set()
         pattern = re.compile(r"\[\^(\d+)\](?:<!--fn-end:(\d+)-->)?")
+        starts = [match.start() for match in re.finditer(r"\{#contest-", text)]
+        back = re.search(r"\.back-matter", text)
+        back_at = back.start() if back else len(text)
+        local_of: dict[tuple[int, int], int] = {}
+        counters: dict[int, int] = {}
+
+        def section_index(pos: int) -> int:
+            if pos >= back_at:
+                return -1
+            found = -1
+            for index, start in enumerate(starts):
+                if start <= pos:
+                    found = index
+                else:
+                    break
+            return found
+
+        for match in pattern.finditer(text):
+            section = section_index(match.start())
+            if section < 0:
+                continue
+            start_n = int(match.group(1))
+            end_n = int(match.group(2) or start_n)
+            for value in range(start_n, end_n + 1):
+                key = (section, value)
+                if key in local_of:
+                    continue
+                counters[section] = counters.get(section, 0) + 1
+                local_of[key] = counters[section]
 
         def repl(match: re.Match) -> str:
             number = match.group(1)
             end = match.group(2)
             start_n = int(number)
             end_n = int(end) if end else start_n
+            section = section_index(match.start())
+
+            def label_for(value: int) -> str:
+                if section < 0:
+                    return str(value)
+                return str(local_of[(section, value)])
+
             anchors = []
             for value in range(start_n, end_n + 1):
                 key = str(value)
@@ -394,7 +435,7 @@ class _GuideModel:
                     continue
                 seen.add(key)
                 anchors.append(f'<a id="cite-{key}"></a>')
-            label = number if end_n == start_n else f"{number}–{end_n}"
+            label = label_for(start_n) if end_n == start_n else f"{label_for(start_n)}–{label_for(end_n)}"
             link = f"[<sup>{label}</sup>]({self.addendum_name}#source-{number})"
             return "".join(anchors) + link
 
@@ -830,12 +871,9 @@ class _GuideModel:
 
     def _contests(self) -> list[str]:
         lines: list[str] = []
-        last_group = None
         for contest in self._visible_contests():
-            group = _group_name(contest)
-            show = group if group != last_group else ""
-            last_group = group
-            lines.extend(self._docket_contest(contest, show))
+            # The part name rides in the running header. It is not a heading of its own.
+            lines.extend(self._docket_contest(contest, _group_name(contest)))
         return lines
 
     def _one_contest(self, contest: dict) -> list[str]:
@@ -847,8 +885,14 @@ class _GuideModel:
             '# What\'s on your ballot {#your-ballot-at-a-glance .ballot-glance}',
             "",
             '<table class="contents">',
+            "<colgroup>",
+            '<col class="contest">',
+            '<col class="what">',
+            '<col class="page">',
+            "</colgroup>",
             "<thead>",
-            '<tr><th scope="col">Contest</th><th scope="col">What it is</th><th scope="col">Page</th></tr>',
+            '<tr><th scope="col">Contest</th><th scope="col">What it is</th>'
+            '<th scope="col" class="page">Page</th></tr>',
             "</thead>",
             "<tbody>",
         ]
@@ -856,7 +900,8 @@ class _GuideModel:
             item_id = str(contest.get("item_id") or contest.get("id"))
             title = str(contest.get("title") or self.titles.get(item_id) or item_id)
             short = display_contest_title(title)
-            what = html.escape(self._contents_blurb(contest))
+            what = html.escape(self._contents_blurb(contest), quote=False)
+            what = re.sub(r"\b(District)\s+(\d+)\b", r"\1&nbsp;\2", what)
             href = f"#contest-{item_id}"
             label = html.escape(short)
             label = re.sub(r"\b(District)\s+(\d+)\b", r"\1&nbsp;\2", label)
@@ -864,34 +909,58 @@ class _GuideModel:
                 "<tr>"
                 f'<th scope="row"><a href="{html.escape(href, quote=True)}">{label}</a></th>'
                 f"<td>{what}</td>"
-                f'<td class="page"><a class="page-ref" href="{html.escape(href, quote=True)}">page</a></td>'
+                f'<td class="page"><a class="page-ref" aria-label="page" href="{html.escape(href, quote=True)}"></a></td>'
                 "</tr>"
             )
         lines.extend(["</tbody>", "</table>", ""])
         return lines
 
     def _contents_blurb(self, contest: dict) -> str:
-        """One plain sentence for the contents table. No markers and no process wording."""
+        """One plain clause for the contents table. No markers and no process wording."""
         kind = str(contest.get("type") or "")
+        title = str(contest.get("title") or "")
         if kind in {"race", "primary", "local-office"}:
-            count = len(_people(contest))
-            return "One candidate." if count <= 1 else f"{count} candidates."
+            job = _office_job(title)
+            count = _candidate_count_clause(contest)
+            if job:
+                return f"{job}; {count}."
+            return f"{count[:1].upper()}{count[1:]}."
         if kind == "judicial-retention" or contest.get("level") == "judicial":
-            return "Voters decide whether this judge stays in office."
-        item_id = str(contest.get("item_id") or contest.get("id") or "")
-        sections = _section_dict(self._draft(item_id))
-        for name in ("plain-language summary", "plain summary", "retention question"):
-            found = sections.get(name)
-            if not found:
-                continue
-            sentence = _one_sentence(found[1])
-            lowered = sentence.lower()
-            if not sentence or "sample ballot" in lowered or "searched:" in lowered or "single source" in lowered:
-                continue
-            return sentence
+            return _retention_blurb(title)
+        effect = self._measure_effect(contest)
+        if effect:
+            return effect
         if kind == "legislation":
             return "A bill the legislature passed."
         return "A yes or no question."
+
+    def _measure_effect(self, contest: dict) -> str:
+        """What the measure would do, skipping a glossary definition of its name."""
+        from lib.quality import plain_reader_sentence
+
+        item_id = str(contest.get("item_id") or contest.get("id") or "")
+        draft = self._draft(item_id)
+        chunks = [_summary_paragraph(draft)]
+        sections = _section_dict(draft)
+        for name in ("plain-language summary", "plain summary", "what a yes vote does"):
+            found = sections.get(name)
+            if found:
+                chunks.append(found[1])
+        for chunk in chunks:
+            for sentence in split_sentences(chunk or ""):
+                cleaned = plain_reader_sentence(sentence)
+                cleaned = re.sub(r"\s+", " ", MARKER_RE.sub("", cleaned)).strip()
+                if not cleaned or cleaned == "No public record found.":
+                    continue
+                lowered = cleaned.lower()
+                if any(token in lowered for token in ("sample ballot", "searched:", "single source", "not found")):
+                    continue
+                if _DEFINITION_BLURB_RE.search(cleaned):
+                    continue
+                if not _EFFECT_BLURB_RE.search(cleaned):
+                    continue
+                return cleaned
+        return ""
 
     def _docket_contest(self, contest: dict, group: str) -> list[str]:
         return build_docket_contest(self, contest, group)
@@ -2704,6 +2773,79 @@ def _other_people(contest: dict) -> list[dict]:
         if isinstance(candidate, dict) and (candidate.get("write_in") or candidate.get("withdrawn")):
             rows.append(candidate)
     return rows
+
+
+_DEFINITION_BLURB_RE = re.compile(
+    r"(?i)^(?:ad valorem|a mill|a sales surtax|a homestead exemption|one-half percent|one half percent)\b"
+    r"|^the budget stabilization fund is\b"
+    r"|is the name on the ballot"
+    r"|\bmeans one\b"
+    r"|\bis a tax added\b"
+    r"|\bis the property-tax rate\b"
+    r"|\bis the state's reserve\b"
+    r"|\bis the part of a home\b"
+)
+_EFFECT_BLURB_RE = re.compile(
+    r"\b(?:would|renews?|asks|raises?|exempts?|limits?|slows?|creates?|extends?|cuts?|replaces?|requires?)\b",
+    re.IGNORECASE,
+)
+
+
+def _office_job(title: str) -> str:
+    """The office's job in one short clause, taken from the office name."""
+    text = re.sub(r"\s+", " ", title or "").strip()
+    lowered = text.lower()
+    district = ""
+    found = re.search(r"district\s+(\d+)", lowered)
+    if found:
+        district = found.group(1)
+    if "senator" in lowered and "state senator" not in lowered:
+        return "Represents Florida in the U.S. Senate"
+    if "representative in congress" in lowered or "u.s. house" in lowered or "us house" in lowered:
+        where = f"District {district}" if district else "this district"
+        return f"Represents {where} in the U.S. House"
+    if "governor" in lowered:
+        return "Heads the state government"
+    if "attorney general" in lowered:
+        return "Serves as the state's chief legal officer"
+    if "chief financial officer" in lowered:
+        return "Serves as the state's chief fiscal officer"
+    if "agriculture" in lowered:
+        return "Heads the state agriculture department"
+    if "state representative" in lowered:
+        where = f"District {district}" if district else "this district"
+        return f"Represents {where} in the Florida House"
+    if "county commissioner" in lowered or "board of county commissioners" in lowered:
+        where = f"District {district}" if district else "a county district"
+        return f"Serves on the county commission for {where}"
+    if "mayor" in lowered:
+        place = re.sub(r"(?i)^mayor of\s+", "", text).strip()
+        if place and place.lower() != "mayor":
+            return f"Heads the government of {place}"
+        return "Heads the city government"
+    return ""
+
+
+def _candidate_count_clause(contest: dict) -> str:
+    count = len(_people(contest))
+    noun = "candidate" if count == 1 else "candidates"
+    clause = f"{count} {noun}"
+    write_ins = [row for row in _other_people(contest) if row.get("write_in") and not row.get("withdrawn")]
+    if len(write_ins) == 1:
+        clause += ", plus write-in"
+    elif write_ins:
+        clause += ", plus write-ins"
+    return clause
+
+
+def _retention_blurb(title: str) -> str:
+    judge = re.search(r"Shall (Justice|Judge) (.+?) of the (.+?) be", title or "")
+    if not judge:
+        return "Voters decide whether this judge stays in office."
+    role = judge.group(1)
+    name = re.sub(r"\s+", " ", judge.group(2)).strip()
+    court = re.sub(r"\s+", " ", judge.group(3)).strip()
+    return f"Voters decide whether {role} {name} stays on the {court}."
 
 
 def _group_name(contest: dict) -> str:

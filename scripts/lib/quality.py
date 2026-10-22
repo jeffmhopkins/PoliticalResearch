@@ -33,8 +33,10 @@ from lib.util import (
 MARKER_RE = re.compile(r"\[\^(\d+)\]")
 # Rendered guides replace [^n] with a small link into the sources addendum.
 # A merged run prints as 12–14 and still links to the first source.
+# The visible label can restart inside a contest. The source id in the link is
+# the global marker, and that id is what the citation gates check.
 LINK_MARKER_RE = re.compile(
-    r"\[(?:<sup>)?(\d+)(?:[–-]\d+)?(?:</sup>)?\]\(([^)\s]*)#source-\1\)"
+    r"\[(?:<sup>)?\d+(?:[–-]\d+)?(?:</sup>)?\]\(([^)\s]*)#source-(\d+)\)"
 )
 WORK_RE = re.compile(r"^\[(\d+)\] ", re.MULTILINE)
 FOOTNOTE_DEF_RE = re.compile(r"^\[\^\d+\]:")
@@ -557,8 +559,8 @@ def plain_reader_sentence(sentence: str) -> str:
     suffix = "".join(f"[^{number}]" for number in marks)
     if not suffix:
         return text
-    if text.endswith("."):
-        return text[:-1] + suffix + "."
+    if text[-1] in ".!?":
+        return text[:-1] + suffix + text[-1]
     return text + suffix
 
 
@@ -1459,6 +1461,7 @@ _DOCKET_NOTES = {
     "nonpartisan means the ballot does not list a party.",
     "amounts are rounded to the nearest dollar.",
     "cash on hand is money the campaign still reported having.",
+    "the full ballot wording was not captured.",
 }
 _NO_STATEMENT_RE = re.compile(r"^no public statement found on [^.;:!]+$", re.IGNORECASE)
 _PUBLIC_RECORD_RE = re.compile(
@@ -1939,7 +1942,7 @@ def marker_numbers(text: str) -> set[int]:
         body_lines.append(line)
     blob = "\n".join(body_lines)
     found = {int(value) for value in MARKER_RE.findall(blob)}
-    found.update(int(match.group(1)) for match in LINK_MARKER_RE.finditer(blob))
+    found.update(int(match.group(2)) for match in LINK_MARKER_RE.finditer(blob))
     return found
 
 
