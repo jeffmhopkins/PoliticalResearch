@@ -71,6 +71,8 @@ The parks director appointed Blake Okonkwo of Cedar Hollow as a parks planner in
 
 ### Where do they stand?
 
+#### What has each candidate said?
+
 ::: {.pair .flow}
 
 ::: card
