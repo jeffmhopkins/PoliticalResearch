@@ -94,10 +94,32 @@ table.contents thead th {
   border-right: 0;
 }
 
+table.contents thead th:first-child,
+table.contents tbody th {
+  padding-left: 9pt;
+}
+
 table.contents tbody th,
-table.contents tbody td {
+table.contents tbody td,
+table.contents tbody tr:nth-child(even) th,
+table.contents tbody tr:nth-child(even) td {
   padding-top: 4pt;
   padding-bottom: 4pt;
+  font-size: 11pt;
+  font-weight: 400;
+  line-height: 1.35;
+  vertical-align: top;
+}
+
+table.contents a.page-ref,
+table.contents a.page-ref::after {
+  font-family: "IBM Plex Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  font-weight: 400;
+  line-height: 1.35;
+  margin: 0;
+  padding: 0;
+  color: #1F2328;
 }
 
 table.contents tbody th,
@@ -122,8 +144,9 @@ table.contents tbody tr:nth-child(even) td.page {
   width: 8%;
   text-align: right;
   white-space: nowrap;
-  padding-right: 0;
+  padding-right: 9pt;
   padding-left: 0.12rem;
+  vertical-align: top;
 }
 
 /* Candidate cards are identical. Party stays the official-title text. */
@@ -131,7 +154,7 @@ table.contents tbody tr:nth-child(even) td.page {
   background: #ffffff;
   border: 0.75pt solid #C9D3D4;
   border-top: 3pt solid #1D5C63;
-  padding: 0.32rem 0.45rem 0.38rem;
+  padding: 8pt 9pt;
 }
 
 .card .official-title,
@@ -170,7 +193,7 @@ p.official-title {
 .vote-box h4,
 .card:has(> h4) > h4 {
   margin: 0;
-  padding: 6pt 0.5rem;
+  padding: 6pt 9pt;
   background: #E8F0F0;
   color: #1D5C63;
   border: 0;
@@ -184,17 +207,19 @@ p.official-title {
 }
 
 .vote-box p {
-  padding: 4pt 0.5rem 0;
+  padding: 4pt 9pt 0;
 }
 
 .card:has(> h4) {
   padding-top: 0;
+  padding-left: 9pt;
+  padding-right: 9pt;
   border-top: 0.9pt solid #1D5C63;
 }
 
 .card:has(> h4) > h4 {
-  margin: 0 -0.45rem 0.4rem;
-  padding: 6pt 0.45rem;
+  margin: 0 -9pt 0.4rem;
+  padding: 6pt 9pt;
 }
 
 .ballot-words {
@@ -252,6 +277,21 @@ tbody tr:last-child td {
 .comparison table tbody td {
   padding-left: 8pt;
   padding-right: 8pt;
+}
+
+thead th:first-child,
+tbody th:first-child,
+tbody td:first-child,
+.comparison table thead th:first-child,
+.comparison table tbody td:first-child {
+  padding-left: 9pt;
+}
+
+thead th:last-child,
+tbody td:last-child,
+.comparison table thead th:last-child,
+.comparison table tbody td:last-child {
+  padding-right: 9pt;
 }
 
 .comparison td,
@@ -482,6 +522,16 @@ main a[href="#your-ballot-at-a-glance"] {
     padding-right: 8pt;
   }
 
+  .comparison table thead th:first-child,
+  .comparison table tbody td:first-child {
+    padding-left: 9pt;
+  }
+
+  .comparison table thead th:last-child,
+  .comparison table tbody td:last-child {
+    padding-right: 9pt;
+  }
+
   table.contents thead th {
     padding: 6pt 0.45rem 6pt 0;
     font-size: 9pt;
@@ -489,11 +539,21 @@ main a[href="#your-ballot-at-a-glance"] {
     vertical-align: middle;
   }
 
-  table.contents thead th.page {
+  table.contents thead th:first-child,
+  table.contents tbody th {
+    padding-left: 9pt;
+  }
+
+  table.contents thead th.page,
+  table.contents td.page,
+  table.contents th.page,
+  table.contents tbody tr:nth-child(even) td.page {
     padding-top: 6pt;
     padding-bottom: 6pt;
-    padding-right: 0;
+    padding-right: 9pt;
     padding-left: 0.12rem;
+    text-align: right;
+    vertical-align: top;
   }
 
   table.contents tbody th,
@@ -502,17 +562,29 @@ main a[href="#your-ballot-at-a-glance"] {
   table.contents tbody tr:nth-child(even) th {
     padding-top: 4pt;
     padding-bottom: 4pt;
+    font-size: 11pt;
+    font-weight: 400;
+    line-height: 1.35;
+    vertical-align: top;
+  }
+
+  table.contents td.page,
+  table.contents tbody tr:nth-child(even) td.page {
+    padding-top: 4pt;
+    padding-bottom: 4pt;
+  }
+
+  table.contents a.page-ref,
+  table.contents a.page-ref::after {
+    font-size: 11pt;
+    font-weight: 400;
+    line-height: 1.35;
   }
 
   .vote-box h4,
+  .vote-box p,
   .card:has(> h4) > h4 {
-    padding: 6pt 0.5rem;
-    font-size: 9pt;
-    line-height: 1.15;
-  }
-
-  .card:has(> h4) > h4 {
-    padding-left: 0.45rem;
-    padding-right: 0.45rem;
+    padding-left: 9pt;
+    padding-right: 9pt;
   }
 }
