@@ -161,6 +161,10 @@ def test_docket_color_is_opt_in_and_neutral():
     assert "display:grid" not in code.replace(" ", "")
     assert "display: table" not in code.lower()
     assert re.search(r"\.vote-pair\s*\{[^}]*display:\s*flex", code)
+    assert "padding: 6pt" in code
+    assert "padding-top: 4pt" in code
+    assert "border-top: 1.25pt" not in code
+    assert "border-bottom: 0.4pt solid #C9D3D4" in code
     assert "vote-box:first-child" not in css
     assert "Not an official ballot" in css
     assert "string(section, first)" in css

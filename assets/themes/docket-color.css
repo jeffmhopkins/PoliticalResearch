@@ -76,15 +76,28 @@ h3.source-entry {
   color: #5A6470;
 }
 
-/* Contents stays a fixed three-column table. No dotted leaders. */
+/* Contents stays a fixed three-column table. No dotted leaders.
+   Header padding matches the body cells on the left and right. */
 table.contents thead th {
   background: #E8F0F0;
   color: #1D5C63;
   font-weight: 600;
-  border-top: 0.75pt solid #1D5C63;
-  border-bottom: 0.6pt solid #1D5C63;
+  font-size: 9pt;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  line-height: 1.15;
+  vertical-align: middle;
+  padding: 6pt 0.45rem 6pt 0;
+  border-top: 0.9pt solid #1D5C63;
+  border-bottom: 0.4pt solid #C9D3D4;
   border-left: 0;
   border-right: 0;
+}
+
+table.contents tbody th,
+table.contents tbody td {
+  padding-top: 4pt;
+  padding-bottom: 4pt;
 }
 
 table.contents tbody th,
@@ -145,7 +158,7 @@ p.official-title {
   display: flex;
   align-items: stretch;
   border: 0.75pt solid #C9D3D4;
-  border-top: 1.25pt solid #1D5C63;
+  border-top: 0.9pt solid #1D5C63;
 }
 
 .vote-box {
@@ -154,12 +167,34 @@ p.official-title {
   background: #ffffff;
 }
 
-.vote-box h4 {
+.vote-box h4,
+.card:has(> h4) > h4 {
+  margin: 0;
+  padding: 6pt 0.5rem;
   background: #E8F0F0;
   color: #1D5C63;
-  border-bottom: 0.75pt solid #1D5C63;
+  border: 0;
+  border-bottom: 0.4pt solid #C9D3D4;
+  font-size: 9pt;
+  font-weight: 600;
   font-variant: small-caps;
   letter-spacing: 0.05em;
+  line-height: 1.15;
+  vertical-align: middle;
+}
+
+.vote-box p {
+  padding: 4pt 0.5rem 0;
+}
+
+.card:has(> h4) {
+  padding-top: 0;
+  border-top: 0.9pt solid #1D5C63;
+}
+
+.card:has(> h4) > h4 {
+  margin: 0 -0.45rem 0.4rem;
+  padding: 6pt 0.45rem;
 }
 
 .ballot-words {
@@ -175,16 +210,21 @@ p.official-title {
   letter-spacing: 0.05em;
 }
 
-/* Booktabs. Header mist, hairline rows, text-colored amounts. No zebra. */
+/* One teal rule above the header, a hairline below. Body rows get 4pt. */
 thead th {
   background: #E8F0F0;
   color: #1D5C63;
-  border-top: 1.25pt solid #1D5C63;
-  border-bottom: 0.75pt solid #1D5C63;
+  padding: 6pt 8pt;
+  font-size: 9pt;
+  font-weight: 600;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  line-height: 1.15;
+  vertical-align: middle;
+  border-top: 0.9pt solid #1D5C63;
+  border-bottom: 0.4pt solid #C9D3D4;
   border-left: 0;
   border-right: 0;
-  font-variant: small-caps;
-  letter-spacing: 0.04em;
 }
 
 th a { color: #1D5C63; }
@@ -192,7 +232,9 @@ th a { color: #1D5C63; }
 tbody td {
   background: #ffffff;
   color: #1F2328;
-  border-bottom: 0.5pt solid #C9D3D4;
+  padding-top: 4pt;
+  padding-bottom: 4pt;
+  border-bottom: 0.4pt solid #C9D3D4;
   border-left: 0;
   border-right: 0;
 }
@@ -203,7 +245,13 @@ tbody tr:nth-child(even) td.not-found {
 }
 
 tbody tr:last-child td {
-  border-bottom: 1.25pt solid #1D5C63;
+  border-bottom: 0.75pt solid #1D5C63;
+}
+
+.comparison table thead th,
+.comparison table tbody td {
+  padding-left: 8pt;
+  padding-right: 8pt;
 }
 
 .comparison td,
@@ -410,5 +458,61 @@ main a[href="#your-ballot-at-a-glance"] {
   body {
     background: #ffffff;
     color: #1F2328;
+  }
+
+  thead th,
+  .comparison table thead th {
+    padding: 6pt 8pt;
+    font-size: 9pt;
+    line-height: 1.15;
+    vertical-align: middle;
+    border-top: 0.9pt solid #1D5C63;
+    border-bottom: 0.4pt solid #C9D3D4;
+  }
+
+  tbody td,
+  .comparison table tbody td {
+    padding-top: 4pt;
+    padding-bottom: 4pt;
+  }
+
+  .comparison table thead th,
+  .comparison table tbody td {
+    padding-left: 8pt;
+    padding-right: 8pt;
+  }
+
+  table.contents thead th {
+    padding: 6pt 0.45rem 6pt 0;
+    font-size: 9pt;
+    line-height: 1.15;
+    vertical-align: middle;
+  }
+
+  table.contents thead th.page {
+    padding-top: 6pt;
+    padding-bottom: 6pt;
+    padding-right: 0;
+    padding-left: 0.12rem;
+  }
+
+  table.contents tbody th,
+  table.contents tbody td,
+  table.contents tbody tr:nth-child(even) td,
+  table.contents tbody tr:nth-child(even) th {
+    padding-top: 4pt;
+    padding-bottom: 4pt;
+  }
+
+  .vote-box h4,
+  .card:has(> h4) > h4 {
+    padding: 6pt 0.5rem;
+    font-size: 9pt;
+    line-height: 1.15;
+  }
+
+  .card:has(> h4) > h4 {
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
   }
 }
