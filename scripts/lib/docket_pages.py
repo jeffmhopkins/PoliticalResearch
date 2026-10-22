@@ -46,10 +46,10 @@ _MONTHS = (
     "December",
 )
 _PROFILE_HEADS = (
-    ("Education", "education"),
-    ("Work", "occupational history"),
-    ("Time in elected office", "prior offices and public service"),
-    ("Recorded votes", "record vs rhetoric"),
+    ("Education", "education", "education"),
+    ("Work", "occupational history", "work"),
+    ("Time in elected office", "prior offices and public service", "time in elected office"),
+    ("Recorded votes", "record vs rhetoric", "voting record"),
 )
 _BILL_DEEPER = (
     (
@@ -159,12 +159,112 @@ def _numeric_cell(shown: str) -> bool:
     return bool(re.fullmatch(r"\$\d[\d,]*", plain))
 
 
-def _sheet(lines: list[str], section: str) -> list[str]:
-    del section
-    body = [
-        "::: sheet",
-        "",
-    ]
+def _cell_plain(shown: str) -> str:
+    plain = re.sub(r"<[^>]+>", "", shown or "")
+    plain = re.sub(r"\[\^[^\]]+\]", "", plain)
+    return re.sub(r"\s+", " ", plain).strip()
+
+
+def _clip_words(text: str, limit: int) -> str:
+    cleaned = re.sub(r"\s+", " ", text or "").strip(" .")
+    if len(cleaned) <= limit:
+        return cleaned
+    chosen: list[str] = []
+    for word in cleaned.split():
+        trial = " ".join(chosen + [word])
+        if len(trial) > limit:
+            break
+        chosen.append(word)
+    while chosen and chosen[-1].lower().strip(";,") in {
+        "on",
+        "of",
+        "the",
+        "a",
+        "an",
+        "and",
+        "or",
+        "in",
+        "for",
+        "to",
+        "from",
+    }:
+        chosen.pop()
+    clipped = " ".join(chosen).strip(" ;,")
+    if ";" in clipped:
+        head, tail = clipped.split(";", 1)
+        if len(tail.split()) < 3:
+            clipped = head.strip(" ;,")
+    return clipped or cleaned[:limit].rsplit(" ", 1)[0]
+
+
+def bill_token(title: str) -> str:
+    """`HJR 5019` and `CS/HJR 1F` both become a token a measure draft can contain."""
+    match = re.search(r"\b(HJR|SJR|HB|SB)\s*([0-9]+[A-Za-z]?)\b", title or "", re.IGNORECASE)
+    if not match:
+        return ""
+    return (match.group(1) + match.group(2)).lower()
+
+
+def display_contest_title(title: str) -> str:
+    """A contents label that stays unique when several contests share a ballot heading."""
+    text = re.sub(r"\s+", " ", title or "").strip()
+    lowered = text.lower()
+    judge = re.search(r"Shall (?:Justice|Judge) (.+?) of the", text)
+    if judge:
+        name = judge.group(1).strip()
+        if "supreme court" in lowered:
+            return f"Supreme Court: {name}"
+        return f"District Court of Appeal: {name}"
+    if "lagoon" in lowered:
+        return "Brevard: Save Our Indian River Lagoon tax"
+    if "millage" in lowered or "teacher pay" in lowered:
+        return "Brevard: school millage"
+    if "school" in lowered and ("half-cent" in lowered or "sales surtax" in lowered or "sales tax" in lowered):
+        return "Brevard: school sales tax"
+    amendment = re.match(r"No\.\s*(\d+)\b", text, re.IGNORECASE)
+    if amendment and "amendment" in lowered:
+        subject = text.split(":")[-1].strip()
+        return f"Amendment {amendment.group(1)}: {_clip_words(subject, 52)}"
+    from lib.guide_layout import _title_pair
+
+    short, _subtitle = _title_pair(text)
+    return short or text
+
+
+def _append_back_link(lines: list[str]) -> None:
+    """Put the back link inside a trailing tail so a short section is not left alone."""
+    link = "[Back to ballot](#your-ballot-at-a-glance)"
+    end = len(lines)
+    while end > 0 and lines[end - 1] == "":
+        end -= 1
+    if end > 0 and lines[end - 1] == ":::":
+        depth = 1
+        for index in range(end - 2, -1, -1):
+            stripped = lines[index].strip()
+            if not stripped:
+                continue
+            if stripped == ":::":
+                depth += 1
+                continue
+            if stripped.startswith(":::"):
+                depth -= 1
+                if depth == 0:
+                    if stripped == "::: {.tail}":
+                        lines.insert(end - 1, "")
+                        lines.insert(end - 1, link)
+                        return
+                    break
+    lines.extend([link, ""])
+
+
+def _sheet(lines: list[str], opener: bool = False) -> list[str]:
+    """Only a race or measure opening starts a new page."""
+    if not opener:
+        body = list(lines)
+        if body and body[-1] != "":
+            body.append("")
+        return body
+    body = ["::: {.sheet .opener}", ""]
     body.extend(lines)
     if body[-1] != "":
         body.append("")
@@ -182,7 +282,12 @@ def _card_party(model, candidate: dict, contest: dict) -> str:
 
 
 def _pair(people_blocks: list[list[str]], count: int) -> list[str]:
-    klass = "pair count-1" if count <= 1 else ("pair count-many" if count >= 3 else "pair")
+    if count <= 1:
+        klass = "{.pair .count-1}"
+    elif count >= 3:
+        klass = "{.pair .count-many}"
+    else:
+        klass = "{.pair}"
     lines = [f"::: {klass}", ""]
     for block in people_blocks:
         lines.extend(["::: card", ""])
@@ -232,13 +337,11 @@ def build_docket_contest(model, contest: dict, group: str) -> list[str]:
 
 
 def _title_lines(model, contest: dict, item_id: str) -> list[str]:
-    from lib.guide_layout import _title_pair
-
     title = str(contest.get("title") or model.titles.get(item_id) or item_id)
-    short, subtitle = _title_pair(title)
-    lines = [f"## {short} {{#contest-{item_id} .contest-title}}", ""]
-    if subtitle and subtitle != short:
-        lines.extend([f'<p class="official-title">{html.escape(subtitle)}</p>', ""])
+    shown = display_contest_title(title)
+    lines = [f"## {shown} {{#contest-{item_id} .contest-title}}", ""]
+    if title and title.lower() != shown.lower():
+        lines.extend([f'<p class="official-title">{html.escape(re.sub(r"\\s+", " ", title).strip())}</p>', ""])
     return lines
 
 
@@ -409,6 +512,13 @@ def _money_table(model, contest: dict, people: list[dict]) -> list[str]:
             rows.append((label, shown))
     if outside_numeric:
         rows.append(("Outside spending", outside_cells))
+    kept = []
+    for label, cells in rows:
+        if all(_cell_plain(cell).lower() in {"", "not found"} for cell in cells):
+            continue
+        kept.append((label, cells))
+    if not kept:
+        return ["No public record found for campaign funds.", ""]
     lines = ["### Who is paying for their campaign?", ""]
     if not outside_numeric:
         lines.extend(
@@ -418,9 +528,9 @@ def _money_table(model, contest: dict, people: list[dict]) -> list[str]:
             ]
         )
     lines.extend(["Amounts are rounded to the nearest dollar. Cash on hand is money the campaign still reported having.", ""])
-    for headers, body in comparison_tables(names, rows):
+    for headers, body in comparison_tables(names, kept):
         headers = ["Amount", *headers[1:]]
-        lines.extend(["::: comparison", ""])
+        lines.extend(["::: {.comparison .money}", ""])
         lines.extend(_emit_table(headers, body))
         lines.extend([":::", ""])
     return lines
@@ -470,17 +580,56 @@ def _support_lines(model, contest: dict, people: list[dict]) -> list[str]:
             status = str((sweep.get(key) or {}).get("status") or "") if isinstance(sweep.get(key), dict) else ""
             if status != "not_checked":
                 all_unchecked = False
+    endorse_found = any("[^" in "\n".join(block) for block in endorse_blocks)
+    legal_found = any("[^" in "\n".join(block) for block in legal_blocks)
     lines = ["### Who supports them?", ""]
-    lines.extend(_pair(endorse_blocks, len(people)))
+    if endorse_found:
+        lines.extend(_pair(endorse_blocks, len(people)))
+    else:
+        lines.extend(["No public record found for a dated endorsement.", ""])
     lines.extend(["### Any legal or ethics issues?", ""])
-    lines.extend(_pair(legal_blocks, len(people)))
-    if all_unchecked:
-        lines.extend([_gap_line("labor, consumer, and misuse-of-office checks"), ""])
+    if legal_found:
+        lines.extend(_pair(legal_blocks, len(people)))
+    elif all_unchecked:
+        lines.extend(["No public record found for legal, labor, consumer, or misuse-of-office checks.", ""])
+    else:
+        lines.extend(["No public record found for legal or ethics issues.", ""])
+    return lines
+
+
+def _profile_fields(model, sections: dict, mapped: dict | None = None) -> list[str]:
+    filled = []
+    empty = []
+    for heading, key, label in _PROFILE_HEADS:
+        rendered = mapped[key] if mapped is not None else _section_text(model, sections, key)
+        if rendered and "[^" in rendered:
+            filled.append((heading, rendered))
+        else:
+            empty.append(label)
+    lines: list[str] = []
+    for heading, rendered in filled:
+        lines.extend([f"### {heading}", "", rendered, ""])
+    if empty:
+        lines.extend([f"No public records found for: {', '.join(empty)}.", ""])
+    return lines
+
+
+def _profile_block(model, item_id: str, name: str, sections: dict, mapped: dict | None = None) -> list[str]:
+    body = [f"## {name} {{#profile-{item_id} .profile-title}}", ""]
+    body.extend(_profile_fields(model, sections, mapped))
+    if model.edition != "reader":
+        body.extend(model._access_note_lines(item_id))
+    lines = ["::: {.profile}", ""]
+    lines.extend(body)
+    if lines[-1] != "":
+        lines.append("")
+    lines.extend([":::", ""])
     return lines
 
 
 def _profiles(model, contest: dict, people: list[dict], group: str) -> list[str]:
-    from lib.guide_layout import _gap_line, _other_people, _section_dict
+    del group
+    from lib.guide_layout import _other_people, _section_dict
 
     lines: list[str] = []
     ordered = list(people) + _other_people(contest)
@@ -490,15 +639,7 @@ def _profiles(model, contest: dict, people: list[dict], group: str) -> list[str]
             continue
         name = str(candidate.get("name") or model.titles.get(item_id) or item_id)
         sections = _section_dict(model._draft(item_id))
-        body = [f"## {name} {{#profile-{item_id} .contest-title}}", ""]
-        for heading, key in _PROFILE_HEADS:
-            rendered = _section_text(model, sections, key)
-            body.extend([f"### {heading}", "", rendered or _gap_line(heading.lower()), ""])
-        if model.edition == "reader":
-            body.append(f"[Full edition](guide-full.md#profile-{item_id}).")
-            body.append("")
-        body.extend(model._access_note_lines(item_id))
-        lines.extend(_sheet(body, group))
+        lines.extend(_profile_block(model, item_id, name, sections))
     return lines
 
 
@@ -515,25 +656,33 @@ def _race(model, contest: dict, group: str) -> list[str]:
     if group:
         opening = [f"# {group} {{.ballot-group}}", ""] + opening
     opening.extend(_office_lines(model, contest, draft, sections))
-    if len(people) == 1:
-        opening.extend(_people_cards(model, contest, people))
-        opening.extend(_money_table(model, contest, people))
-        opening.extend(_support_lines(model, contest, people))
-        lines = _sheet(opening, group or "Race")
-        lines.extend(_profiles(model, contest, people, group or "Race"))
-        lines.extend(["[Back to ballot](#your-ballot-at-a-glance)", ""])
-        return lines
     opening.extend(_people_cards(model, contest, people))
-    lines = _sheet(opening, group or "Race")
-    lines.extend(_sheet(_positions(model, contest, people), group or "Race"))
-    lines.extend(_sheet(_money_table(model, contest, people) + _support_lines(model, contest, people), group or "Race"))
+    lines = _sheet(opening, opener=True)
+    if len(people) != 1:
+        lines.extend(_positions(model, contest, people))
+    lines.extend(_money_table(model, contest, people))
+    lines.extend(_support_lines(model, contest, people))
     lines.extend(_profiles(model, contest, people, group or "Race"))
-    lines.extend(["[Back to ballot](#your-ballot-at-a-glance)", ""])
+    _append_back_link(lines)
     return lines
 
 
+def _issue_already_said(cell: str, base: str) -> bool:
+    from lib.guide_layout import NOT_FOUND_CELL, _sentence_key
+
+    if not cell or cell == NOT_FOUND_CELL or "[^" not in str(cell):
+        return True
+    key = _sentence_key(cell).rstrip(".!?")
+    base_key = _sentence_key(base or "").rstrip(".!?")
+    if not key:
+        return True
+    if not base_key:
+        return False
+    return key in base_key or base_key in key
+
+
 def _positions(model, contest: dict, people: list[dict]) -> list[str]:
-    from lib.guide_layout import NOT_FOUND_CELL, _duplicate_issue_row, _section_dict, _sentence_key
+    from lib.guide_layout import NOT_FOUND_CELL, _duplicate_issue_row, _section_dict
 
     lines = ["### Where do they stand?", ""]
     bundles = []
@@ -559,11 +708,15 @@ def _positions(model, contest: dict, people: list[dict]) -> list[str]:
         for _candidate, _sections, profile in bundles:
             text = str((profile.get("issues") or {}).get(key) or "").strip()
             cells.append(text if text and "[^" in text else NOT_FOUND_CELL)
-        if _duplicate_issue_row(cells, position_cells):
+        fresh = [
+            NOT_FOUND_CELL if _issue_already_said(cell, base) else cell
+            for cell, base in zip(cells, position_cells)
+        ]
+        if all(cell == NOT_FOUND_CELL or "[^" not in str(cell) for cell in fresh):
             continue
-        if all(cell == NOT_FOUND_CELL or _sentence_key(cell) == _sentence_key(base) for cell, base in zip(cells, position_cells)):
+        if _duplicate_issue_row(fresh, position_cells):
             continue
-        questions.append((key, cells))
+        questions.append((key, fresh))
     for label, cells in questions:
         topic = "positions" if label == "positions" else label.replace("_", " ")
         lines.extend([f"### What has each candidate said about {topic}?", ""])
@@ -580,49 +733,49 @@ def _positions(model, contest: dict, people: list[dict]) -> list[str]:
 
 
 def _summary_box(model, contest, group, item_id, about, yes, no, support, oppose, cost, exact, marker: str) -> list[str]:
-    from lib.guide_layout import _gap_line, _vote_pair
+    from lib.guide_layout import _vote_pair
 
     lines = [f"<!-- {marker} -->", ""]
     lines.extend(_title_lines(model, contest, item_id))
     if group:
         lines = [f"# {group} {{.ballot-group}}", ""] + lines
-    lines.extend(["### What is this about?", "", about or _gap_line("what this is about"), ""])
-    lines.extend(
-        _vote_pair(
-            "YES",
-            yes or _gap_line("what a yes vote does"),
-            "NO",
-            no or _gap_line("what a no vote does"),
-        )
-    )
+    lines.extend(["### What is this about?", "", about or "No public record found.", ""])
+    yes_body = yes if yes and "[^" in yes else (about if about and "[^" in about else "No public record found.")
+    no_body = no if no and "[^" in no else "No public record found."
+    lines.extend(_vote_pair("YES", yes_body, "NO", no_body))
     lines.extend(["### Who supports it, and who opposes it?", ""])
-    lines.extend(
-        _pair(
-            [
-                ["#### Supports it", "", support or _gap_line("organizations supporting"), ""],
-                ["#### Opposes it", "", oppose or _gap_line("organizations opposing"), ""],
-            ],
-            2,
+    support_body = support if support and "[^" in support else "No public record found."
+    oppose_body = oppose if oppose and "[^" in oppose else "No public record found."
+    if support_body == oppose_body == "No public record found.":
+        lines.extend(["No public record found for supporters or opponents.", ""])
+    else:
+        lines.extend(
+            _pair(
+                [
+                    ["#### Supports it", "", support_body, ""],
+                    ["#### Opposes it", "", oppose_body, ""],
+                ],
+                2,
+            )
         )
-    )
-    lines.extend(["### What would it cost?", "", cost or _gap_line("the cost"), ""])
+    lines.extend(["### What would it cost?", "", cost if cost and "[^" in cost else "No public record found.", ""])
     lines.extend(
         [
             "::: ballot-words",
             "",
             "#### Exact words on your ballot",
             "",
-            exact or _gap_line("the official ballot language"),
+            exact or "No public record found.",
             "",
             ":::",
             "",
         ]
     )
-    return _sheet(lines, group or "Measure")
+    return lines
 
 
 def _measure(model, contest: dict, group: str) -> list[str]:
-    from lib.guide_layout import _gap_line, _section_dict, _section_pairs, prepare_section
+    from lib.guide_layout import _section_dict, _section_pairs, prepare_section
 
     item_id = str(contest.get("item_id") or contest.get("id"))
     title = str(contest.get("title") or item_id)
@@ -644,9 +797,10 @@ def _measure(model, contest: dict, group: str) -> list[str]:
     )
     cost = _lead(_section_text(model, sections, "fiscal impact"), 1)
     exact = _section_text(model, sections, "official title")
-    lines = _summary_box(model, contest, group, item_id, about, yes, no, support, oppose, cost, exact, "docket-measure")
-    deeper = ["### More on this measure", ""]
-    any_more = False
+    lines = _sheet(
+        _summary_box(model, contest, group, item_id, about, yes, no, support, oppose, cost, exact, "docket-measure"),
+        opener=True,
+    )
     for raw, name, body in _section_pairs(draft):
         if name in _MEASURE_SUMMARY or name in {"sources and retrieval dates", "item changelog", "findings and disputes"}:
             rendered, gaps = prepare_section(model._rewrite(body))
@@ -654,16 +808,18 @@ def _measure(model, contest: dict, group: str) -> list[str]:
             continue
         rendered, gaps = prepare_section(model._rewrite(body))
         model._log_gaps(title, raw, gaps)
-        any_more = True
-        deeper.extend([f"#### {raw}", "", rendered or _gap_line(raw), ""])
-    if any_more:
-        lines.extend(_sheet(deeper, group or "Measure"))
-    lines.extend(["[Back to ballot](#your-ballot-at-a-glance)", ""])
+        if not rendered:
+            continue
+        lines.extend([f"### {raw}", "", rendered, ""])
+    for bill in model.bill_folds.get(item_id, []):
+        lines.extend(_bill_deeper(model, bill))
+    _append_back_link(lines)
     return lines
 
 
-def _bill(model, contest: dict, group: str) -> list[str]:
-    from lib.guide_layout import _emit_table, _gap_line, _section_dict, _section_pairs, prepare_section
+def _bill_deeper(model, contest: dict) -> list[str]:
+    """History and votes that belong inside a measure, with empty groups left out."""
+    from lib.guide_layout import _emit_table, _section_dict, _section_pairs, prepare_section
     from lib.quality import MARKER_RE
 
     item_id = str(contest.get("item_id") or contest.get("id"))
@@ -671,23 +827,20 @@ def _bill(model, contest: dict, group: str) -> list[str]:
     draft = model._draft(item_id)
     sections = _section_dict(draft)
     model._log_section_gaps(title, _section_pairs(draft))
-    about = _lead(_section_text(model, sections, "plain summary"), 4)
-    yes = _vote_sentence(draft, "yes")
-    no = _vote_sentence(draft, "no")
-    support = _lead(_section_text(model, sections, "arguments for"), 2)
-    oppose = _lead(_section_text(model, sections, "arguments against"), 2)
-    cost = _lead(_section_text(model, sections, "fiscal note"), 1)
-    exact = _section_text(model, sections, "bill identity")
-    lines = _summary_box(model, contest, group, item_id, about, yes, no, support, oppose, cost, exact, "docket-bill")
+    lines: list[str] = []
     used = set(_BILL_SUMMARY)
     for heading, names in _BILL_DEEPER:
         block = [f"### {heading}", ""]
+        any_part = False
         for name in names:
             used.add(name)
             found = sections.get(name)
             raw = found[0] if found else name
             rendered = _section_text(model, sections, name)
-            if name == "roll-call votes" and rendered:
+            if not rendered:
+                continue
+            any_part = True
+            if name == "roll-call votes":
                 table_rows = []
                 for sentence in split_sentences(rendered):
                     match = _VOTE_RE.search(MARKER_RE.sub("", sentence))
@@ -701,32 +854,67 @@ def _bill(model, contest: dict, group: str) -> list[str]:
                 else:
                     block.extend([rendered, ""])
                 continue
-            block.extend([f"#### {raw}", "", rendered or _gap_line(raw), ""])
-        lines.extend(_sheet(block, group or "Legislation"))
-    extra = ["### Other sourced sections", ""]
-    any_extra = False
+            block.extend([f"#### {raw}", "", rendered, ""])
+        if any_part:
+            lines.extend(block)
+    extra: list[tuple[str, str]] = []
     for raw, name, body in _section_pairs(draft):
-        if name in used or name in {"sources and retrieval dates", "item changelog", "findings and disputes"}:
+        if name in used or name in {
+            "sources and retrieval dates",
+            "item changelog",
+            "findings and disputes",
+            "related litigation",
+        }:
             continue
         rendered, gaps = prepare_section(model._rewrite(body))
         model._log_gaps(title, raw, gaps)
-        any_extra = True
-        extra.extend([f"#### {raw}", "", rendered or _gap_line(raw), ""])
-    if any_extra:
-        lines.extend(_sheet(extra, group or "Legislation"))
-    lines.extend(["[Back to ballot](#your-ballot-at-a-glance)", ""])
+        if rendered:
+            extra.append((raw, rendered))
+    if extra:
+        lines.extend(["::: {.tail}", ""])
+        for raw, rendered in extra:
+            lines.extend([f"### {raw}", "", rendered, ""])
+        lines.extend([":::", ""])
+    litigation = _section_text(model, sections, "related litigation")
+    # Keep a gap with the summary side of the section, not alone at the end.
+    note = ["### Related litigation", "", litigation or "No public record found.", ""]
+    return note + lines
+
+
+def _bill(model, contest: dict, group: str) -> list[str]:
+    from lib.guide_layout import _section_dict, _section_pairs
+
+    item_id = str(contest.get("item_id") or contest.get("id"))
+    title = str(contest.get("title") or item_id)
+    draft = model._draft(item_id)
+    sections = _section_dict(draft)
+    model._log_section_gaps(title, _section_pairs(draft))
+    about = _lead(_section_text(model, sections, "plain summary"), 4)
+    yes = _vote_sentence(draft, "yes") or _lead(_section_text(model, sections, "arguments for"), 2) or about
+    no = _vote_sentence(draft, "no") or _lead(_section_text(model, sections, "arguments against"), 2)
+    support = _lead(_section_text(model, sections, "arguments for"), 2)
+    oppose = _lead(_section_text(model, sections, "arguments against"), 2)
+    cost = _lead(_section_text(model, sections, "fiscal note"), 1)
+    exact = _section_text(model, sections, "bill identity")
+    lines = _sheet(
+        _summary_box(model, contest, group, item_id, about, yes, no, support, oppose, cost, exact, "docket-bill"),
+        opener=True,
+    )
+    lines.extend(_bill_deeper(model, contest))
+    _append_back_link(lines)
     return lines
 
 
 def _retention(model, contest: dict, group: str) -> list[str]:
-    from lib.guide_layout import _gap_line, _section_dict, _section_pairs
+    from lib.guide_layout import _section_dict, _section_pairs
 
     item_id = str(contest.get("item_id") or contest.get("id"))
     draft = model._draft(item_id)
     sections = _section_dict(draft)
     model._log_section_gaps(str(contest.get("title") or item_id), _section_pairs(draft))
-    about = _lead(_section_text(model, sections, "retention question") or _section_text(model, sections, "court and term"), 3)
-    yes = _vote_sentence(draft, "yes")
+    question = _section_text(model, sections, "retention question") or _section_text(model, sections, "court and term")
+    about = _lead(question, 3)
+    yes = _vote_sentence(draft, "yes") or about
     no = _vote_sentence(draft, "no")
     lines = _summary_box(
         model,
@@ -737,9 +925,9 @@ def _retention(model, contest: dict, group: str) -> list[str]:
         yes,
         no,
         _lead(_section_text(model, sections, "endorsements"), 1),
-        _gap_line("organizations opposing"),
+        "",
         _lead(_section_text(model, sections, "fiscal impact"), 1),
-        _lead(_section_text(model, sections, "retention question"), 1),
+        _lead(question, 1),
         "docket-measure",
     )
     mapped = {
@@ -748,11 +936,11 @@ def _retention(model, contest: dict, group: str) -> list[str]:
         "prior offices and public service": _section_text(model, sections, "court and term"),
         "record vs rhetoric": _section_text(model, sections, "notable rulings"),
     }
-    name = str(contest.get("title") or model.titles.get(item_id) or item_id)
-    body = [f"## {name} {{#profile-{item_id} .contest-title}}", ""]
-    for heading, key in _PROFILE_HEADS:
-        body.extend([f"### {heading}", "", mapped[key] or _gap_line(heading.lower()), ""])
-    body.extend(model._access_note_lines(item_id))
-    lines.extend(_sheet(body, group or "Judicial retentions"))
-    lines.extend(["[Back to ballot](#your-ballot-at-a-glance)", ""])
+    name = display_contest_title(str(contest.get("title") or model.titles.get(item_id) or item_id))
+    lines.extend([f"## {name} {{#profile-{item_id} .profile-title}}", ""])
+    lines.extend(_profile_fields(model, sections, mapped))
+    if model.edition != "reader":
+        lines.extend(model._access_note_lines(item_id))
+    lines = _sheet(lines, opener=True)
+    _append_back_link(lines)
     return lines

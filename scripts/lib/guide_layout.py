@@ -14,7 +14,7 @@ import html
 import re
 from pathlib import Path
 
-from lib.docket_pages import build_docket_contest
+from lib.docket_pages import bill_token, build_docket_contest, display_contest_title
 from lib.party import endorsement_cell
 from lib.quality import (
     HTML_COMMENT_RE,
@@ -24,6 +24,7 @@ from lib.quality import (
     environment_rating_sentence,
     marker_numbers,
     plain_access_note,
+    plain_reader_document,
     reader_visible_word_count,
     official_restatement_sentences,
     precinct_restatement,
@@ -290,6 +291,8 @@ class _GuideModel:
         self.edition = "reader"
         self.addendum_name = "guide-sources.md"
         self.body_name = "guide.md"
+        self.bill_folds: dict[str, list[dict]] = {}
+        self.folded_bill_ids: set[str] = set()
 
     def _jurisdiction_label(self) -> str:
         intake = self.intake if isinstance(self.intake, dict) else {}
@@ -345,30 +348,12 @@ class _GuideModel:
         title = f"Voter guide: {title_name}"
         if fiction:
             title = f"FICTIONAL voter guide: {title_name}"
+        self.bill_folds, self.folded_bill_ids = self._pair_bills()
         parts = self._front_matter(title, edition, sources=False)
-        if fiction:
-            parts.extend(
-                [
-                    "> **FICTIONAL EXAMPLE:** the places, people, measures, and documents in this guide are invented, "
-                    "sources on fictional.example are placeholders and not real records, and this is not a voting guide.",
-                    "",
-                ]
-            )
-        parts.extend(
-            [
-                "> **Not an official ballot and not voting instructions:** confirm contests, deadlines, and polling places with the election office linked below.",
-                "",
-            ]
-        )
-        date_bit = _display_date(str(election.get("date") or ""))
-        heading = str(title_name)
-        if date_bit:
-            heading = f"{heading}, {date_bit}"
-        parts.extend([f"# {heading} {{.guide-title}}", ""])
-        parts.extend(self._election_office())
-        parts.extend(self._precinct_line())
         parts.extend(self._contents())
         parts.extend(self._contests())
+        if edition == "full":
+            parts.extend(self._election_office())
         parts.extend(self._glossary())
         parts.extend(self._methodology(edition))
         parts.extend(self._disputed(edition))
@@ -376,10 +361,13 @@ class _GuideModel:
         if edition == "full":
             parts.extend(self._changelog())
         body = "\n".join(parts).rstrip() + "\n"
+        if edition == "reader":
+            body = plain_reader_document(body)
         used = marker_numbers(body)
         addendum = self._sources_addendum(used)
         body, addendum, mapping = _renumber_markers(body, addendum)
         body = _separate_adjacent_markers(body)
+        body = _collapse_marker_runs(body)
         if edition == "full" and mapping:
             body = body.rstrip() + "\n\n" + "\n".join(self._marker_index_from_map(mapping)).rstrip() + "\n"
         linked = self._link_markers(body)
@@ -392,16 +380,25 @@ class _GuideModel:
 
     def _link_markers(self, text: str) -> str:
         seen: set[str] = set()
+        pattern = re.compile(r"\[\^(\d+)\](?:<!--fn-end:(\d+)-->)?")
 
         def repl(match: re.Match) -> str:
             number = match.group(1)
-            link = f"[<sup>{number}</sup>]({self.addendum_name}#source-{number})"
-            if number in seen:
-                return link
-            seen.add(number)
-            return f'<a id="cite-{number}"></a>{link}'
+            end = match.group(2)
+            start_n = int(number)
+            end_n = int(end) if end else start_n
+            anchors = []
+            for value in range(start_n, end_n + 1):
+                key = str(value)
+                if key in seen:
+                    continue
+                seen.add(key)
+                anchors.append(f'<a id="cite-{key}"></a>')
+            label = number if end_n == start_n else f"{number}–{end_n}"
+            link = f"[<sup>{label}</sup>]({self.addendum_name}#source-{number})"
+            return "".join(anchors) + link
 
-        return MARKER_RE.sub(repl, text)
+        return pattern.sub(repl, text)
 
     def _show_cell(self, full: str, anchor: str, title: str, hint: str = "") -> str:
         """A complete short sentence, or an amount. Never an ellipsis or a detail link."""
@@ -796,17 +793,49 @@ class _GuideModel:
             return ["## Incumbency", "", _gap_line("incumbent marks on this ballot"), ""]
         return lines
 
-    def _contests(self) -> list[str]:
-        grouped: dict[str, list] = {}
+    def _pair_bills(self) -> tuple[dict[str, list[dict]], set[str]]:
+        """A bill that is the vehicle for a measure is not its own contest."""
+        measures = []
+        bills = []
         for contest in self._contests_raw():
-            grouped.setdefault(_group_name(contest), []).append(contest)
-        lines: list[str] = []
-        for name in GROUP_ORDER:
-            contests = grouped.get(name) or []
-            if not contests:
+            kind = str(contest.get("type") or "")
+            if kind == "measure":
+                measures.append(contest)
+            elif kind == "legislation":
+                bills.append(contest)
+        folds: dict[str, list[dict]] = {}
+        used: set[str] = set()
+        for bill in bills:
+            token = bill_token(str(bill.get("title") or ""))
+            if not token:
                 continue
-            for index, contest in enumerate(contests):
-                lines.extend(self._docket_contest(contest, name if index == 0 else ""))
+            bill_id = str(bill.get("item_id") or bill.get("id") or "")
+            for measure in measures:
+                measure_id = str(measure.get("item_id") or measure.get("id") or "")
+                draft = re.sub(r"\s+", "", self._draft(measure_id).lower())
+                if token in draft:
+                    folds.setdefault(measure_id, []).append(bill)
+                    used.add(bill_id)
+                    break
+        return folds, used
+
+    def _visible_contests(self) -> list[dict]:
+        visible = []
+        for contest in self._contests_raw():
+            item_id = str(contest.get("item_id") or contest.get("id") or "")
+            if item_id in self.folded_bill_ids:
+                continue
+            visible.append(contest)
+        return visible
+
+    def _contests(self) -> list[str]:
+        lines: list[str] = []
+        last_group = None
+        for contest in self._visible_contests():
+            group = _group_name(contest)
+            show = group if group != last_group else ""
+            last_group = group
+            lines.extend(self._docket_contest(contest, show))
         return lines
 
     def _one_contest(self, contest: dict) -> list[str]:
@@ -823,25 +852,46 @@ class _GuideModel:
             "</thead>",
             "<tbody>",
         ]
-        for contest in self._contests_raw():
+        for contest in self._visible_contests():
             item_id = str(contest.get("item_id") or contest.get("id"))
             title = str(contest.get("title") or self.titles.get(item_id) or item_id)
-            short, _subtitle = _title_pair(title)
-            draft = self._draft(item_id)
-            summary = _cap_summary(_summary_paragraph(draft), sentences=1, words=40)
-            if "[^" not in summary:
-                summary = ""
-            what = html.escape(summary) if summary else "Not found (searched: a summary for this contest)."
+            short = display_contest_title(title)
+            what = html.escape(self._contents_blurb(contest))
             href = f"#contest-{item_id}"
+            label = html.escape(short)
+            label = re.sub(r"\b(District)\s+(\d+)\b", r"\1&nbsp;\2", label)
             lines.append(
                 "<tr>"
-                f'<th scope="row"><a href="{html.escape(href, quote=True)}">{html.escape(short)}</a></th>'
+                f'<th scope="row"><a href="{html.escape(href, quote=True)}">{label}</a></th>'
                 f"<td>{what}</td>"
                 f'<td class="page"><a class="page-ref" href="{html.escape(href, quote=True)}">page</a></td>'
                 "</tr>"
             )
         lines.extend(["</tbody>", "</table>", ""])
         return lines
+
+    def _contents_blurb(self, contest: dict) -> str:
+        """One plain sentence for the contents table. No markers and no process wording."""
+        kind = str(contest.get("type") or "")
+        if kind in {"race", "primary", "local-office"}:
+            count = len(_people(contest))
+            return "One candidate." if count <= 1 else f"{count} candidates."
+        if kind == "judicial-retention" or contest.get("level") == "judicial":
+            return "Voters decide whether this judge stays in office."
+        item_id = str(contest.get("item_id") or contest.get("id") or "")
+        sections = _section_dict(self._draft(item_id))
+        for name in ("plain-language summary", "plain summary", "retention question"):
+            found = sections.get(name)
+            if not found:
+                continue
+            sentence = _one_sentence(found[1])
+            lowered = sentence.lower()
+            if not sentence or "sample ballot" in lowered or "searched:" in lowered or "single source" in lowered:
+                continue
+            return sentence
+        if kind == "legislation":
+            return "A bill the legislature passed."
+        return "A yes or no question."
 
     def _docket_contest(self, contest: dict, group: str) -> list[str]:
         return build_docket_contest(self, contest, group)
@@ -1475,45 +1525,51 @@ class _GuideModel:
         return lines
 
     def _glossary(self) -> list[str]:
-        return [
+        lines = [
             "# Glossary {#glossary .back-matter}",
             "",
             "Levy",
             ": A levy is a tax or charge put on a ballot for voters to accept or reject.",
             "",
             "Nonpartisan race",
-            ": A nonpartisan race does not list a party on the ballot. A public voter-registration party, when one is cited, is labeled registered party (race is nonpartisan).",
+            ": A Nonpartisan race does not list a party on the ballot.",
             "",
             "Cash on hand",
             ": Cash on hand is the money a campaign reported still having at the end of a filing period.",
             "",
-            "Filing period",
-            ": A filing period is the date range a finance report covers.",
-            "",
-            "Tier T1",
-            ": Tier T1 is a primary or official source.",
-            "",
-            "Tier T2",
-            ": Tier T2 is an established nonpartisan reference.",
-            "",
-            "Tier T3",
-            ": Tier T3 is named journalism.",
-            "",
-            "Tier T4",
-            ": Tier T4 is an advocacy source and is quoted only as that group's view.",
-            "",
-            "Single source",
-            ": A single source means the sentence rests on one record.",
-            "",
             "Allegation",
             ": An allegation is a claim someone has made that this guide has not confirmed.",
             "",
-            "Not found",
-            ": Not found means the listed places were searched and the fact was not in them.",
+            "No public record found",
+            ": No public record found means this guide did not locate a public record of that fact.",
             "",
         ]
+        if self.edition == "reader":
+            return lines
+        lines.extend(
+            [
+                "Filing period",
+                ": A filing period is the date range a finance report covers.",
+                "",
+                "Tier T1",
+                ": Tier T1 is a primary or official source.",
+                "",
+                "Tier T2",
+                ": Tier T2 is an established nonpartisan reference.",
+                "",
+                "Tier T3",
+                ": Tier T3 is named journalism.",
+                "",
+                "Tier T4",
+                ": Tier T4 is an advocacy source and is quoted only as that group's view.",
+                "",
+            ]
+        )
+        return lines
 
     def _methodology(self, edition: str) -> list[str]:
+        if edition == "reader":
+            return []
         ballot = self.ballot if isinstance(self.ballot, dict) else {}
         intake = self.intake if isinstance(self.intake, dict) else {}
         counts = _finding_counts(self.workspace)
@@ -1536,9 +1592,6 @@ class _GuideModel:
             "The full edition adds the marker index and the changelog.",
             "",
         ]
-        if edition == "reader":
-            lines.extend(self._reader_reviews())
-            return lines
         lines.extend(["## Review state", ""])
         for item in iter_items(self.workspace):
             state = load_json(item / "loop-state.json") or {}
@@ -1722,15 +1775,14 @@ class _GuideModel:
                     lines.extend([str(finding["coordinator_note"]), ""])
                 lines.extend(["This disputed claim is not used in the summary.", ""])
         if not any_row:
-            lines.extend(["No claims are disputed.", ""])
+            return []
         return lines
 
     def _corrections(self) -> list[str]:
         corrections = load_yaml(self.workspace / "corrections.yaml") or []
-        lines = ["# Corrections {#corrections .back-matter}", ""]
         if not corrections:
-            lines.extend(["No corrections have been issued.", ""])
-            return lines
+            return []
+        lines = ["# Corrections {#corrections .back-matter}", ""]
         for entry in corrections:
             if not isinstance(entry, dict):
                 continue
@@ -2380,6 +2432,33 @@ def _renumber_markers(body: str, addendum: str) -> tuple[str, str, dict[int, int
     return protect(body), protect(addendum), display_to_original
 
 
+def _collapse_marker_runs(text: str) -> str:
+    """Turn [^12], [^13], [^14] into one marker that displays as 12–14."""
+    pattern = re.compile(r"\[\^\d+\](?:\s*,\s*\[\^\d+\])+")
+
+    def repl(match: re.Match) -> str:
+        numbers = [int(value) for value in re.findall(r"\d+", match.group(0))]
+        pieces = []
+        start = previous = numbers[0]
+
+        def flush(left: int, right: int) -> None:
+            if left == right:
+                pieces.append(f"[^{left}]")
+            else:
+                pieces.append(f"[^{left}]<!--fn-end:{right}-->")
+
+        for number in numbers[1:]:
+            if number == previous + 1:
+                previous = number
+                continue
+            flush(start, previous)
+            start = previous = number
+        flush(start, previous)
+        return ", ".join(pieces)
+
+    return pattern.sub(repl, text)
+
+
 def _separate_adjacent_markers(text: str) -> str:
     """Keep neighboring markers from printing as one digit string.
 
@@ -2451,6 +2530,7 @@ def _party_abbr(workspace: Path, candidate: dict) -> str:
 def _one_sentence(text: str) -> str:
     """The first complete sentence, with citation markers removed."""
     cleaned = re.sub(r"\s+", " ", MARKER_RE.sub("", text or "")).strip()
+    cleaned = re.sub(r"\s+([.!?])", r"\1", cleaned)
     if not cleaned:
         return ""
     first = split_sentences(cleaned)[0].strip()

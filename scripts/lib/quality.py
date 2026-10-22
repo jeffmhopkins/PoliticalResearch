@@ -32,7 +32,10 @@ from lib.util import (
 
 MARKER_RE = re.compile(r"\[\^(\d+)\]")
 # Rendered guides replace [^n] with a small link into the sources addendum.
-LINK_MARKER_RE = re.compile(r"\[(?:<sup>)?(\d+)(?:</sup>)?\]\(([^)\s]*)#source-\1\)")
+# A merged run prints as 12–14 and still links to the first source.
+LINK_MARKER_RE = re.compile(
+    r"\[(?:<sup>)?(\d+)(?:[–-]\d+)?(?:</sup>)?\]\(([^)\s]*)#source-\1\)"
+)
 WORK_RE = re.compile(r"^\[(\d+)\] ", re.MULTILINE)
 FOOTNOTE_DEF_RE = re.compile(r"^\[\^\d+\]:")
 # Hard cap for one contest in the reader edition. The full edition is not capped.
@@ -494,6 +497,169 @@ def _is_review_row(row: str, h1: str, h2: str) -> bool:
         return False
     match = _REVIEW_ROW_RE.match(row.strip())
     return match is not None and _run_record_label_ok(match.group("label"))
+
+
+def plain_reader_sentence(sentence: str) -> str:
+    """A reader sentence with the research process taken out.
+
+    Search paths, portal failures, and bill-analysis lead-ins stay in the
+    sources edition. The reader keeps the fact, or one plain gap sentence.
+    """
+    marks = MARKER_RE.findall(sentence or "")
+    text = MARKER_RE.sub("", sentence or "")
+    text = re.sub(r"\s*\(not found: see the search log\)", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+", " ", text).strip()
+    # The single-source clause often sits in front of the analysis lead.
+    # Strip it first so "says" and "lists" can be rewritten at the start.
+    text = _strip_single_source(text)
+    text = re.sub(r",\s+says\b", " says", text, flags=re.IGNORECASE)
+    text = _ANALYSIS_SUBJECT_RE.sub("", text)
+    text = re.sub(r"\s+", " ", text).strip(" ,;:")
+    for _ in range(2):
+        for pattern, repl in _PROCESS_LEAD_RES:
+            text = re.sub(pattern, repl, text)
+        text = re.sub(r"\s+", " ", text).strip(" ,;:")
+    text = re.sub(r"(?i)\s+on the sample ballot\b", "", text)
+    text = re.sub(r"(?i)\bprecinct\s+\d+\b", "", text)
+    text = re.sub(r"(?i),?\s*and the record label is match\b", "", text)
+    text = re.sub(
+        r"(?i)(?:,\s*)?(?:and\s+)?(?:those|these|this)\s+rows?\s+are allegation only\b[^.]{0,200}",
+        "",
+        text,
+    )
+    text = re.sub(
+        r"(?i),?\s*(?:and\s+)?(?:because\s+)?(?:those\s+|the\s+)?(?:pdfs?|letters?)\s+(?:was|were)\s+not opened\b[^.]{0,180}",
+        "",
+        text,
+    )
+    text = re.sub(r"(?i),?\s*and response requested, not found\b", "", text)
+    text = re.sub(r"\s+", " ", text).strip(" ,;:")
+    text = re.sub(r"\s+([.!?])", r"\1", text)
+    if re.search(r"\bsample ballot\b", text, re.IGNORECASE) and re.search(
+        r"\b(?:lists|prints|places)\b", text, re.IGNORECASE
+    ):
+        if not re.match(r"(?i)that ballot lists two choices", text) and not re.match(
+            r"(?i)the ballot says to vote for one and lists", text
+        ):
+            return ""
+    if not text:
+        return ""
+    if re.search(r"could not be retrieved|not found \(searched:", text, re.IGNORECASE):
+        return "No public record found."
+    if _READER_VOICE_RE.search(text):
+        return ""
+    if text[0].islower():
+        text = text[0].upper() + text[1:]
+    if text[-1] not in ".!?":
+        text += "."
+    if text.lower() == "no public record found.":
+        return "No public record found."
+    suffix = "".join(f"[^{number}]" for number in marks)
+    if not suffix:
+        return text
+    if text.endswith("."):
+        return text[:-1] + suffix + "."
+    return text + suffix
+
+
+def _clean_reader_line(line: str) -> str:
+    parts = [plain_reader_sentence(part) for part in split_sentences(line)]
+    kept: list[str] = []
+    for part in parts:
+        if not part:
+            continue
+        if part == "No public record found." and kept and kept[-1] == part:
+            continue
+        kept.append(part)
+    return " ".join(kept).strip()
+
+
+def plain_reader_document(text: str) -> str:
+    """Rewrite the reader body. Headings, tables, fences, and the glossary stay."""
+    lines = (text or "").splitlines()
+    start = 0
+    if lines and lines[0].strip() == "---":
+        for index in range(1, len(lines)):
+            if lines[index].strip() == "---":
+                start = index + 1
+                break
+    out = list(lines[:start])
+    body = lines[start:]
+    previous_gap = False
+    for index, line in enumerate(body):
+        stripped = line.strip()
+        nxt = body[index + 1].strip() if index + 1 < len(body) else ""
+        copy = (
+            not stripped
+            or stripped.startswith(("#", "|", "<", ">", ":", "{", "<!--", ":::", "---", "["))
+            or nxt.startswith(": ")
+        )
+        if copy:
+            if stripped:
+                previous_gap = False
+            out.append(line)
+            continue
+        prefix = ""
+        prose = stripped
+        if stripped.startswith("- "):
+            prefix = "- "
+            prose = stripped[2:].strip()
+        cleaned = _clean_reader_line(prose)
+        if not cleaned:
+            continue
+        if cleaned == "No public record found.":
+            if previous_gap:
+                continue
+            previous_gap = True
+        else:
+            previous_gap = False
+        out.append(prefix + cleaned)
+    return _drop_empty_headings("\n".join(out)).rstrip() + "\n"
+
+
+_BARE_PROFILE_HEADINGS = {
+    "### Education",
+    "### Work",
+    "### Time in elected office",
+    "### Recorded votes",
+}
+
+
+def _drop_empty_headings(text: str) -> str:
+    """Drop a profile heading whose sentence was cleaned away."""
+    lines = text.splitlines()
+    kept: list[str] = []
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped in _BARE_PROFILE_HEADINGS:
+            nxt = ""
+            for later in lines[index + 1 :]:
+                if later.strip():
+                    nxt = later.strip()
+                    break
+            if not nxt or nxt.startswith("#") or nxt.startswith(":::"):
+                continue
+        kept.append(line)
+    return "\n".join(kept)
+
+
+def reader_voice_errors(text: str) -> list[str]:
+    """The reader PDF source has no fence leaks and no research-process sentences."""
+    errors = []
+    body = strip_front_matter(text or "")
+    for line in body.splitlines():
+        stripped = line.strip()
+        if re.fullmatch(r"=", stripped):
+            errors.append(f"final/guide.md: leaked markup on its own line: {stripped}")
+        elif re.match(r"^:::\s+\S+\s+\S+", stripped) and not stripped.startswith("::: {"):
+            errors.append(f"final/guide.md: leaked fence: {stripped[:80]}")
+        elif re.match(r"(?i)^says\s+\S", stripped):
+            errors.append(f"final/guide.md: reader process wording: {stripped[:160]}")
+        elif _READER_VOICE_RE.search(stripped) and not stripped.startswith(":::"):
+            errors.append(f"final/guide.md: reader process wording: {stripped[:160]}")
+        if len(errors) >= 12:
+            break
+    return errors
 
 
 def reader_log_errors(text: str) -> list[str]:
@@ -1295,6 +1461,77 @@ _DOCKET_NOTES = {
     "cash on hand is money the campaign still reported having.",
 }
 _NO_STATEMENT_RE = re.compile(r"^no public statement found on [^.;:!]+$", re.IGNORECASE)
+_PUBLIC_RECORD_RE = re.compile(
+    r"^no public records? found(?: for:? [^.;:!]+)?$",
+    re.IGNORECASE,
+)
+_READER_VOICE_RE = re.compile(
+    r"sample ballot|precinct\s+\d+|final bill analysis|bill history says|"
+    r"analysis says|single source|searched:|search log|could not be retrieved|"
+    r"record label is|pdf was not opened|response requested",
+    re.IGNORECASE,
+)
+_ANALYSIS_SUBJECT_RE = re.compile(
+    r"(?i)\b(?:the\s+)?"
+    r"(?:"
+    r"(?:(?:january|february|march|april|may|june|july|august|september|"
+    r"october|november|december)\s+\d{1,2},\s+\d{4}|\d{4})\s+"
+    r"(?:(?:house|senate)\s+)?"
+    r"(?:final\s+bill\s+analysis|bill\s+history|analysis)"
+    r"|"
+    r"(?:house|senate)\s+(?:final\s+bill\s+analysis|bill\s+history|(?:final\s+)?(?:bill\s+)?analysis)"
+    r"|"
+    r"(?:house\s+)?staff\s+analysis"
+    r")"
+    r"\s+(?:says\s+)?"
+)
+_PROCESS_LEAD_RES = (
+    (r"(?i)^(?:the\s+)?\d{4}\s+analysis\s+says\s+", ""),
+    (r"(?i)^lists the sponsor as\s+", "The sponsor is "),
+    (r"(?i)^lists companion bill\s+", "The companion bill is "),
+    (r"(?i)^lists\s+", ""),
+    (r"(?i)^was prepared by\s+", "It was prepared by "),
+    (r"(?i)^cites\s+", "It cites "),
+    (r"(?i)^names\s+", "It names "),
+    (r"(?i)^uses the shorter title\s+", "The shorter title is "),
+    (r"(?i)^titles\s+", "Another title is "),
+    (r"(?i)^says\s+", ""),
+    (
+        r"(?i)^(?:the\s+)?(?:brevard county\s+)?(?:precinct\s+\d+\s+)?sample ballot\s+"
+        r"(?:prints|lists|places|shows)\s+(?:this measure as\s+|the header\s+|the title\s+)?",
+        "",
+    ),
+    (
+        r"(?i)^(?:the\s+)?(?:brevard county\s+)?sample ballot\s+asks whether\s+",
+        "Voters are asked whether ",
+    ),
+    (r"(?i)^that ballot lists two choices,\s*", "The choices are "),
+    (r"(?i)^the ballot says to vote for one and lists\s+", "The candidates are "),
+    (r"(?i)^the office on the [^.]{0,120}?sample ballot is\s+", "The office is "),
+    (r"(?i)^the sample ballot says\s+", ""),
+    (r"(?i)^the ballot says\s+", ""),
+    (r"(?i)^the sample ballot would also\s+", "It would also "),
+    (r"(?i)^it does not print a write-in line under this office", "There is no write-in line for this office"),
+)
+_SINGLE_SOURCE_RE = re.compile(
+    r"(?i)(?:,\s*)?(?:and\s+)?(?:this|that|these|those|both)\s+"
+    r"(?:[\w'-]+\s+){0,8}(?:is|are)\s+a\s+single\s+sources?\b"
+    r"|\b(?:in|from|as)\s+a\s+single\s+source\b,?\s*"
+    r"|\ba\s+single\s+source\b,?\s*"
+    r"|\bsingle sources?\s*:"
+)
+
+
+def _strip_single_source(text: str) -> str:
+    """Remove the research-path clause and leave the fact it was attached to."""
+    cleaned = _SINGLE_SOURCE_RE.sub("", text or "")
+    if re.search(r"\bsingle source\b", cleaned, re.IGNORECASE):
+        cleaned = re.sub(
+            r"(?i)(?:,\s*)?(?:and\s+)?[^,;.]{0,140}\bsingle sources?\b[^,;.]*",
+            "",
+            cleaned,
+        )
+    return re.sub(r"\s+", " ", cleaned).strip(" ,;:")
 _LAYOUT_NOTE_PHRASES = (
     "the two cards are the same size",
     "a missing statement stays a one-line gap",
@@ -1313,6 +1550,8 @@ def _gap_sentence(sentence: str) -> bool:
     if text in GAP_SENTENCES or text in _DOCKET_NOTES:
         return True
     if _NO_STATEMENT_RE.fullmatch(text.rstrip(".")):
+        return True
+    if _PUBLIC_RECORD_RE.fullmatch(text.rstrip(".")):
         return True
     match = GAP_NOT_FOUND_RE.fullmatch(text)
     if not match:
@@ -1600,7 +1839,7 @@ def _mask_markers(text: str) -> str:
 
 def _is_navigation_sentence(plain: str, exempt: set[str] | None = None) -> bool:
     text = re.sub(r"\s+", " ", plain or "").strip().rstrip(".")
-    if re.fullmatch(r":{3}(?:\s+[A-Za-z0-9_-]+)*", text):
+    if re.fullmatch(r":{3}(?:\s+(?:\{[^}]+\}|[A-Za-z0-9_-]+))*", text):
         return True
     if _NAV_LINK_RE.match(text):
         return True
@@ -1854,11 +2093,17 @@ def _docket_summary_errors(body: str) -> list[str]:
         errors.extend(_ordered_phrase_errors(chunk, _SUMMARY_ORDER, label))
         if kind != "bill":
             continue
-        errors.extend(_ordered_phrase_errors(chunk, _BILL_PAGE_ORDER, f"{label} later pages"))
         exact = chunk.find("Exact words on your ballot")
-        history = chunk.find(_BILL_PAGE_ORDER[0])
-        if exact >= 0 and history >= 0 and history < exact:
-            errors.append(f"final/guide.md: {label} history starts before the one-page summary")
+        positions = []
+        for phrase in _BILL_PAGE_ORDER:
+            found = chunk.find(phrase)
+            if found < 0:
+                continue
+            if exact >= 0 and found < exact:
+                errors.append(f"final/guide.md: {label} history starts before the one-page summary")
+            positions.append(found)
+        if positions != sorted(positions):
+            errors.append(f"final/guide.md: {label} later pages are out of order")
     return errors
 
 
@@ -1870,19 +2115,11 @@ def docket_layout_errors(text: str) -> list[str]:
     for phrase in _LAYOUT_NOTE_PHRASES:
         if phrase in lowered:
             errors.append(f"final/guide.md: layout note in the guide: {phrase}")
-    if "{#contest-" in body and "::: sheet" not in body:
+    if "{#contest-" in body and "::: {.sheet" not in body and "::: sheet" not in body:
         errors.append("final/guide.md: a contest is missing a page-break sheet")
     if "who is paying for their campaign?" in lowered and "months in this report" not in lowered:
         errors.append("final/guide.md: money table is missing the Months in this report row")
     errors.extend(_docket_summary_errors(body))
-    counts = [
-        len(re.findall(r"(?m)^### Education$", body)),
-        len(re.findall(r"(?m)^### Work$", body)),
-        len(re.findall(r"(?m)^### Time in elected office$", body)),
-        len(re.findall(r"(?m)^### Recorded votes$", body)),
-    ]
-    if len(set(counts)) != 1:
-        errors.append("final/guide.md: profile headings are not the same for every candidate")
     for line in body.splitlines():
         if not line.startswith("| "):
             continue
@@ -1920,6 +2157,7 @@ def assembled_guide_errors(
     if reader:
         errors.extend(reader_contest_budget_errors(text))
         errors.extend(reader_log_errors(text))
+        errors.extend(reader_voice_errors(text))
         errors.extend(reader_truncation_errors(text))
     errors.extend(docket_layout_errors(text))
     cited_text = addendum or text

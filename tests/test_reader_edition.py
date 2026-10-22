@@ -411,16 +411,16 @@ def test_running_header_names_the_section_and_updates_per_contest(tmp_path: Path
     assert not re.search(r"Mayor of Cedar Hollow\s+\d", cover)
     contest = next(page for page in pages if "Mayor body" in page)
     header = next(line for line in contest.splitlines() if line.strip())
-    assert "Races" in header
-    assert "Mayor of Cedar Hollow" not in header
+    assert "Mayor of Cedar Hollow" in header
+    assert "Races" not in header
     assert re.search(r"\d\s*$", header)
     continued = next(page for page in pages if "Mayor continued" in page)
     continued_header = next(line for line in continued.splitlines() if line.strip())
     assert re.search(r"\d\s*$", continued_header)
-    assert "Mayor of Cedar Hollow" not in continued_header
+    assert "Mayor of Cedar Hollow" in continued_header
     measure = next(page for page in pages if "Measure body" in page)
     measure_header = next(line for line in measure.splitlines() if line.strip())
-    assert "Measures" in measure_header
+    assert "Measure H" in measure_header
     assert "Mayor of Cedar Hollow" not in measure_header
     raw = pdf.read_bytes()
     streams = []
@@ -739,11 +739,11 @@ def test_reader_edition_drops_duplicate_process_and_portal_logs(tmp_path: Path):
     model = _GuideModel(tmp_path, "2026-10-21")
     reader, sources = model.render("reader")
     full, full_sources = model.render("full")
-    assert "Reviews: 0 of 2 candidate profiles were checked by a separate reviewer; the rest were checked in the same session, which is less independent." in reader
-    assert "| Ada One | Same session / Separate / Separate / Separate |" in reader
-    assert "| Bea Two | Same session / Separate / Separate / Separate |" in reader
-    assert plain in reader
-    assert reader.count(plain) == 2
+    assert "Reviews:" not in reader
+    assert "Same session" not in reader
+    assert plain not in reader
+    assert "could not be retrieved" not in reader
+    assert "No public record found" in reader
     assert "Cloudflare" not in reader
     assert "Sunbiz" not in reader
     assert "fresh-context" not in reader
@@ -847,15 +847,11 @@ def test_glance_is_a_list_and_markers_renumber_in_reading_order(tmp_path: Path):
     assert "<!-- marker-map:" in body
     assert "[^1050]" not in body
     assert "[^8412]" not in body
-    # The contents sentence is the first cited text, so those two markers are 1 and 2.
-    adjacent = re.search(
-        r"United States Senator<a id=\"cite-1\"></a>\[<sup>1</sup>\]\([^)]*\), "
-        r"<a id=\"cite-2\"></a>\[<sup>2</sup>\]",
-        body,
-    )
-    assert adjacent, body[body.find("United States Senator") : body.find("United States Senator") + 280]
+    contents = body.split("</table>", 1)[0]
+    assert "<sup>" not in contents
+    assert "3 candidates." in contents
     assert "Ballot status" not in body
-    assert "Not found" in body
+    assert "No public record found" in body
     assert "PAC money line" not in body
     assert reader_truncation_errors(body) == []
     assert any("ellipsis" in error for error in reader_truncation_errors(body + "\nThe levy begins...[^1]\n"))

@@ -129,7 +129,9 @@ def test_reader_pages_cover_a_race_a_measure_and_a_bill(tmp_path: Path):
     model = _GuideModel(tmp_path, "2026-10-22")
     body, _sources = model.render("reader")
     assert docket_layout_errors(body) == []
-    assert "::: sheet" in body
+    assert "::: {.sheet" in body
+    assert "::: pair count-many" not in body
+    assert "::: {.pair}" in body
     assert 'class="contents"' in body
     assert "No public statement found on positions." in body
     assert "Months in this report" in body
@@ -138,15 +140,16 @@ def test_reader_pages_cover_a_race_a_measure_and_a_bill(tmp_path: Path):
     assert "Exact words on your ballot" in body
     assert "What is the history of this bill?" in body
     assert "Who sponsored it, and who drafted it?" in body
-    assert "Who lobbied or testified?" in body
+    assert "Who lobbied or testified?" not in body
     assert "How did the chambers vote?" in body
     assert "| House | 100" in body
     assert "| Senate | 29" in body
-    assert "How did your legislators vote?" in body
+    assert "How did your legislators vote?" not in body
     assert "Related litigation" in body
     assert "The two cards are the same size" not in body
     assert "..." not in body
-    assert body.count("### Education") == body.count("### Work") == body.count("### Recorded votes")
+    assert "### Education" in body
+    assert "No public records found for:" in body
     assert "### Where do they stand?" in body
 
 
@@ -202,8 +205,164 @@ def test_every_measure_and_bill_is_checked_in_order():
     errors = docket_layout_errors(skipped)
     assert any("measure 2 is missing What would it cost?" in error for error in errors), errors
     bare_bill = bill.replace("### How did your legislators vote?\n", "")
-    errors = docket_layout_errors(measure + bare_bill)
-    assert any("How did your legislators vote?" in error for error in errors), errors
+    assert docket_layout_errors(measure + bare_bill) == []
+    early = (
+        "<!-- docket-bill -->\n"
+        "### What is the history of this bill?\n"
+        "## House Bill 18\n"
+        "### What is this about?\n"
+        "::: vote-box\n#### YES\n:::\n"
+        "::: vote-box\n#### NO\n:::\n"
+        "### Who supports it, and who opposes it?\n"
+        "### What would it cost?\n"
+        "::: ballot-words\n#### Exact words on your ballot\n:::\n"
+    )
+    errors = docket_layout_errors(measure + early)
+    assert any("history starts before" in error for error in errors), errors
+
+
+def test_a_repeated_quote_is_not_a_second_answer():
+    from lib.docket_pages import _issue_already_said
+
+    quote = (
+        "The office biography says she is focused on the border and the rule of law[^3]."
+    )
+    base = quote[:-1] + " (not found: see the search log)."
+    assert _issue_already_said(quote, base)
+    assert not _issue_already_said(
+        "She wrote a different sentence about housing costs[^4].",
+        base,
+    )
+
+
+def test_reader_voice_drops_process_sentences():
+    from lib.quality import plain_reader_sentence, reader_voice_errors
+
+    assert plain_reader_sentence("The sample ballot lists Ada for mayor[^1].") == "Ada for mayor[^1]."
+    assert plain_reader_sentence("Not found (searched: a degree).") == "No public record found."
+    kept = plain_reader_sentence("Ada raised 10 dollars, and this figure is a single source[^2].")
+    assert kept == "Ada raised 10 dollars[^2]."
+    assert plain_reader_sentence(
+        "The 2025 House final bill analysis says the bill adds a posting[^3]."
+    ) == "The bill adds a posting[^3]."
+    assert plain_reader_sentence("The precinct 122 sample ballot prints Ada for mayor[^4].") == "Ada for mayor[^4]."
+    assert plain_reader_sentence(
+        "The Brevard County precinct 122 sample ballot prints this measure as No. 1 Constitutional Amendment, titled Budget Stabilization Fund[^6]."
+    ) == "No. 1 Constitutional Amendment, titled Budget Stabilization Fund[^6]."
+    assert (
+        plain_reader_sentence("The 2025 House final bill analysis lists the sponsor as McClure[^5].")
+        == "The sponsor is McClure[^5]."
+    )
+    assert plain_reader_sentence(
+        "In a single source, the 2025 Senate bill history says officers signed HJR 5019 on June 17, 2025[^7]."
+    ) == "Officers signed HJR 5019 on June 17, 2025[^7]."
+    assert plain_reader_sentence(
+        "The 2025 House analysis says an ad valorem tax is a yearly tax[^8]."
+    ) == "An ad valorem tax is a yearly tax[^8]."
+    assert plain_reader_sentence(
+        "In a single source, the 2025 House final bill analysis says the Revenue Estimating Conference estimated a loss[^9]."
+    ) == "The Revenue Estimating Conference estimated a loss[^9]."
+    assert plain_reader_sentence(
+        "The June 16, 2026 analysis says the joint resolution is not subject to the Governor's veto[^10]."
+    ) == "The joint resolution is not subject to the Governor's veto[^10]."
+    assert plain_reader_sentence(
+        "The Florida house member list does not name Ada, and that list is a single source[^11]."
+    ) == "The Florida house member list does not name Ada[^11]."
+    assert plain_reader_sentence(
+        "The campaign site for Matt Woodside, says that since 2006 he has served as an educator, and that statement is a single source[^12]."
+    ) == "The campaign site for Matt Woodside says that since 2006 he has served as an educator[^12]."
+    assert plain_reader_sentence(
+        "The staff analysis says House Bill 18 applies to cities that run a parks department[^13]."
+    ) == "House Bill 18 applies to cities that run a parks department[^13]."
+    assert plain_reader_sentence(
+        "The House clerk recorded Ada as voting Aye, and the record label is MATCH[^14]."
+    ) == "The House clerk recorded Ada as voting Aye[^14]."
+    assert plain_reader_sentence(
+        "The index lists a letter dated 10/08/26, and the PDF was not opened, so this row is allegation only, and response requested, not found[^15]."
+    ) == "The index lists a letter dated 10/08/26[^15]."
+    assert plain_reader_sentence(
+        "The index lists an audit letter dated 09/28/26, and those PDFs were not opened, so the rows are allegation only, and response requested, not found[^16]."
+    ) == "The index lists an audit letter dated 09/28/26[^16]."
+    assert any("Says officers" in error for error in reader_voice_errors("Says officers signed the bill.\n"))
+    assert any("analysis says" in error for error in reader_voice_errors("The 2025 House analysis says the tax is yearly.\n"))
+    assert (
+        plain_reader_sentence(
+            "Florida business records could not be retrieved automatically; ownership was not verified."
+        )
+        == "No public record found."
+    )
+    leaked = "# Race\n\n::: pair count-many\n\nThe sample ballot lists Ada.\n"
+    errors = reader_voice_errors(leaked)
+    assert any("leaked fence" in error for error in errors)
+    assert any("sample ballot lists" in error for error in errors)
+    assert reader_voice_errors("# Race\n\n::: {.pair .count-many}\n\nAda is the mayor[^1].\n") == []
+
+
+def test_a_bill_named_in_the_measure_is_not_a_second_contest(tmp_path: Path):
+    dump_yaml(
+        tmp_path / "ballot.yaml",
+        {
+            "fiction": True,
+            "report_version": "v1.0",
+            "election": {"name": "Sample", "date": "2026-11-03"},
+            "contests": [
+                {"id": "measure-one", "item_id": "measure-one", "type": "measure", "title": "Amendment 1: Reserve"},
+                {"id": "bill-one", "item_id": "bill-one", "type": "legislation", "title": "HJR 5019, Reserve"},
+            ],
+        },
+    )
+    dump_yaml(tmp_path / "intake.yaml", {})
+    _item(
+        tmp_path,
+        "measure-one",
+        "# Amendment\n\n<!-- summary -->\nThe amendment raises a reserve[^4].\n\n"
+        "## Plain-language summary\n\nHJR 5019 raises the reserve cap[^4].\n\n"
+        "## What a yes vote does\n\nA yes vote raises the cap[^4].\n\n"
+        "## What a no vote does\n\nA no vote leaves the cap[^4].\n\n"
+        "## Official title\n\nAmendment 1[^4].\n",
+    )
+    _item(
+        tmp_path,
+        "bill-one",
+        "# HJR\n\n## Plain summary\n\nThe bill raises the cap[^5].\n\n"
+        "## Legislative history\n\nThe fund was created in 1992[^5].\n\n"
+        "## Roll-call votes\n\nThe House passed the bill by 100 yeas and 1 nay[^5].\n\n"
+        "## Related litigation\n\nNot found (searched: a filed case).\n",
+    )
+    body, _sources = _GuideModel(tmp_path, "2026-10-22").render("reader")
+    assert "{#contest-bill-one" not in body
+    assert "{#contest-measure-one" in body
+    assert "What is the history of this bill?" in body
+    assert "| House | 100" in body
+    assert "Related litigation" in body
+    assert "HJR 5019, Reserve" not in body.split("What's on your ballot")[0]
+
+
+def test_sparse_pages_fail_and_the_cover_is_exempt():
+    from check_pdf_layout import sparse_page_errors
+
+    sparse = (
+        '<doc><page width="612" height="792">'
+        '<word xMin="72" yMin="72" xMax="140" yMax="84">Cover</word>'
+        '</page><page width="612" height="792">'
+        '<word xMin="72" yMin="72" xMax="140" yMax="84">Only</word>'
+        "</page></doc>"
+    )
+    errors = sparse_page_errors(sparse)
+    assert any("page 2" in error for error in errors)
+    assert not any("page 1" in error for error in errors)
+    wide = 400 * 12
+    dense = (
+        '<doc><page width="612" height="792">'
+        '<word xMin="72" yMin="72" xMax="472" yMax="84">Cover</word>'
+        '</page><page width="612" height="792">'
+        + "".join(
+            f'<word xMin="72" yMin="{80 + index * 14}" xMax="{72 + wide}" yMax="{92 + index * 14}">Line</word>'
+            for index in range(30)
+        )
+        + "</page></doc>"
+    )
+    assert sparse_page_errors(dense) == []
 
 
 def test_letter_pages_reject_a_non_letter_size():

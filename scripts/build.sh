@@ -91,7 +91,7 @@ build_one() {
   (
     cd "$WORKSPACE/final"
     pandoc "$source_md" \
-      --from markdown+footnotes+header_attributes \
+      --from markdown+footnotes+header_attributes+fenced_divs \
       --to html5 \
       --standalone \
       --template "$ROOT/assets/guide.html.tmpl" \

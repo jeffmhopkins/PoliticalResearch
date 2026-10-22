@@ -22,6 +22,10 @@ LETTER = (612.0, 792.0)
 MIN_MARKER_PT = 5.0
 OVERFLOW_PT = 1.0
 MIN_COLUMN_PT = 108.0
+# Word-box area over page area. A cover is exempt. A page that is only a
+# running header and one stray line falls under this.
+MIN_WORD_COVERAGE = 0.02
+_LEAKED_WORD = {":::", "=", "count-many", "count-1"}
 COLUMN_GAP_PT = 18.0
 MAX_CANDIDATES_PER_TABLE = 3
 MAX_PORTRAIT_COLUMNS = MAX_CANDIDATES_PER_TABLE + 1
@@ -146,6 +150,8 @@ def errors_from_bbox(xml: str, *, min_text_pt: float = MIN_TEXT_PT) -> list[str]
             y_min = attrs.get("yMin", 0)
             y_max = attrs.get("yMax", 0)
             words.append((x_min, y_min, x_max, y_max, text))
+            if text in _LEAKED_WORD or text.startswith(":::"):
+                errors.append(f"page {index}: leaked markup {text[:40]!r}")
             if x_min < -OVERFLOW_PT or y_min < -OVERFLOW_PT or x_max > width + OVERFLOW_PT or y_max > height + OVERFLOW_PT:
                 errors.append(
                     f"page {index}: {text[:40]!r} extends outside the page "
@@ -231,6 +237,35 @@ def html_layout_errors(html: str) -> list[str]:
     return parser.errors
 
 
+def sparse_page_errors(xml: str, *, min_coverage: float = MIN_WORD_COVERAGE) -> list[str]:
+    """Flag pages whose words cover almost none of the sheet. Page 1 is the cover."""
+    errors: list[str] = []
+    pages = list(_PAGE_RE.finditer(xml or ""))
+    for index, page in enumerate(pages, start=1):
+        if index == 1:
+            continue
+        box = _attrs(page.group(1))
+        width = box.get("width", 0)
+        height = box.get("height", 0)
+        page_area = width * height
+        if page_area <= 0:
+            continue
+        end = pages[index].start() if index < len(pages) else len(xml)
+        chunk = xml[page.end() : end]
+        word_area = 0.0
+        for word in _WORD_RE.finditer(chunk):
+            attrs = _attrs(word.group(1))
+            if "xMin" not in attrs or "xMax" not in attrs:
+                continue
+            word_area += max(0.0, attrs["xMax"] - attrs["xMin"]) * max(0.0, attrs.get("yMax", 0) - attrs.get("yMin", 0))
+        coverage = word_area / page_area
+        if coverage < min_coverage:
+            errors.append(f"page {index}: text coverage {coverage:.3f} is below {min_coverage:.3f}")
+            if len(errors) >= 20:
+                break
+    return errors
+
+
 def layout_errors(pdf: Path, *, min_text_pt: float = MIN_TEXT_PT) -> list[str]:
     if not pdf.is_file():
         return [f"PDF not found: {pdf}"]
@@ -248,6 +283,7 @@ def layout_errors(pdf: Path, *, min_text_pt: float = MIN_TEXT_PT) -> list[str]:
         detail = (result.stderr or "pdftotext failed").strip()
         return [f"pdftotext -bbox failed: {detail[:300]}"]
     errors = errors_from_bbox(result.stdout, min_text_pt=min_text_pt)
+    errors.extend(sparse_page_errors(result.stdout))
     html_path = pdf.with_suffix(".html")
     if html_path.is_file():
         errors.extend(html_layout_errors(html_path.read_text(encoding="utf-8")))

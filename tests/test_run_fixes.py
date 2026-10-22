@@ -384,8 +384,9 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "# What's on your ballot" in guide
     assert "<table class=\"contents\">" in guide
     assert "Contest" in guide and "What it is" in guide and "Page" in guide
-    assert "# Official election office links" in guide
-    assert "::: sheet" in guide
+    assert "# Official election office links" not in guide
+    assert "# Official election office links" in full
+    assert "::: {.sheet" in guide
     assert "Months in this report" in guide
     assert "What is this about?" in guide
     assert "Exact words on your ballot" in guide
@@ -412,16 +413,16 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "# Marker index" not in guide
     assert "# Changelog" not in guide
     assert "- cand-quinn:" not in guide
-    assert "Reviews: 1 of 2 candidate profiles were checked by a separate reviewer." in guide
-    assert "| Avery Quinn | Separate / Separate / Separate / Separate |" in guide
-    assert "| Blake Okonkwo | Not signed / Not signed / Not signed / Not signed |" in guide
+    assert "Reviews:" not in guide
+    assert "Same session" not in guide
+    assert "Tier T1" not in guide
     assert "fresh-context" not in guide
     assert "process gap" not in guide.lower()
     assert "status signed-off, round 1, mode initial — cand-quinn" in full
     assert "Mayor of Cedar Hollow: status" not in guide
     assert "{#profile-cand-quinn" in guide
     assert "{#profile-cand-quinn" in full
-    assert "guide-full.md#profile-cand-quinn" in guide
+    assert "guide-full.md#profile-cand-quinn" not in guide
     assert "guide-sources.md#source-" in guide
     assert "#source-1" in sources
     assert "#cite-1" in sources
@@ -446,7 +447,9 @@ def test_reader_and_full_editions_follow_the_layout_rules():
     assert "# Changelog" in full
     assert "# Works cited" not in full
     assert "# Works cited" in full_sources
-    assert "Not an official ballot" in guide
+    template = (EXAMPLE.parents[1] / "assets" / "guide.html.tmpl").read_text(encoding="utf-8")
+    assert "Not an official ballot" in template
+    assert "Content hash" not in template
     assert "disputed" in guide
     from lib.quality import READER_CONTEST_WORD_BUDGET, reader_contest_budget_errors
 
