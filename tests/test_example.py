@@ -74,7 +74,7 @@ def test_build_writes_html_and_pdf(tmp_path: Path):
     copy = tmp_path / "sample"
     shutil.copytree(EXAMPLE, copy, ignore=shutil.ignore_patterns("guide.html", "guide.pdf", "guide.css"))
     result = subprocess.run(
-        ["bash", "scripts/build.sh", "--workspace", str(copy)],
+        ["bash", "scripts/build.sh", "--workspace", str(copy), "--today", "2026-10-20", "--now", "2026-10-20 12:00 ET"],
         cwd=ROOT,
         capture_output=True,
         text=True,

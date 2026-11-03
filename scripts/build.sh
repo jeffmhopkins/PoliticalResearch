@@ -7,9 +7,11 @@ WORKSPACE=""
 ELECTION=""
 
 THEME=""
+TODAY=""
+NOW=""
 
 usage() {
-  echo "Usage: scripts/build.sh --workspace PATH | --election-id ID [--theme docket|docket-color|charter|folio]" >&2
+  echo "Usage: scripts/build.sh --workspace PATH | --election-id ID [--theme docket|docket-color|charter|folio] [--today YYYY-MM-DD] [--now 'YYYY-MM-DD HH:MM ET']" >&2
 }
 
 while [[ $# -gt 0 ]]; do
@@ -17,6 +19,8 @@ while [[ $# -gt 0 ]]; do
     --workspace) WORKSPACE="${2:-}"; shift 2 ;;
     --election-id|--election) ELECTION="${2:-}"; shift 2 ;;
     --theme) THEME="${2:-}"; shift 2 ;;
+    --today) TODAY="${2:-}"; shift 2 ;;
+    --now) NOW="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 2 ;;
   esac
@@ -55,7 +59,14 @@ PY="$ROOT/.venv/bin/python"
 if [[ ! -x "$PY" ]]; then
   PY="python3"
 fi
-if ! "$PY" "$ROOT/scripts/validate.py" --workspace "$WORKSPACE" --gate; then
+GATE=("$PY" "$ROOT/scripts/validate.py" --workspace "$WORKSPACE" --gate)
+if [[ -n "$TODAY" ]]; then
+  GATE+=(--today "$TODAY")
+fi
+if [[ -n "$NOW" ]]; then
+  GATE+=(--now "$NOW")
+fi
+if ! "${GATE[@]}"; then
   echo "Assembly gate failed." >&2
   exit 1
 fi

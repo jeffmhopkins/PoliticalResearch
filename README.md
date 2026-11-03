@@ -40,7 +40,7 @@ You can practice on the fictional fixture without touching a real ballot:
 ```bash
 ./bootstrap.sh
 .venv/bin/python -m pytest
-./scripts/build.sh --workspace examples/sample-election
+./scripts/build.sh --workspace examples/sample-election --today 2026-10-20 --now "2026-10-20 12:00 ET"
 ```
 
 Open [examples/sample-election/final/guide.md](examples/sample-election/final/guide.md). It is fiction. Cedar Hollow, Westland, Avery Quinn, and Blake Okonkwo are not real. See [examples/sample-election/README.md](examples/sample-election/README.md).
@@ -107,7 +107,7 @@ Policies in `policy/` are binding. If `AGENTS.md` and a policy disagree, the str
 ```bash
 .venv/bin/python -m pytest
 .venv/bin/python scripts/validate.py --workspace examples/sample-election --gate --today 2026-10-20
-./scripts/build.sh --workspace examples/sample-election
+./scripts/build.sh --workspace examples/sample-election --today 2026-10-20 --now "2026-10-20 12:00 ET"
 ```
 
 4. For a throwaway workspace that does not use a real address:

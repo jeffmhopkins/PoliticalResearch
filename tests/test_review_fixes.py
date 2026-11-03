@@ -907,7 +907,7 @@ def test_fetch_refuses_shared_space_and_checks_each_redirect_first(monkeypatch):
 
 def test_relative_workspace_build_finds_the_guide():
     result = subprocess.run(
-        ["bash", "scripts/build.sh", "--workspace", "examples/sample-election"],
+        ["bash", "scripts/build.sh", "--workspace", "examples/sample-election", "--today", "2026-10-20", "--now", "2026-10-20 12:00 ET"],
         cwd=ROOT,
         capture_output=True,
         text=True,
