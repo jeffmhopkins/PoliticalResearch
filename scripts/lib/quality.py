@@ -3692,6 +3692,9 @@ def depth_record_errors(workspace) -> list[str]:
     clean bill of health. Ethics lines are final orders. Term limits name the
     eligible-through year. Bills cite a staff analysis or say it was not found.
     Legislator votes follow district labels and never a street address.
+    A judicial retention or judicial race names majority opinions and dissents,
+    the Judicial Qualifications Commission, and the bar retention poll, or it
+    cites the opinion, the coverage, and the poll.
     """
     errors: list[str] = []
     ballot = load_yaml(workspace / "ballot.yaml") or {}
@@ -3714,13 +3717,147 @@ def depth_record_errors(workspace) -> list[str]:
         sections = section_map(draft_path.read_text(encoding="utf-8"))
         item_type = str(doc.get("item_type") or "")
         if item_type in PERSON_ITEM_TYPES:
-            errors.extend(_candidate_depth_errors(item.name, item, doc, sections, item_type))
+            errors.extend(_candidate_depth_errors(item.name, item, doc, sections, item_type, ballot))
         if item_type == "legislation":
             errors.extend(_legislation_depth_fields(item.name, doc, sections, districts))
     return errors
 
 
-def _candidate_depth_errors(item_name: str, item: Path, doc: dict, sections: dict, item_type: str) -> list[str]:
+_OPINION_DOC_TYPES = {
+    "court opinion",
+    "majority opinion",
+    "dissenting opinion",
+    "dissent",
+}
+_RULING_COVERAGE_DOC_TYPES = {"news article", "news report"}
+_BAR_POLL_DOC_TYPES = {"bar retention poll", "bar poll"}
+_JQC_DOC_TYPES = {"jqc order", "jqc complaint", "jqc notice"}
+_RULING_DECISION_RE = re.compile(
+    r"\b(?:held|decided|affirmed|reversed|vacated|dissented)\b",
+    re.IGNORECASE,
+)
+_RULING_ATTENTION_RE = re.compile(
+    r"\b(?:attention|dissent|contested|divided|coverage)\b",
+    re.IGNORECASE,
+)
+_JUDICIAL_VOTE_ADVICE_RE = re.compile(
+    r"\b(?:how to vote|vote yes|vote no|should be retained|should not be retained)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_judicial_research_item(item_type: str, item_name: str, ballot: dict) -> bool:
+    """Retention items, and candidates on a contest marked judicial."""
+    if item_type == "judicial-retention":
+        return True
+    contests = ballot.get("contests") if isinstance(ballot, dict) else None
+    if not isinstance(contests, list):
+        return False
+    for contest in contests:
+        if not isinstance(contest, dict):
+            continue
+        if contest.get("type") != "judicial-retention" and contest.get("level") != "judicial":
+            continue
+        ids = {str(contest.get("item_id") or ""), str(contest.get("id") or "")}
+        for cand in contest.get("candidates") or []:
+            if isinstance(cand, dict):
+                ids.add(str(cand.get("id") or cand.get("item_id") or ""))
+            elif cand:
+                ids.add(str(cand))
+        if item_name in ids:
+            return True
+    return False
+
+
+def _section_claims(doc: dict, section: str) -> list[dict]:
+    found = []
+    for claim in doc.get("claims") or []:
+        if not isinstance(claim, dict) or claim.get("removed"):
+            continue
+        if norm_heading(str(claim.get("section") or "")) == section:
+            found.append(claim)
+    return found
+
+
+def _claim_sources(claim: dict) -> list[dict]:
+    return [source for source in (claim.get("sources") or []) if isinstance(source, dict)]
+
+
+def _judicial_vote_advice(errors: list[str], item_name: str, section: str, text: str) -> None:
+    if text and _JUDICIAL_VOTE_ADVICE_RE.search(text):
+        errors.append(f"{item_name}: {section} does not tell the reader how to vote")
+
+
+def _judicial_research_errors(item_name: str, doc: dict, sections: dict) -> list[str]:
+    """Plain ruling summaries, JQC records, and bar polls, or a named gap."""
+    errors: list[str] = []
+    rulings = _require_real_section(errors, item_name, sections, "notable rulings", True)
+    _judicial_vote_advice(errors, item_name, "notable rulings", rulings)
+    if rulings and _is_gap_text(rulings):
+        blob = rulings.lower()
+        if "majority" not in blob or "dissent" not in blob:
+            errors.append(f"{item_name}: a rulings gap names majority opinions and dissents")
+    elif rulings:
+        claims = _section_claims(doc, "notable rulings")
+        if not claims:
+            errors.append(f"{item_name}: notable rulings need a cited opinion or a not-found line")
+        for claim in claims:
+            text = str(claim.get("text") or "")
+            _judicial_vote_advice(errors, item_name, "notable rulings", text)
+            if not _RULING_DECISION_RE.search(text):
+                errors.append(f"{item_name}: {claim.get('id')} says what the court decided")
+            if not _RULING_ATTENTION_RE.search(text):
+                errors.append(f"{item_name}: {claim.get('id')} says why the ruling drew attention")
+            sources = _claim_sources(claim)
+            if not any(str(source.get("tier") or "") == "T1" and _doc_type(source) in _OPINION_DOC_TYPES for source in sources):
+                errors.append(f"{item_name}: {claim.get('id')} cites the court opinion")
+            if not any(
+                str(source.get("tier") or "") in {"T2", "T3"} and _doc_type(source) in _RULING_COVERAGE_DOC_TYPES
+                for source in sources
+            ):
+                errors.append(f"{item_name}: {claim.get('id')} cites reputable coverage")
+    discipline = _require_real_section(errors, item_name, sections, "discipline record", True)
+    _judicial_vote_advice(errors, item_name, "discipline record", discipline)
+    if discipline and _is_gap_text(discipline):
+        blob = discipline.lower()
+        if "judicial qualifications" not in blob and "jqc" not in blob:
+            errors.append(f"{item_name}: a discipline gap names the Judicial Qualifications Commission")
+    elif discipline:
+        lowered = discipline.lower()
+        if "judicial qualifications" not in lowered and "jqc" not in lowered:
+            errors.append(f"{item_name}: discipline record names the Judicial Qualifications Commission")
+        if re.search(r"\bcomplaint\b", lowered) and not re.search(
+            r"\b(?:allegation only|not a finding|dismissed|no probable cause)\b",
+            lowered,
+        ):
+            errors.append(f"{item_name}: a JQC complaint is not a finding")
+        claims = _section_claims(doc, "discipline record")
+        sources = [source for claim in claims for source in _claim_sources(claim)]
+        if not any(_doc_type(source) in _JQC_DOC_TYPES for source in sources):
+            errors.append(f"{item_name}: discipline record cites a JQC document")
+    performance = _require_real_section(errors, item_name, sections, "performance evaluation", True)
+    _judicial_vote_advice(errors, item_name, "performance evaluation", performance)
+    if performance and _is_gap_text(performance):
+        if "bar retention poll" not in performance.lower():
+            errors.append(f"{item_name}: a performance gap names the bar retention poll")
+    elif performance:
+        if "poll" not in performance.lower():
+            errors.append(f"{item_name}: performance evaluation states the bar retention poll")
+        claims = _section_claims(doc, "performance evaluation")
+        sources = [source for claim in claims for source in _claim_sources(claim)]
+        if not any(_doc_type(source) in _BAR_POLL_DOC_TYPES for source in sources):
+            errors.append(f"{item_name}: performance evaluation cites the bar retention poll")
+    return errors
+
+
+def _candidate_depth_errors(
+    item_name: str,
+    item: Path,
+    doc: dict,
+    sections: dict,
+    item_type: str,
+    ballot: dict | None = None,
+) -> list[str]:
     errors: list[str] = []
     funding = _require_real_section(errors, item_name, sections, "campaign funding", True)
     if funding and not _is_gap_text(funding):
@@ -3791,6 +3928,8 @@ def _candidate_depth_errors(item_name: str, item: Path, doc: dict, sections: dic
     limits = _require_real_section(errors, item_name, sections, "term limits", True)
     if limits and not _is_gap_text(limits) and not re.search(r"eligible through\s+\d{4}", limits, re.IGNORECASE):
         errors.append(f"{item_name}: term limits need an eligible-through year or a not-found line")
+    if _is_judicial_research_item(item_type, item_name, ballot or {}):
+        errors.extend(_judicial_research_errors(item_name, doc, sections))
     if item_type == "judicial-retention":
         return errors
     promises = _require_real_section(errors, item_name, sections, "promises versus record", True)

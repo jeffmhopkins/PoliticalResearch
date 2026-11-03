@@ -1,4 +1,5 @@
 <!-- Core sections are required for every candidate in the race. Optional sections stay only when the rule in the comment is met. -->
+<!-- A judicial race, including a nonpartisan trial or appellate contest, uses the same rulings step as templates/judicial-retention.md: majority opinions and dissents, the Judicial Qualifications Commission, and the bar retention poll. Say what the court decided and why the case drew attention. Cite the opinion and a reputable account, or keep the gap line. -->
 <!-- The reader collapses a section that is only a gap into one line and moves the search path to the search log. Keep the heading here. -->
 <!-- Optional profile.yaml: issues (same keys for every candidate), money.report_date, gaps, fields, party, and endorsements. A fact in that file still needs a marker. party.display is the cited line on the card and in the comparison. -->
 
