@@ -55,6 +55,8 @@ A cloud VM snapshot can be an old commit. Before research, `git fetch origin mai
 
 `depth` on intake is `quick`, `standard`, or `deep`. Standard research for a full ballot is about 30 to 50 agent-hours. Quick covers the official ballot, filings, and the candidate's own words. Deep adds the record behind those words. The same depth applies to every candidate in a race. Parallel researchers are allowed. Parallel reviewers still need a fresh context. A solo session may draft claims only while it is acting as the researcher. A sign-off in that same context is a process gap (`loop.py signoff --same-context`), not a silent pass. These notes are guidance. They do not lower a gate.
 
+Judicial retention and judicial races use the same rulings step for every judge. Search majority opinions and dissents, Judicial Qualifications Commission complaints and discipline, and bar retention poll results. The draft says in plain words what the court decided and why the case drew attention, cites the opinion and a reputable account, and leaves `Not found (searched: ...)` when a search finds nothing. A complaint is not a finding. The page does not tell the reader how to vote.
+
 # Phases
 
 | # | Phase | Owner | Gate |

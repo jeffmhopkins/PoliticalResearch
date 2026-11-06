@@ -27,19 +27,21 @@ Not found (searched: not started).
 
 ## Performance evaluation
 
-<!-- Official judicial performance evaluation where it exists, and bar ratings labeled by the group that issued them. -->
+<!-- Bar retention poll results, as plain counts, labeled by the bar that published them. An official evaluation, when one exists, stays labeled by the group that issued it. When the poll was not found, keep the gap line. -->
 
-Not found (searched: not started).
+Not found (searched: bar retention poll).
 
 ## Notable rulings
 
-<!-- Neutral description plus the case citation. -->
+<!-- For each notable or contested majority opinion and each dissent, say in plain words what the court decided and why the case drew attention. Cite the court opinion and a reputable news or reference account. When that search finds nothing, keep the gap line. -->
 
-Not found (searched: not started).
+Not found (searched: majority opinions and dissents).
 
 ## Discipline record
 
-Not found (searched: not started).
+<!-- Judicial Qualifications Commission complaints and public discipline. A complaint is not a finding. Name the order, the date, and the outcome, or keep the gap line. -->
+
+Not found (searched: Judicial Qualifications Commission).
 
 ## Issue positions
 
